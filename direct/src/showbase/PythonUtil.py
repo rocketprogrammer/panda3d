@@ -2823,3 +2823,4 @@ builtins.configIsToday = configIsToday
 builtins.typeName = typeName
 builtins.safeTypeName = safeTypeName
 builtins.histogramDict = histogramDict
+builtins.choice = choice
