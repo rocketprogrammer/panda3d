@@ -1,4 +1,5 @@
-from pandac.PandaModules import *
+from panda3d.core import *
+from panda3d.direct import DCPacker
 from MsgTypes import *
 from direct.showbase import ShowBase # __builtin__.config
 from direct.task.TaskManagerGlobal import * # taskMgr

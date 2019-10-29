@@ -2703,7 +2703,7 @@ def recordCreationStack(cls):
         return self._creationStackTrace.compact()
 
     def printCreationStackTrace(self):
-        print self._creationStackTrace
+        print(self._creationStackTrace)
 
     cls.__init__ = __recordCreationStack_init__
     cls.getCreationStackTrace = getCreationStackTrace
