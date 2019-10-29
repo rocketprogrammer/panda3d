@@ -1,9 +1,10 @@
-from pandac.PandaModules import *
-from MsgTypes import *
+from panda3d.core import *
+from panda3d.direct import *
+from .MsgTypes import *
 from direct.directnotify import DirectNotifyGlobal
-from ConnectionRepository import ConnectionRepository
-from PyDatagram import PyDatagram
-from PyDatagramIterator import PyDatagramIterator
+from .ConnectionRepository import ConnectionRepository
+from .PyDatagram import PyDatagram
+from .PyDatagramIterator import PyDatagramIterator
 
 class AstronDatabaseInterface:
     """
@@ -57,7 +58,7 @@ class AstronDatabaseInterface:
         dg.addUint32(ctx)
         dg.addUint16(dclass.getNumber())
         dg.addUint16(fieldCount)
-        dg.appendData(fieldPacker.getString())
+        dg.appendData(fieldPacker.getBytes())
         self.air.send(dg)
 
     def handleCreateObjectResp(self, di):
@@ -149,7 +150,7 @@ class AstronDatabaseInterface:
             unpacker = DCPacker()
             unpacker.setUnpackData(di.getRemainingBytes())
             fields = {}
-            for x in xrange(fieldCount):
+            for x in range(fieldCount):
                 fieldId = unpacker.rawUnpackInt16()
                 field = dclass.getFieldByIndex(fieldId)
 
@@ -239,7 +240,7 @@ class AstronDatabaseInterface:
         dg.addUint32(doId)
         if fieldCount != 1:
             dg.addUint16(fieldCount)
-        dg.appendData(fieldPacker.getString())
+        dg.appendData(fieldPacker.getBytes())
         self.air.send(dg)
 
         if oldFields is None and callback is not None:
@@ -276,7 +277,7 @@ class AstronDatabaseInterface:
             unpacker = DCPacker()
             unpacker.setUnpackData(di.getRemainingBytes())
             fields = {}
-            for x in xrange(fieldCount):
+            for x in range(fieldCount):
                 fieldId = unpacker.rawUnpackInt16()
                 field = self.air.getDcFile().getFieldByIndex(fieldId)
 
