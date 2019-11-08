@@ -179,9 +179,15 @@ receive_update_broadcast_required_owner(PyObject *distobj,
   for (int i = 0; i < num_fields && !PyErr_Occurred(); ++i) {
     DCField *field = _this->get_inherited_field(i);
     if (field->as_molecular_field() == nullptr &&
-        field->is_required() && (field->is_ownrecv() || field->is_broadcast())) {
+        field->is_required()) {
       packer.begin_unpack(field);
-      invoke_extension(field).receive_update(packer, distobj);
+      if (field->is_ownrecv()) {
+        invoke_extension(field).receive_update(packer, distobj);
+      } else {
+        // It's not an ownrecv field; skip over it.  It's difficult to filter
+        // this on the server, ask Roger for the reason.
+        packer.unpack_skip();
+      }
       if (!packer.end_unpack()) {
         break;
       }
