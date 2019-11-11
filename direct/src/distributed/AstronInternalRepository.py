@@ -9,7 +9,7 @@ from .PyDatagram import PyDatagram
 from .PyDatagramIterator import PyDatagramIterator
 from .AstronDatabaseInterface import AstronDatabaseInterface
 from .NetMessenger import NetMessenger
-
+import collections
 
 # Helper functions for logging output:
 def msgpack_length(dg, length, fix, maxfix, tag8, tag16, tag32):
