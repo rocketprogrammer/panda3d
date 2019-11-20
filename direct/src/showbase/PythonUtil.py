@@ -3024,6 +3024,11 @@ def describeException(backTrace=4):
     description += '%s: %s' % (exceptionName, extraInfo)
     return description
 
+def triglerp(v0, v1, t):
+    x = lerp(-math.pi / 2, math.pi / 2, t)
+    v = math.sin(x)
+    return lerp(v0, v1, (v + 1.0) / 2.0)
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
