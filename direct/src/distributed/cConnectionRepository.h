@@ -26,9 +26,6 @@
 #include "reMutex.h"
 #include "reMutexHolder.h"
 
-#include "configVariableBool.h"
-extern ConfigVariableBool astron_support;
-
 #ifdef HAVE_NET
 #include "queuedConnectionManager.h"
 #include "connectionWriter.h"
