@@ -590,12 +590,12 @@ ai_format_generate(PyObject *distobj, DOID_TYPE do_id,
   packer.raw_pack_uint8(1);
   packer.RAW_PACK_CHANNEL(district_channel_id);
   packer.RAW_PACK_CHANNEL(from_channel_id);
-    // packer.raw_pack_uint8('A');
+  // packer.raw_pack_uint8('A');
 
   bool has_optional_fields = (PyObject_IsTrue(optional_fields) != 0);
 
-    if (has_optional_fields) {
-      packer.raw_pack_uint16(STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER);
+  if (has_optional_fields) {
+    packer.raw_pack_uint16(STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER);
     } else {
       packer.raw_pack_uint16(STATESERVER_OBJECT_GENERATE_WITH_REQUIRED);
     }
@@ -606,7 +606,6 @@ ai_format_generate(PyObject *distobj, DOID_TYPE do_id,
     packer.raw_pack_uint32(zone_id);
     packer.raw_pack_uint16(_this->_number);
     packer.raw_pack_uint32(do_id);
-  }
 
   // Specify all of the required fields.
   int num_fields = _this->get_num_inherited_fields();

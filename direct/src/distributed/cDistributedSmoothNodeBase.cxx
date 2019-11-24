@@ -283,7 +283,6 @@ begin_send_update(DCPacker &packer, const std::string &field_name) {
     packer.RAW_PACK_CHANNEL(_ai_id);
     // packer.raw_pack_uint8('A');
     packer.raw_pack_uint16(STATESERVER_OBJECT_UPDATE_FIELD);
-    }
     packer.raw_pack_uint32(_do_id);
     packer.raw_pack_uint16(field->get_number());
 

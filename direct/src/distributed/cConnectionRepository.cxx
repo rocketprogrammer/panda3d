@@ -906,20 +906,13 @@ describe_message(std::ostream &out, const string &prefix,
 
     packer.RAW_UNPACK_CHANNEL();  // msg_sender
     msg_type = packer.raw_unpack_uint16();
-    if (astron_support) {
-      is_update = (msg_type == STATESERVER_OBJECT_SET_FIELD);
-    } else {
-      is_update = (msg_type == STATESERVER_OBJECT_UPDATE_FIELD);
-    }
+    
+    is_update = (msg_type == STATESERVER_OBJECT_UPDATE_FIELD);
 
   } else {
     msg_type = packer.raw_unpack_uint16();
-    if (astron_support) {
-      is_update = (msg_type == CLIENT_OBJECT_SET_FIELD);
-    } else {
-      is_update = (msg_type == CLIENT_OBJECT_UPDATE_FIELD);
+    is_update = (msg_type == CLIENT_OBJECT_UPDATE_FIELD);
     }
-  }
 
   if (!is_update) {
     // figure out the name of the message TODO: print out the arguments to the
