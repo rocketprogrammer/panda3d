@@ -1629,26 +1629,6 @@ run_ssl_handshake() {
     return false;
   }
 
-  X509_NAME *subject = X509_get_subject_name(cert);
-  if (downloader_cat.is_debug()) {
-    string org_name = get_x509_name_component(subject, NID_organizationName);
-    string org_unit_name = get_x509_name_component(subject, NID_organizationalUnitName);
-    string common_name = get_x509_name_component(subject, NID_commonName);
-
-    downloader_cat.debug()
-      << _NOTIFY_HTTP_CHANNEL_ID
-      << "Server is " << common_name << " from " << org_unit_name
-      << " / " << org_name << "\n";
-
-    if (downloader_cat.is_spam()) {
-      downloader_cat.spam()
-        << _NOTIFY_HTTP_CHANNEL_ID
-        << "Received certificate from server:\n" << std::flush;
-      X509_print_fp(stderr, cert);
-      fflush(stderr);
-    }
-  }
-
   bool cert_preapproved = false;
   bool cert_name_preapproved = false;
   check_preapproved_server_certificate(cert, cert_preapproved, cert_name_preapproved);

@@ -19,6 +19,15 @@ from makepandacore import ColorText, LocateBinary, GetExtensionSuffix, SetVerbos
 from base64 import urlsafe_b64encode
 
 
+def get_real_filepath(filename):
+    if sys.version_info[0] >= 3:
+        from pathlib import Path
+        return str(Path(filename).resolve())
+    else:
+        # well then...
+        return os.path.realpath(filename)
+
+
 def get_abi_tag():
     if sys.version_info >= (3, 0):
         soabi = get_config_var('SOABI')
@@ -592,6 +601,14 @@ def makewheel(version, output_dir, platform=None):
             whl.lib_path += ["/lib", "/usr/lib"]
 
         whl.ignore_deps.update(MANYLINUX_LIBS)
+    elif platform.startswith('linux'):
+        whl.lib_path.append('/usr/local/lib')
+        whl.lib_path.append('/usr/lib')
+
+        if platform.endswith("_x86_64"):
+            whl.lib_path += ["/lib64", "/usr/lib64"]
+        else:
+            whl.lib_path += ["/lib", "/usr/lib"]
 
     # Add the trees with Python modules.
     whl.write_directory('direct', direct_dir)
@@ -731,6 +748,11 @@ if __debug__:
     else:
         pylib_name = get_config_var('LDLIBRARY')
         pylib_path = os.path.join(get_config_var('LIBDIR'), pylib_name)
+        # check if we got a symlink file
+        if pylib_path != get_real_filepath(pylib_path):
+            # get the *actual* file, and not a symlink
+            pylib_path = get_real_filepath(pylib_path)
+            pylib_name = pylib_path.split(os.path.sep)[-1]
     whl.write_file('deploy_libs/' + pylib_name, pylib_path)
 
     whl.close()
