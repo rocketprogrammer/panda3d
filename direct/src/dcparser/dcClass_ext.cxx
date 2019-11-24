@@ -23,11 +23,6 @@
 
 #ifdef HAVE_PYTHON
 
-ConfigVariableBool astron_support
-("astron-support", true,
- PRC_DESC("Set this true to use the Astron specific message types for messages. "
-          "If this is false, OTP specific messages would be used instead."));
-
 /**
  * Returns true if the DCClass object has an associated Python class
  * definition, false otherwise.
@@ -599,22 +594,6 @@ ai_format_generate(PyObject *distobj, DOID_TYPE do_id,
 
   bool has_optional_fields = (PyObject_IsTrue(optional_fields) != 0);
 
-  if (astron_support) {
-    // We want to use Astron's CREATE_OBJECT here.
-    if (has_optional_fields) {
-      packer.raw_pack_uint16(STATESERVER_CREATE_OBJECT_WITH_REQUIRED_OTHER);
-    } else {
-      packer.raw_pack_uint16(STATESERVER_CREATE_OBJECT_WITH_REQUIRED);
-    }
-
-    packer.raw_pack_uint32(do_id);
-    // Parent is a bit overloaded; this parent is not about inheritance, this
-    // one is about the visibility container parent, i.e.  the zone parent:
-    packer.raw_pack_uint32(parent_id);
-    packer.raw_pack_uint32(zone_id);
-    packer.raw_pack_uint16(_this->_number);
-  } else {
-    // Or we want to use OTP's OBJECT_GENERATE instead.
     if (has_optional_fields) {
       packer.raw_pack_uint16(STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER);
     } else {

@@ -303,61 +303,30 @@ check_datagram() {
       return true;
     }
 
-    // FIXME: This is despicable...
-    // There must be a better way of doing
-    // this...
-    if (astron_support) { // Astron
-      switch (_msg_type) {
+    switch (_msg_type) {
 #ifdef HAVE_PYTHON
-      case CLIENT_OBJECT_SET_FIELD:
-      case STATESERVER_OBJECT_SET_FIELD:
-        if (_handle_c_updates) {
-          if (_has_owner_view) {
-            if (!handle_update_field_owner()) {
-              return false;
-            }
-          } else {
-            if (!handle_update_field()) {
-              return false;
-            }
+    case CLIENT_OBJECT_UPDATE_FIELD:
+    case STATESERVER_OBJECT_UPDATE_FIELD:
+      if (_handle_c_updates) {
+        if (_has_owner_view) {
+          if (!handle_update_field_owner()) {
+            return false;
           }
         } else {
-          // Let the caller (Python) deal with this update.
-          return true;
-        }
-        break;
-#endif  // HAVE_PYTHON
-
-      default:
-        // Some unknown message; let the caller deal with it.
-        return true;
-      }
-    } else { // OTP
-      switch (_msg_type) {
-#ifdef HAVE_PYTHON
-      case CLIENT_OBJECT_UPDATE_FIELD:
-      case STATESERVER_OBJECT_UPDATE_FIELD:
-        if (_handle_c_updates) {
-          if (_has_owner_view) {
-            if (!handle_update_field_owner()) {
-              return false;
-            }
-          } else {
-            if (!handle_update_field()) {
-              return false;
-            }
+          if (!handle_update_field()) {
+            return false;
           }
-        } else {
-          // Let the caller (Python) deal with this update.
-          return true;
         }
-        break;
-#endif  // HAVE_PYTHON
-
-      default:
-        // Some unknown message; let the caller deal with it.
+      } else {
+        // Let the caller (Python) deal with this update.
         return true;
       }
+      break;
+#endif  // HAVE_PYTHON
+      
+    default:
+      // Some unknown message; let the caller deal with it.
+      return true;
     }
   }
 
