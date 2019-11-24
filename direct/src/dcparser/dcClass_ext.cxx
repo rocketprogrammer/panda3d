@@ -596,16 +596,17 @@ ai_format_generate(PyObject *distobj, DOID_TYPE do_id,
 
   if (has_optional_fields) {
     packer.raw_pack_uint16(STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER);
-    } else {
-      packer.raw_pack_uint16(STATESERVER_OBJECT_GENERATE_WITH_REQUIRED);
-    }
-
-    // Parent is a bit overloaded; this parent is not about inheritance, this
-    // one is about the visibility container parent, i.e.  the zone parent:
-    packer.raw_pack_uint32(parent_id);
-    packer.raw_pack_uint32(zone_id);
-    packer.raw_pack_uint16(_this->_number);
-    packer.raw_pack_uint32(do_id);
+  } else {
+    packer.raw_pack_uint16(STATESERVER_OBJECT_GENERATE_WITH_REQUIRED);
+  }
+  
+  // Parent is a bit overloaded; this parent is not about inheritance,
+  // this one is about the visibility container parent, i.e. the zone
+  // parent:
+  packer.raw_pack_uint32(parent_id);
+  packer.raw_pack_uint32(zone_id);
+  packer.raw_pack_uint16(_this->_number);
+  packer.raw_pack_uint32(do_id);
 
   // Specify all of the required fields.
   int num_fields = _this->get_num_inherited_fields();
