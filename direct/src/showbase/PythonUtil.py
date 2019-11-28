@@ -21,7 +21,7 @@ __all__ = [
     'listToItem2index', 'formatTimeCompact', 'deeptype', 'StdoutCapture',
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
-    'histogramDict', 'unescapeHtmlString', 'describeException'
+    'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr'
 ]
 
 if __debug__:
@@ -3029,6 +3029,30 @@ def triglerp(v0, v1, t):
     v = math.sin(x)
     return lerp(v0, v1, (v + 1.0) / 2.0)
 
+def repeatableRepr(obj):
+    if type(obj) is types.DictType:
+        keys = obj.keys()
+        keys.sort()
+        s = '{'
+        for i in xrange(len(keys)):
+            key = keys[i]
+            s += repeatableRepr(key)
+            s += ': '
+            s += repeatableRepr(obj[key])
+            if i < len(keys) - 1:
+                s += ', '
+
+        s += '}'
+        return s
+    elif type(obj) is type(set()):
+        l = []
+        for item in obj:
+            l.append(item)
+
+        l.sort()
+        return repeatableRepr(l)
+    return repr(obj)
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3080,3 +3104,4 @@ builtins.typeName = typeName
 builtins.safeTypeName = safeTypeName
 builtins.histogramDict = histogramDict
 builtins.choice = choice
+builtins.repeatableRepr = repeatableRepr
