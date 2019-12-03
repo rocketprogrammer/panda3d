@@ -64,3 +64,6 @@ __pycache__/
 .tox/
 .cache/
 .pytest_cache/
+/.settings/
+/.cproject
+/.project
