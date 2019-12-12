@@ -23,11 +23,6 @@
 
 #ifdef HAVE_PYTHON
 
-ConfigVariableBool astron_support
-("astron-support", true,
- PRC_DESC("Set this true to use the Astron specific message types for messages. "
-          "If this is false, OTP specific messages would be used instead."));
-
 /**
  * Returns true if the DCClass object has an associated Python class
  * definition, false otherwise.
