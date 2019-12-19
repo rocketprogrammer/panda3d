@@ -280,11 +280,15 @@ def parseopts(args):
             usage("Invalid setting for OSXTARGET")
 
         if OSXTARGET < (10, 9):
+            warn_prefix = "%sERROR:%s " % (GetColor("red"), GetColor())
             print("=========================================================================")
-            print("WARNING: Support for macOS versions before 10.9 has been discontinued.")
-            print("WARNING: For more information, or any questions, please visit:")
+            print(warn_prefix + "Support for macOS versions before 10.9 has been discontinued.")
+            print(warn_prefix + "For more information, or any questions, please visit:")
             print("  https://github.com/panda3d/panda3d/issues/300")
             print("=========================================================================")
+            sys.stdout.flush()
+            time.sleep(1.0)
+            sys.exit(1)
     else:
         OSXTARGET = None
 
@@ -844,6 +848,7 @@ if (COMPILER=="GCC"):
         PkgDisable("OPENCV")
 
     if GetTarget() == "darwin" and not PkgSkip("OPENAL"):
+        LibName("OPENAL", "-framework AudioUnit")
         LibName("OPENAL", "-framework AudioToolbox")
         LibName("OPENAL", "-framework CoreAudio")
 
@@ -1903,6 +1908,8 @@ def CompileRsrc(target, src, opts):
     ipath = GetListOption(opts, "DIR:")
     if os.path.isfile("/usr/bin/Rez"):
         cmd = "Rez -useDF"
+    elif os.path.isfile("/Library/Developer/CommandLineTools/usr/bin/Rez"):
+        cmd = "/Library/Developer/CommandLineTools/usr/bin/Rez -useDF"
     else:
         cmd = "/Developer/Tools/Rez -useDF"
     cmd += " -o " + BracketNameWithQuotes(target)
