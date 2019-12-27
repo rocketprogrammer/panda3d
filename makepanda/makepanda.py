@@ -95,6 +95,7 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "PANDAPARTICLESYSTEM",                               # Built in particle system
   "CONTRIB",                                           # Experimental
   "SSE2", "NEON",                                      # Compiler features
+  "DNA",                                               # Toontown
 ])
 
 CheckPandaSourceTree()
@@ -277,6 +278,17 @@ def parseopts(args):
             assert OSXTARGET[0] == 10
         except:
             usage("Invalid setting for OSXTARGET")
+
+        if OSXTARGET < (10, 9):
+            warn_prefix = "%sERROR:%s " % (GetColor("red"), GetColor())
+            print("=========================================================================")
+            print(warn_prefix + "Support for macOS versions before 10.9 has been discontinued.")
+            print(warn_prefix + "For more information, or any questions, please visit:")
+            print("  https://github.com/panda3d/panda3d/issues/300")
+            print("=========================================================================")
+            sys.stdout.flush()
+            time.sleep(1.0)
+            sys.exit(1)
     else:
         OSXTARGET = None
 
@@ -382,6 +394,8 @@ elif target == 'darwin':
     else:
         maj, min = platform.mac_ver()[0].split('.')[:2]
         osxver = int(maj), int(min)
+        if osxver < (10, 9):
+            osxver = (10, 9)
 
     arch_tag = GetTargetArch()
     PLATFORM = 'macosx-{0}.{1}-{2}'.format(osxver[0], osxver[1], arch_tag)
@@ -611,8 +625,11 @@ if (COMPILER == "MSVC"):
             suffix = "-2_2"
         elif os.path.isfile(GetThirdpartyDir() + "openexr/lib/IlmImf-2_3.lib"):
             suffix = "-2_3"
+        elif os.path.isfile(GetThirdpartyDir() + "openexr/lib/IlmImf-2_4.lib"):
+            suffix = "-2_4"
+            LibName("OPENEXR", GetThirdpartyDir() + "openexr/lib/Imath" + suffix + ".lib")
         if os.path.isfile(GetThirdpartyDir() + "openexr/lib/IlmImf" + suffix + "_s.lib"):
-            suffix += "_s"
+            suffix += "_s"  # _s suffix observed for OpenEXR 2.3 only so far
         LibName("OPENEXR", GetThirdpartyDir() + "openexr/lib/IlmImf" + suffix + ".lib")
         LibName("OPENEXR", GetThirdpartyDir() + "openexr/lib/IlmThread" + suffix + ".lib")
         LibName("OPENEXR", GetThirdpartyDir() + "openexr/lib/Iex" + suffix + ".lib")
@@ -805,6 +822,13 @@ if (COMPILER=="GCC"):
     SmartPkgEnable("JPEG",      "",          ("jpeg"), "jpeglib.h")
     SmartPkgEnable("PNG",       "libpng",    ("png"), "png.h", tool = "libpng-config")
 
+    # Copy freetype libraries to be specified after harfbuzz libraries as well,
+    # because there's a circular dependency between the two libraries.
+    if not PkgSkip("FREETYPE") and not PkgSkip("HARFBUZZ"):
+        for (opt, name) in LIBNAMES:
+            if opt == "FREETYPE":
+                LibName("HARFBUZZ", name)
+
     if not PkgSkip("FFMPEG"):
         if GetTarget() == "darwin":
             LibName("FFMPEG", "-framework VideoDecodeAcceleration")
@@ -824,6 +848,7 @@ if (COMPILER=="GCC"):
         PkgDisable("OPENCV")
 
     if GetTarget() == "darwin" and not PkgSkip("OPENAL"):
+        LibName("OPENAL", "-framework AudioUnit")
         LibName("OPENAL", "-framework AudioToolbox")
         LibName("OPENAL", "-framework CoreAudio")
 
@@ -1883,6 +1908,8 @@ def CompileRsrc(target, src, opts):
     ipath = GetListOption(opts, "DIR:")
     if os.path.isfile("/usr/bin/Rez"):
         cmd = "Rez -useDF"
+    elif os.path.isfile("/Library/Developer/CommandLineTools/usr/bin/Rez"):
+        cmd = "/Library/Developer/CommandLineTools/usr/bin/Rez -useDF"
     else:
         cmd = "/Developer/Tools/Rez -useDF"
     cmd += " -o " + BracketNameWithQuotes(target)
@@ -3055,6 +3082,9 @@ if (PkgSkip("BULLET")==0):
 
 if (PkgSkip("SPEEDTREE")==0):
     CopyAllHeaders('panda/src/speedtree')
+
+if (PkgSkip("DNA")==0):
+    CopyAllHeaders('panda/src/toontown')
 
 if (PkgSkip("DIRECT")==0):
     CopyAllHeaders('direct/src/directbase')
@@ -4825,6 +4855,38 @@ if ((GetTarget() in ('windows', 'darwin') or PkgSkip("X11")==0) and PkgSkip("TIN
   TargetAdd('libp3tinydisplay.dll', input='p3tinydisplay_ztriangle_4.obj')
   TargetAdd('libp3tinydisplay.dll', input='p3tinydisplay_ztriangle_table.obj')
   TargetAdd('libp3tinydisplay.dll', input=COMMON_PANDA_LIBS)
+
+#
+# DIRECTORY: panda/src/toontown/
+#
+if (PkgSkip("DNA")==0 and PkgSkip("PYTHON")==0):
+    OPTS=['DIR:panda/src/toontown', 'BUILDING:DNA']
+    TargetAdd('toontown_composite.obj', opts=OPTS, input='p3toontown_composite1.cxx')
+
+    OPTS=['DIR:panda/src/toontown', 'BUILDING:DNA', 'BISONPREFIX_dnayy']
+    TargetAdd('p3toontown_dnaParser.obj', opts=OPTS, input='dnaParser.yxx')
+    TargetAdd('p3toontown_dnaLexer.obj', opts=OPTS, input='dnaLexer.lxx')
+
+    TargetAdd('libp3toontown.dll', input='toontown_composite.obj')
+    TargetAdd('libp3toontown.dll', input='p3toontown_dnaParser.obj')
+    TargetAdd('libp3toontown.dll', input='p3toontown_dnaLexer.obj')
+    TargetAdd('libp3toontown.dll', input=COMMON_PANDA_LIBS)
+    TargetAdd('libp3toontown.dll', opts=OPTS)
+
+    OPTS=['DIR:panda/src/toontown']
+    IGATEFILES=GetDirectoryContents('panda/src/toontown', ["*.h", "*_composite*.cxx"])
+    TargetAdd('libp3toontown.in', opts=OPTS, input=IGATEFILES)
+    TargetAdd('libp3toontown.in', opts=['IMOD:panda3d.toontown', 'ILIB:libp3toontown', 'SRCDIR:panda/src/toontown'])
+    
+    PyTargetAdd('toontown_module.obj', input='libp3toontown.in')
+    PyTargetAdd('toontown_module.obj', opts=OPTS)
+    PyTargetAdd('toontown_module.obj', opts=['IMOD:panda3d.toontown', 'ILIB:toontown', 'IMPORT:panda3d.core'])
+    
+    PyTargetAdd('toontown.pyd', input='toontown_module.obj')
+    PyTargetAdd('toontown.pyd', input='libp3toontown_igate.obj')
+    PyTargetAdd('toontown.pyd', input='libp3toontown.dll')
+    PyTargetAdd('toontown.pyd', input='libp3interrogatedb.dll')
+    PyTargetAdd('toontown.pyd', input=COMMON_PANDA_LIBS)
 
 #
 # DIRECTORY: direct/src/directbase/

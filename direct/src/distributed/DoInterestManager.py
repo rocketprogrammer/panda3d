@@ -588,6 +588,9 @@ class DoInterestManager(DirectObject.DirectObject):
         assert DoInterestManager.notify.debugCall()
         contextId = di.getUint32()
         handle = di.getUint16()
+        if handle >= 32000:
+            # This is a server-sent interest.
+            return
         if self.__verbose():
             print('CR::INTEREST.interestDone(handle=%s)' % handle)
         DoInterestManager.notify.debug(

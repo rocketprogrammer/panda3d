@@ -1,6 +1,7 @@
 # makepanda directories
 /built*/
 /thirdparty/
+/thirdparty_x64/
 /targetroot/
 /dstroot/
 *.zip
@@ -64,3 +65,6 @@ __pycache__/
 .tox/
 .cache/
 .pytest_cache/
+/.settings/
+/.cproject
+/.project
