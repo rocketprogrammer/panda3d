@@ -1,5 +1,11 @@
+from __future__ import absolute_import
+from builtins import range
+from past.builtins import basestring
+
+import collections
+
 from panda3d.core import *
-from panda3d.direct import DCPacker
+from panda3d.direct import *
 from .MsgTypes import *
 from direct.showbase import ShowBase # __builtin__.config
 from direct.task.TaskManagerGlobal import * # taskMgr
@@ -9,7 +15,6 @@ from .PyDatagram import PyDatagram
 from .PyDatagramIterator import PyDatagramIterator
 from .AstronDatabaseInterface import AstronDatabaseInterface
 from .NetMessenger import NetMessenger
-import collections
 
 # Helper functions for logging output:
 def msgpack_length(dg, length, fix, maxfix, tag8, tag16, tag32):
@@ -34,7 +39,7 @@ def msgpack_encode(dg, element):
         dg.addUint8(0xc2)
     elif element is True:
         dg.addUint8(0xc3)
-    elif isinstance(element, int):
+    elif isinstance(element, (int, int)):
         if -32 <= element < 128:
             dg.addInt8(element)
         elif 128 <= element < 256:
@@ -65,19 +70,22 @@ def msgpack_encode(dg, element):
             raise ValueError('int out of range for msgpack: %d' % element)
     elif isinstance(element, dict):
         msgpack_length(dg, len(element), 0x80, 0x10, None, 0xde, 0xdf)
-        for k,v in element.items():
+        for k,v in list(element.items()):
             msgpack_encode(dg, k)
             msgpack_encode(dg, v)
     elif isinstance(element, list):
         msgpack_length(dg, len(element), 0x90, 0x10, None, 0xdc, 0xdd)
         for v in element:
             msgpack_encode(dg, v)
-    elif isinstance(element, str):
+    elif isinstance(element, basestring):
         # 0xd9 is str 8 in all recent versions of the MsgPack spec, but somehow
         # Logstash bundles a MsgPack implementation SO OLD that this isn't
         # handled correctly so this function avoids it too
-        msgpack_length(dg, len(element), 0xa0, 0x20, None, 0xda, 0xdb)
-        dg.appendData(bytes(element.encode()))
+        if isinstance(element, bytes):
+            element = element.decode()
+        elementBytes = element.encode('utf-8')
+        msgpack_length(dg, len(elementBytes), 0xa0, 0x20, None, 0xda, 0xdb)
+        dg.appendData(elementBytes)
     elif isinstance(element, float):
         # Python does not distinguish between floats and doubles, so we send
         # everything as a double in MsgPack:
@@ -682,7 +690,7 @@ class AstronInternalRepository(ConnectionRepository):
 
         dg = PyDatagram()
         msgpack_encode(dg, log)
-        self.eventSocket.Send(str(bytes(dg)))
+        self.eventSocket.Send(dg.getMessage())
 
     def setAI(self, doId, aiChannel):
         """
