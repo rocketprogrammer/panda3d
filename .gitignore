@@ -1,6 +1,7 @@
 # makepanda directories
 /built*/
 /thirdparty/
+/thirdparty_x64/
 /targetroot/
 /dstroot/
 *.zip
