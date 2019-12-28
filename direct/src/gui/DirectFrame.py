@@ -61,8 +61,38 @@ class DirectFrame(DirectGuiWidget):
         # Call option initialization functions
         self.initialiseoptions(DirectFrame)
 
-    def destroy(self):
-        DirectGuiWidget.destroy(self)
+    def __reinitComponent(self, name, component_class, states, **kwargs):
+        """Recreates the given component using the given keyword args."""
+        assert name in ("geom", "image", "text")
+
+        # constants should be local to or default arguments of constructors
+        for c in range(self['numStates']):
+            component_name = name + str(c)
+
+            try:
+                state = states[c]
+            except IndexError:
+                state = states[-1]
+
+            if self.hascomponent(component_name):
+                if state is None:
+                    self.destroycomponent(component_name)
+                else:
+                    self[component_name + "_" + name] = state
+            else:
+                if state is None:
+                    return
+
+                kwargs[name] = state
+                self.createcomponent(
+                    component_name,
+                    (),
+                    name,
+                    component_class,
+                    (),
+                    parent=self.stateNodePath[c],
+                    **kwargs
+                )
 
     def clearText(self):
         self['text'] = None
