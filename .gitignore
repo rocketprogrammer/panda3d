@@ -2,6 +2,7 @@
 /built*/
 /thirdparty/
 /thirdparty_x64/
+/thirdparty_x86/
 /targetroot/
 /dstroot/
 *.zip
