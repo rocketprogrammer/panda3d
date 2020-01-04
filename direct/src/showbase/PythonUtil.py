@@ -22,7 +22,7 @@ __all__ = [
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
     'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
-    'HotkeyBreaker', 'pivotScalar'
+    'HotkeyBreaker', 'pivotScalar', 'cmp'
 ]
 
 if __debug__:
@@ -3527,6 +3527,9 @@ def repeatableRepr(obj):
         return repeatableRepr(l)
     return repr(obj)
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3579,3 +3582,4 @@ builtins.safeTypeName = safeTypeName
 builtins.histogramDict = histogramDict
 builtins.choice = choice
 builtins.repeatableRepr = repeatableRepr
+builtins.cmp = cmp
