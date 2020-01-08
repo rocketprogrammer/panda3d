@@ -2782,7 +2782,7 @@ def choice(condition, ifTrue, ifFalse):
 def nonRepeatingRandomList(vals, max):
     random.seed(time.time())
     #first generate a set of random values
-    valueList=range(max)
+    valueList=list(range(max))
     finalVals=[]
     for i in range(vals):
         index=int(random.random()*len(valueList))
