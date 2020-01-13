@@ -3527,6 +3527,12 @@ def repeatableRepr(obj):
         return repeatableRepr(l)
     return repr(obj)
 
+def notNone(A, B):
+    # returns A if not None, B otherwise
+    if A is None:
+        return B
+    return A
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3579,3 +3585,4 @@ builtins.safeTypeName = safeTypeName
 builtins.histogramDict = histogramDict
 builtins.choice = choice
 builtins.repeatableRepr = repeatableRepr
+__builtin__.notNone = notNone
