@@ -3530,6 +3530,12 @@ def repeatableRepr(obj):
 def cmp(a, b):
     return (a > b) - (a < b)
 
+def notNone(A, B):
+    # returns A if not None, B otherwise
+    if A is None:
+        return B
+    return A
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3583,3 +3589,4 @@ builtins.histogramDict = histogramDict
 builtins.choice = choice
 builtins.repeatableRepr = repeatableRepr
 builtins.cmp = cmp
+builtins.notNone = notNone
