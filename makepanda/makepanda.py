@@ -147,8 +147,8 @@ def usage(problem):
     print("")
     print("  --nothing         (disable every third-party lib)")
     print("  --everything      (enable every third-party lib)")
-    print("  --directx-sdk=X   (specify version of DirectX SDK to use: jun2010, aug2009, mar2009, aug2006)")
-    print("  --windows-sdk=X   (specify Windows SDK version, eg. 7.0, 7.1 or 10.  Default is 7.1)")
+    print("  --directx-sdk=X   (specify version of DirectX SDK to use: jun2010, aug2009)")
+    print("  --windows-sdk=X   (specify Windows SDK version, eg. 7.1, 8.1 or 10.  Default is 8.1)")
     print("  --msvc-version=X  (specify Visual C++ version, eg. 10, 11, 12, 14, 14.1, 14.2.  Default is 14)")
     print("  --use-icl         (experimental setting to use an intel compiler instead of MSVC on Windows)")
     print("  --nirai         (enable Nirai support)")
@@ -325,10 +325,6 @@ def parseopts(args):
             sys.stdout.flush()
             time.sleep(1.0)
             sys.exit(1)
-
-        if not WINDOWS_SDK:
-            print("No Windows SDK version specified. Defaulting to '7.1'.")
-            WINDOWS_SDK = '7.1'
 
     if clean_build and os.path.isdir(GetOutputDir()):
         print("Deleting %s" % (GetOutputDir()))
@@ -558,10 +554,7 @@ if (COMPILER == "MSVC"):
 
             LibName(pkg, 'd3dVNUM.lib'.replace("VNUM", vnum))
             LibName(pkg, 'd3dxVNUM.lib'.replace("VNUM", vnum))
-            if int(vnum) >= 9 and "GENERIC_DXERR_LIBRARY" in SDK:
-                LibName(pkg, 'dxerr.lib')
-            else:
-                LibName(pkg, 'dxerrVNUM.lib'.replace("VNUM", vnum))
+            LibName(pkg, 'dxerr.lib')
             #LibName(pkg, 'ddraw.lib')
             LibName(pkg, 'dxguid.lib')
 
@@ -1041,11 +1034,8 @@ def CompileCxx(obj,src,opts):
                 cmd += "/favor:blend "
             cmd += "/wd4996 /wd4275 /wd4273 "
 
-            # We still target Windows XP.
-            cmd += "/DWINVER=0x501 "
-            # Work around a WinXP/2003 bug when using VS 2015+.
-            if SDK.get("VISUALSTUDIO_VERSION") >= (14,0):
-                cmd += "/Zc:threadSafeInit- "
+            # Set the minimum version to Windows Vista.
+            cmd += "/DWINVER=0x600 "
 
             cmd += "/Fo" + obj + " /nologo /c"
             if GetTargetArch() != 'x64' and (not PkgSkip("SSE2") or 'SSE2' in opts):
@@ -1085,10 +1075,6 @@ def CompileCxx(obj,src,opts):
             if GetTargetArch() == 'x64':
                 cmd += " /DWIN64_VC /DWIN64"
 
-            if WINDOWS_SDK.startswith('7.') and MSVC_VERSION > (10,):
-                # To preserve Windows XP compatibility.
-                cmd += " /D_USING_V110_SDK71_"
-
             cmd += " /W3 " + BracketNameWithQuotes(src)
             oscmd(cmd)
         else:
@@ -1096,7 +1082,7 @@ def CompileCxx(obj,src,opts):
             if GetTargetArch() == 'x64':
                 cmd += "/favor:blend "
             cmd += "/wd4996 /wd4275 /wd4267 /wd4101 /wd4273 "
-            cmd += "/DWINVER=0x501 "
+            cmd += "/DWINVER=0x600 "
             cmd += "/Fo" + obj + " /c"
             for x in ipath: cmd += " /I" + x
             for (opt,dir) in INCDIRECTORIES:
@@ -1582,9 +1568,9 @@ def CompileLink(dll, obj, opts):
             subsystem = GetValueOption(opts, "SUBSYSTEM:") or "CONSOLE"
             cmd += " /SUBSYSTEM:" + subsystem
             if GetTargetArch() == 'x64':
-                cmd += ",5.02"
+                cmd += ",6.00"
             else:
-                cmd += ",5.01"
+                cmd += ",6.00"
 
             if dll.endswith(".dll") or dll.endswith(".pyd"):
                 cmd += ' /IMPLIB:' + GetOutputDir() + '/lib/' + os.path.splitext(os.path.basename(dll))[0] + ".lib"
@@ -2357,12 +2343,6 @@ def WriteConfigSettings():
     # longer need to disable it for this platform.
 ##     if GetTarget() == 'windows' and GetTargetArch() == 'x64':
 ##         dtool_config["SIMPLE_THREADS"] = 'UNDEF'
-
-
-    if ("GENERIC_DXERR_LIBRARY" in SDK):
-        dtool_config["USE_GENERIC_DXERR_LIBRARY"] = "1"
-    else:
-        dtool_config["USE_GENERIC_DXERR_LIBRARY"] = "UNDEF"
 
     if (PkgSkip("SPEEDTREE")==0):
         speedtree_parameters["SPEEDTREE_OPENGL"] = "UNDEF"
