@@ -108,7 +108,7 @@ BioPtr(const URLSpec &url) : _connecting(false) {
     struct addrinfo hints, *res = nullptr;
     memset(&hints, 0, sizeof(hints));
 
-    hints.ai_flags = AI_ADDRCONFIG;
+    hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
     hints.ai_family = support_ipv6 ? AF_UNSPEC : AF_INET;
     hints.ai_socktype = SOCK_STREAM;
 
