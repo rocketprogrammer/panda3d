@@ -8,7 +8,6 @@ p.s. A great deal of this code is just code moved from ClientRepository.py.
 """
 
 from panda3d.core import *
-from panda3d.direct import *
 from .MsgTypes import *
 from direct.showbase.PythonUtil import *
 from direct.showbase import DirectObject
@@ -589,6 +588,9 @@ class DoInterestManager(DirectObject.DirectObject):
         assert DoInterestManager.notify.debugCall()
         contextId = di.getUint32()
         handle = di.getUint16()
+        if handle >= 32000:
+            # This is a server-sent interest.
+            return
         if self.__verbose():
             print('CR::INTEREST.interestDone(handle=%s)' % handle)
         DoInterestManager.notify.debug(

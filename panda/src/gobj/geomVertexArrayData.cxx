@@ -296,7 +296,7 @@ release_all() {
 
     // Now that we've called release_vertex_buffer() on every known context,
     // the _contexts list should have completely emptied itself.
-    nassertr(_contexts == nullptr, num_freed);
+    //nassertr(_contexts == nullptr, num_freed);
   }
 
   return num_freed;

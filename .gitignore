@@ -1,8 +1,11 @@
 # makepanda directories
 /built*/
 /thirdparty/
+/thirdparty_x64/
+/thirdparty_x86/
 /targetroot/
 /dstroot/
+*.zip
 
 # Core dumps and traces
 core

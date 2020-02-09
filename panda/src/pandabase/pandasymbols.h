@@ -53,6 +53,14 @@
   #define EXPTP_FRAMEWORK IMPORT_TEMPL
 #endif
 
+#ifdef BUILDING_MILES_AUDIO
+  #define EXPCL_MILES_AUDIO EXPORT_CLASS
+  #define EXPTP_MILES_AUDIO EXPORT_TEMPL
+#else
+  #define EXPCL_MILES_AUDIO IMPORT_CLASS
+  #define EXPTP_MILES_AUDIO IMPORT_TEMPL
+#endif
+
 #ifdef BUILDING_OPENAL_AUDIO
   #define EXPCL_OPENAL_AUDIO EXPORT_CLASS
   #define EXPTP_OPENAL_AUDIO EXPORT_TEMPL
@@ -588,6 +596,15 @@
 #endif
 
 #if defined(_MSC_VER) && !defined(CPPPARSER)
+#ifdef BUILDING_DNA
+    #define EXPCL_DNA EXPORT_CLASS
+    #define EXPTP_DNA EXPORT_TEMPL
+#else
+   #define EXPCL_DNA IMPORT_CLASS
+   #define EXPTP_DNA IMPORT_TEMPL
+#endif
+
+#if (defined(WIN32_VC) || defined(WIN64_VC)) && !defined(CPPPARSER)
 #define INLINE_LINMATH __forceinline
 #define INLINE_MATHUTIL __forceinline
 
