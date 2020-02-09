@@ -595,6 +595,7 @@
   #define EXPTP_VRPN IMPORT_TEMPL
 #endif
 
+#if defined(_MSC_VER) && !defined(CPPPARSER)
 #ifdef BUILDING_DNA
     #define EXPCL_DNA EXPORT_CLASS
     #define EXPTP_DNA EXPORT_TEMPL
