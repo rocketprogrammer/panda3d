@@ -595,7 +595,6 @@
   #define EXPTP_VRPN IMPORT_TEMPL
 #endif
 
-#if defined(_MSC_VER) && !defined(CPPPARSER)
 #ifdef BUILDING_DNA
     #define EXPCL_DNA EXPORT_CLASS
     #define EXPTP_DNA EXPORT_TEMPL
@@ -604,7 +603,7 @@
    #define EXPTP_DNA IMPORT_TEMPL
 #endif
 
-#if (defined(WIN32_VC) || defined(WIN64_VC)) && !defined(CPPPARSER)
+#if defined(_MSC_VER) && !defined(CPPPARSER)
 #define INLINE_LINMATH __forceinline
 #define INLINE_MATHUTIL __forceinline
 
