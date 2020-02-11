@@ -414,7 +414,7 @@ class AstronInternalRepository(ConnectionRepository):
         unpacker.setUnpackData(di.getRemainingBytes())
 
         # Required:
-        for i in xrange(dclass.getNumInheritedFields()):
+        for i in range(dclass.getNumInheritedFields()):
             field = dclass.getInheritedField(i)
             if not field.isRequired() or field.asMolecularField(): continue
             unpacker.beginUnpack(field)
@@ -423,7 +423,7 @@ class AstronInternalRepository(ConnectionRepository):
 
         # Other:
         other = unpacker.rawUnpackUint16()
-        for i in xrange(other):
+        for i in range(other):
             field = dclass.getFieldByIndex(unpacker.rawUnpackUint16())
             unpacker.beginUnpack(field)
             fields[field.getName()] = field.unpackArgs(unpacker)
