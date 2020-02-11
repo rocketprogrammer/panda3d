@@ -1,6 +1,4 @@
-from __future__ import absolute_import
 from builtins import range
-from past.builtins import basestring
 
 import collections
 
@@ -77,7 +75,7 @@ def msgpack_encode(dg, element):
         msgpack_length(dg, len(element), 0x90, 0x10, None, 0xdc, 0xdd)
         for v in element:
             msgpack_encode(dg, v)
-    elif isinstance(element, basestring):
+    elif isinstance(element, str):
         # 0xd9 is str 8 in all recent versions of the MsgPack spec, but somehow
         # Logstash bundles a MsgPack implementation SO OLD that this isn't
         # handled correctly so this function avoids it too
@@ -416,7 +414,7 @@ class AstronInternalRepository(ConnectionRepository):
         unpacker.setUnpackData(di.getRemainingBytes())
 
         # Required:
-        for i in xrange(dclass.getNumInheritedFields()):
+        for i in range(dclass.getNumInheritedFields()):
             field = dclass.getInheritedField(i)
             if not field.isRequired() or field.asMolecularField(): continue
             unpacker.beginUnpack(field)
@@ -425,7 +423,7 @@ class AstronInternalRepository(ConnectionRepository):
 
         # Other:
         other = unpacker.rawUnpackUint16()
-        for i in xrange(other):
+        for i in range(other):
             field = dclass.getFieldByIndex(unpacker.rawUnpackUint16())
             unpacker.beginUnpack(field)
             fields[field.getName()] = field.unpackArgs(unpacker)
