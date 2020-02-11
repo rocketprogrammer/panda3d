@@ -1776,9 +1776,9 @@ reset() {
         _shader_caps._active_gprofile = (int)CG_PROFILE_GLSLG;
       }
     }
-    _shader_caps._ultimate_vprofile = (int)CG_PROFILE_VP40;
-    _shader_caps._ultimate_fprofile = (int)CG_PROFILE_FP40;
-    _shader_caps._ultimate_gprofile = (int)CG_PROFILE_GPU_GP;
+    _shader_caps._ultimate_vprofile = (int)CG_PROFILE_GLSLV;
+    _shader_caps._ultimate_fprofile = (int)CG_PROFILE_GLSLF;
+    _shader_caps._ultimate_gprofile = (int)CG_PROFILE_GLSLG;
 
     // Bug workaround for radeons.
     if (_shader_caps._active_fprofile == CG_PROFILE_ARBFP1) {
@@ -2520,6 +2520,20 @@ reset() {
 
   } else {
     _glDrawBuffers = nullptr;
+  }
+#endif
+
+#if defined(OPENGLES) && !defined(OPENGLES_1)
+  if (is_at_least_gles_version(3, 0)) {
+    _glReadBuffer = (PFNGLREADBUFFERPROC)
+      get_extension_func("glReadBuffer");
+
+  } else if (has_extension("GL_NV_read_buffer")) {
+    _glReadBuffer = (PFNGLREADBUFFERPROC)
+      get_extension_func("glReadBufferNV");
+
+  } else {
+    _glReadBuffer = nullptr;
   }
 #endif
 
@@ -9060,7 +9074,7 @@ set_draw_buffer(int rbtype) {
  */
 void CLP(GraphicsStateGuardian)::
 set_read_buffer(int rbtype) {
-#ifndef OPENGLES  // Draw buffers not supported by OpenGL ES. (TODO!)
+#ifndef OPENGLES_1  // Draw buffers not supported by OpenGL ES 1.
   if (rbtype & (RenderBuffer::T_depth | RenderBuffer::T_stencil)) {
     // Special case: don't have to call ReadBuffer for these.
     return;
@@ -9093,10 +9107,14 @@ set_read_buffer(int rbtype) {
       }
       ++index;
     }
+#ifdef OPENGLES
+    _glReadBuffer(buffer);
+#else
     glReadBuffer(buffer);
+#endif
 
   } else {
-
+#ifndef OPENGLES
     switch (rbtype & RenderBuffer::T_color) {
     case RenderBuffer::T_front:
       glReadBuffer(GL_FRONT);
@@ -9133,10 +9151,11 @@ set_read_buffer(int rbtype) {
     default:
       break;
     }
+#endif  // OPENGLES
   }
 
   report_my_gl_errors();
-#endif  // OPENGLES
+#endif  // OPENGLES_1
 }
 
 /**
