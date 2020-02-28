@@ -22,7 +22,7 @@ __all__ = [
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
     'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
-    'HotkeyBreaker', 'pivotScalar', 'cmp'
+    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar'
 ]
 
 if __debug__:
@@ -48,7 +48,6 @@ if sys.version_info >= (3, 0):
     xrange = range
 else:
     import __builtin__ as builtins
-
 
 """
 # with one integer positional arg, this uses about 4/5 of the memory of the Functor class below
@@ -3536,6 +3535,36 @@ def notNone(A, B):
         return B
     return A
 
+class DestructiveScratchPad(ScratchPad):
+    # automatically calls destroy() on elements passed to __init__
+    def add(self, **kArgs):
+        for key, value in kArgs.iteritems():
+            if hasattr(self, key):
+                getattr(self, key).destroy()
+            setattr(self, key, value)
+        self._keys.update(kArgs.keys())
+    def destroy(self):
+        for key in self._keys:
+            getattr(self, key).destroy()
+        ScratchPad.destroy(self)
+
+def clampScalar(value, a, b):
+    # calling this ought to be faster than calling both min and max
+    if a < b:
+        if value < a:
+            return a
+        elif value > b:
+            return b
+        else:
+            return value
+    else:
+        if value < b:
+            return b
+        elif value > a:
+            return a
+        else:
+            return value
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3590,3 +3619,5 @@ builtins.choice = choice
 builtins.repeatableRepr = repeatableRepr
 builtins.cmp = cmp
 builtins.notNone = notNone
+builtins.DestructiveScratchPad = DestructiveScratchPad
+builtins.clampScalar = clampScalar
