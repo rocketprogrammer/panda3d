@@ -181,7 +181,7 @@ def parseopts(args):
         "static","debversion=","rpmrelease=","p3dsuffix=","rtdist-version=",
         "directx-sdk=", "windows-sdk=", "msvc-version=", "clean", "use-icl",
         "target=", "arch=", "git-commit=", "no-copy-python",
-        "cggl-incdir=", "cggl-libdir=",
+        "cggl-incdir=", "cggl-libdir=", "nirai"
         ] + removedopts
 
     anything = 0
