@@ -330,7 +330,7 @@ process_events() {
 
         // We thought about not generating the keypress event, but we need
         // that repeat for backspace.  Rethink later.
-        handle_keypress(event.xkey);
+        handle_keyrepeat(event.xkey);
         continue;
 
       } else {
@@ -1119,10 +1119,8 @@ open_window() {
   XIM im = x11_pipe->get_im();
   _ic = nullptr;
   if (im) {
-    _ic = XCreateIC
-      (im,
-       XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
-       nullptr);
+    _ic = XCreateIC(im, XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+                    XNClientWindow, _xwindow, nullptr);
     if (_ic == (XIC)nullptr) {
       x11display_cat.warning()
         << "Couldn't create input context.\n";
@@ -1536,6 +1534,34 @@ handle_keypress(XKeyEvent &event) {
     if (raw_button != ButtonHandle::none()) {
       _input->raw_button_down(raw_button);
     }
+  }
+}
+
+/**
+ * Generates a keyrepeat corresponding to the indicated X KeyPress event.
+ */
+void x11GraphicsWindow::
+handle_keyrepeat(XKeyEvent &event) {
+  if (_properties.get_mouse_mode() != WindowProperties::M_relative) {
+    _input->set_pointer_in_window(event.x, event.y);
+  }
+
+  // Now get the raw unshifted button.
+  ButtonHandle button = get_button(event, false);
+  if (button != ButtonHandle::none()) {
+    if (button == KeyboardButton::lcontrol() || button == KeyboardButton::rcontrol()) {
+      _input->button_down(KeyboardButton::control());
+    }
+    if (button == KeyboardButton::lshift() || button == KeyboardButton::rshift()) {
+      _input->button_down(KeyboardButton::shift());
+    }
+    if (button == KeyboardButton::lalt() || button == KeyboardButton::ralt()) {
+      _input->button_down(KeyboardButton::alt());
+    }
+    if (button == KeyboardButton::lmeta() || button == KeyboardButton::rmeta()) {
+      _input->button_down(KeyboardButton::meta());
+    }
+    _input->button_down(button);
   }
 }
 
