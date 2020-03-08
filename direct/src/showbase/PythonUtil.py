@@ -3622,4 +3622,4 @@ builtins.notNone = notNone
 builtins.DestructiveScratchPad = DestructiveScratchPad
 builtins.clampScalar = clampScalar
 builtins.isClient = isClient
-buitlins.triglerp = triglerp
+builtins.triglerp = triglerp
