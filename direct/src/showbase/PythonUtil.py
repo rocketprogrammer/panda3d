@@ -3621,3 +3621,4 @@ builtins.cmp = cmp
 builtins.notNone = notNone
 builtins.DestructiveScratchPad = DestructiveScratchPad
 builtins.clampScalar = clampScalar
+builtins.isClient = isClient
