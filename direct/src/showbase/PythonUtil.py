@@ -22,7 +22,7 @@ __all__ = [
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
     'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
-    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar'
+    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'cmp'
 ]
 
 if __debug__:
