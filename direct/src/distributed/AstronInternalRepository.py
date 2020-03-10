@@ -18,13 +18,13 @@ from .NetMessenger import NetMessenger
 def msgpack_length(dg, length, fix, maxfix, tag8, tag16, tag32):
     if length < maxfix:
         dg.addUint8(fix + length)
-    elif tag8 is not None and length < 1<<8:
+    elif tag8 is not None and length < 1 << 8:
         dg.addUint8(tag8)
         dg.addUint8(length)
-    elif tag16 is not None and length < 1<<16:
+    elif tag16 is not None and length < 1 << 16:
         dg.addUint8(tag16)
         dg.addBeUint16(length)
-    elif tag32 is not None and length < 1<<32:
+    elif tag32 is not None and length < 1 << 32:
         dg.addUint8(tag32)
         dg.addBeUint32(length)
     else:
@@ -37,7 +37,7 @@ def msgpack_encode(dg, element):
         dg.addUint8(0xc2)
     elif element is True:
         dg.addUint8(0xc3)
-    elif isinstance(element, (int, int)):
+    elif isinstance(element, int):
         if -32 <= element < 128:
             dg.addInt8(element)
         elif 128 <= element < 256:
@@ -46,10 +46,10 @@ def msgpack_encode(dg, element):
         elif 256 <= element < 65536:
             dg.addUint8(0xcd)
             dg.addBeUint16(element)
-        elif 65536 <= element < (1<<32):
+        elif 65536 <= element < (1 << 32):
             dg.addUint8(0xce)
             dg.addBeUint32(element)
-        elif (1<<32) <= element < (1<<64):
+        elif (1 << 32) <= element < (1 << 64):
             dg.addUint8(0xcf)
             dg.addBeUint64(element)
         elif -128 <= element < -32:
@@ -58,17 +58,17 @@ def msgpack_encode(dg, element):
         elif -32768 <= element < -128:
             dg.addUint8(0xd1)
             dg.addBeInt16(element)
-        elif -1<<31 <= element < -32768:
+        elif -1 << 31 <= element < -32768:
             dg.addUint8(0xd2)
             dg.addBeInt32(element)
-        elif -1<<63 <= element < -1<<31:
+        elif -1 << 63 <= element < -1 << 31:
             dg.addUint8(0xd3)
             dg.addBeInt64(element)
         else:
             raise ValueError('int out of range for msgpack: %d' % element)
     elif isinstance(element, dict):
         msgpack_length(dg, len(element), 0x80, 0x10, None, 0xde, 0xdf)
-        for k,v in list(element.items()):
+        for k, v in list(element.items()):
             msgpack_encode(dg, k)
             msgpack_encode(dg, v)
     elif isinstance(element, list):
@@ -118,13 +118,13 @@ class AstronInternalRepository(ConnectionRepository):
                 self.setVerbose(1)
 
         # The State Server we are configured to use for creating objects.
-        #If this is None, generating objects is not possible.
+        # If this is None, generating objects is not possible.
         self.serverId = self.config.GetInt('air-stateserver', 0) or None
         if serverId is not None:
             self.serverId = serverId
 
         maxChannels = self.config.GetInt('air-channel-allocation', 1000000)
-        self.channelAllocator = UniqueIdAllocator(baseChannel, baseChannel+maxChannels-1)
+        self.channelAllocator = UniqueIdAllocator(baseChannel, baseChannel + maxChannels - 1)
         self._registeredChannels = set()
 
         self.__contextCounter = 0
@@ -213,7 +213,7 @@ class AstronInternalRepository(ConnectionRepository):
         dg2 = PyDatagram()
         dg2.addServerControlHeader(CONTROL_ADD_POST_REMOVE)
         dg2.addUint64(self.ourChannel)
-        dg2.appendData(bytes(dg))
+        dg2.addBlob(dg.getMessage())
         self.send(dg2)
 
     def clearPostRemove(self):
@@ -323,14 +323,13 @@ class AstronInternalRepository(ConnectionRepository):
         activated = di.getUint8()
 
         if ctx not in self.__callbacks:
-            self.notify.warning('Received unexpected DBSS_OBJECT_GET_ACTIVATED_RESP (ctx: %d)' %ctx)
+            self.notify.warning('Received unexpected DBSS_OBJECT_GET_ACTIVATED_RESP (ctx: %d)' % ctx)
             return
 
         try:
             self.__callbacks[ctx](doId, activated)
         finally:
             del self.__callbacks[ctx]
-
 
     def getActivated(self, doId, callback):
         ctx = self.getContext()
@@ -505,7 +504,7 @@ class AstronInternalRepository(ConnectionRepository):
         fieldPacker = DCPacker()
         fieldCount = 0
         if dclass and fields:
-            for k,v in fields.items():
+            for k, v in list(fields.items()):
                 field = dclass.getFieldByName(k)
                 if not field:
                     self.notify.error('Activation request for %s object contains '
@@ -680,9 +679,9 @@ class AstronInternalRepository(ConnectionRepository):
         log['type'] = logtype
         log['sender'] = self.eventLogId
 
-        for i,v in enumerate(args):
+        for i , v in enumerate(args):
             # +1 because the logtype was _0, so we start at _1
-            log['_%d' % (i+1)] = v
+            log['_%d' % (i + 1)] = v
 
         log.update(kwargs)
 
