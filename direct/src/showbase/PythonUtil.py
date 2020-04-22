@@ -38,6 +38,7 @@ import os
 import sys
 import random
 import time
+import bisect
 
 __report_indent = 3
 
@@ -2265,11 +2266,11 @@ class HotkeyBreaker:
             breakKeys = (breakKeys,)
         for key in breakKeys:
             self.addBreakKey(key)
-        
+
     def addBreakKey(self,breakKey):
         if __dev__:
             self.do.accept(breakKey,self.breakFunc,extraArgs = [breakKey])
-        
+
     def removeBreakKey(self,breakKey):
         if __dev__:
             self.do.ignore(breakKey)
@@ -2709,33 +2710,40 @@ def unescapeHtmlString(s):
 
 class PriorityCallbacks:
     """ manage a set of prioritized callbacks, and allow them to be invoked in order of priority """
+    TokenGen = SerialNumGen()
+
+    @classmethod
+    def GetToken(cls):
+        return 'pc-%s' % cls.TokenGen.next()
+
     def __init__(self):
         self._callbacks = []
+        self._token2item = {}
 
     def clear(self):
-        del self._callbacks[:]
+        while self._callbacks:
+            self._callbacks.pop()
+        self._token2item = {}
 
     def add(self, callback, priority=None):
         if priority is None:
             priority = 0
-        callbacks = self._callbacks
-        lo = 0
-        hi = len(callbacks)
-        while lo < hi:
-            mid = (lo + hi) // 2
-            if priority < callbacks[mid][0]:
-                hi = mid
-            else:
-                lo = mid + 1
         item = (priority, callback)
-        callbacks.insert(lo, item)
-        return item
+        bisect.insort(self._callbacks, item)
+        token = self.GetToken()
+        self._token2item[token] = item
+        return token
 
-    def remove(self, item):
-        self._callbacks.remove(item)
+    def remove(self, token):
+        item = self._token2item[token]
+        self._callbacks.pop(bisect.bisect_left(self._callbacks, item))
+
+    def __contains__(self, token):
+        return token in self._token2item
 
     def __call__(self):
-        for priority, callback in self._callbacks:
+        callbacks = self._callbacks[:]
+        for priority, callback in callbacks:
             callback()
 
 def recordCreationStack(cls):
@@ -3083,7 +3091,7 @@ class ParamObj:
 
             # set the default value on the object
             setattr(self, param, self.ParamSet.getDefaultValue(param))
-            
+
             setterName = getSetterName(param)
             getterName = getSetterName(param, 'get')
 
@@ -3172,7 +3180,7 @@ class ParamObj:
             del self.__dict__[setterName]
             """
         pass
-    
+
     def setDefaultParams(self):
         # set all the default parameters on ourself
         self.ParamSet().applyTo(self)
