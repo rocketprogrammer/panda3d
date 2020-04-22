@@ -49,7 +49,7 @@ void DNASign::traverse(NodePath& np, DNAStorage* store)
         _np.set_name("sign");
     }
 
-    _np.set_depth_write(1);
+    _np.set_depth_offset(50, 1);
 
     std::string np_name = np.get_name();
 
