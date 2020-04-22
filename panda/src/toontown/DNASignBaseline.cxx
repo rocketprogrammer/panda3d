@@ -2,6 +2,7 @@
 
 #include "nodePathCollection.h"
 #include "textNode.h"
+#include "depthWriteAttrib.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -110,6 +111,7 @@ void DNASignBaseline::traverse(NodePath& np, DNAStorage* store)
     center(pos, hpr);
 
     _np.set_depth_offset(51, 1);
+    _np.set_attrib(DepthWriteAttrib::make(DepthWriteAttrib::M_off));
     _np.set_pos(np, pos);
     _np.set_hpr(np, hpr);
     _np.clear_model_nodes();
