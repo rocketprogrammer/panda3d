@@ -349,16 +349,16 @@ class DistributedObjectAI(DistributedObjectBase):
             self.air.sendUpdate(self, fieldName, args)
 
     def GetPuppetConnectionChannel(self, doId):
-        return doId + (1L << 32)
+        return doId + (1001 << 32)
 
     def GetAccountConnectionChannel(self, doId):
-        return doId + (3L << 32)
+        return doId + (1003 << 32)
 
     def GetAccountIDFromChannelCode(self, channel):
         return channel >> 32
 
     def GetAvatarIDFromChannelCode(self, channel):
-        return channel & 0xffffffffL
+        return channel & 0xffffffff
 
     def sendUpdateToAvatarId(self, avId, fieldName, args):
         assert self.notify.debugStateCall(self)
