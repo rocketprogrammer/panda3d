@@ -39,7 +39,6 @@ void DNADoor::setup_door(NodePath door_np, NodePath parent_np, NodePath door_ori
     right_door.set_name("rightDoor");
 
     door_flat = door_np.find("door_*_flat");
-    door_flat.set_effect(DecalEffect::make());
 
     left_hole.wrt_reparent_to(door_flat, 0);
     right_hole.wrt_reparent_to(door_flat, 0);
@@ -50,8 +49,9 @@ void DNADoor::setup_door(NodePath door_np, NodePath parent_np, NodePath door_ori
     if (!right_hole_geom.get_node(0)->is_geom_node())
         right_hole_geom = right_hole_geom.find("**/+GeomNode");
 
-    left_hole_geom.set_effect(DecalEffect::make());
-    right_hole_geom.set_effect(DecalEffect::make());
+    door_flat.set_depth_offset(2, 1);
+    left_hole_geom.set_depth_offset(1, 1);
+    right_hole_geom.set_depth_offset(1, 1);
 
     right_door.wrt_reparent_to(parent_np, 0);
     left_door.wrt_reparent_to(parent_np, 0);

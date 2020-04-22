@@ -9,16 +9,6 @@ class EXPCL_DNA DNAInteractiveProp : public DNAAnimProp
         DNAInteractiveProp(const std::string& name);
         ~DNAInteractiveProp();
         
-        WRITE_PDNA
-        {
-            DNAAnimProp::write_pdna(dg, false);
-
-            dg.add_int16(m_cell_id);
-            
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-        
         WRITE_DNA
         {
             DNAAnimProp::write_dna(out, false, indent);

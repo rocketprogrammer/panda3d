@@ -9,20 +9,6 @@ class EXPCL_DNA DNALandmarkBuilding : public DNANode
         DNALandmarkBuilding(const std::string& name);
         ~DNALandmarkBuilding();
         
-        WRITE_PDNA
-        {
-            DNANode::write_pdna(dg, false);
-            
-            dg.add_string(m_code);
-            pack_color(dg, m_wall_color);
-            dg.add_string(m_title);
-            dg.add_string(m_article);
-            dg.add_string(m_building_type);
-            
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-        
         WRITE_DNA
         {
             DNANode::write_dna(out, false, indent);

@@ -42,4 +42,7 @@ void DNAWall::traverse(NodePath& np, DNAStorage* store)
 
     traverse_children(_np, store);
     DNAFlatBuilding::current_wall_height += m_height;
+    
+    _np.clear_model_nodes();
+    _np.flatten_strong();
 }

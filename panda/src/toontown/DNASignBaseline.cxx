@@ -109,9 +109,11 @@ void DNASignBaseline::traverse(NodePath& np, DNAStorage* store)
     LVecBase3f hpr = m_hpr;
     center(pos, hpr);
 
-    _np.set_depth_write(0);
+    _np.set_depth_offset(51, 1);
     _np.set_pos(np, pos);
     _np.set_hpr(np, hpr);
+    _np.clear_model_nodes();
+    _np.flatten_strong();
 }
 
 bool DNASignBaseline::is_first_letter_of_word(const char c)

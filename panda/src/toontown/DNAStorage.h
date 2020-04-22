@@ -137,7 +137,6 @@ class EXPCL_DNA DNAStorage
         PT(DNASuitPath) get_adjacent_points(PT(DNASuitPoint) point);
         bool discover_continuity();
 
-        void write_pdna(Datagram& dg);
         void write_dna(std::ostream& out);
 
 #ifndef CPPPARSER

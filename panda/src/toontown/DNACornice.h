@@ -9,14 +9,6 @@ class EXPCL_DNA DNACornice : public DNAGroup
         DNACornice(const std::string& name);
         ~DNACornice();
         
-        WRITE_PDNA
-        {
-            DNAGroup::write_pdna(dg, false);
-            
-            dg.add_string(m_code);
-            PACK_COLOR;
-        }
-        
         WRITE_DNA
         {
             DNAGroup::write_dna(out, false, indent);

@@ -11,26 +11,6 @@ class EXPCL_DNA DNASignBaseline : public DNANode
         DNASignBaseline(const std::string& name);
         ~DNASignBaseline();
 
-        WRITE_PDNA
-        {
-            DNANode::write_pdna(dg, false);
-
-            dg.add_string(m_text);
-            dg.add_string(m_code);
-            PACK_COLOR;
-            dg.add_string(m_flags);
-            dg.add_float32(m_indent);
-            dg.add_float32(m_kern);
-            dg.add_float32(m_wiggle);
-            dg.add_float32(m_stumble);
-            dg.add_float32(m_stomp);
-            dg.add_float32(m_width);
-            dg.add_float32(m_height);
-
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-
         WRITE_DNA
         {
             DNANode::write_dna(out, false, indent);

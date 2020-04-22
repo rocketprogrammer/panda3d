@@ -69,6 +69,8 @@ void DNAStreet::traverse(NodePath& np, DNAStorage* store)
     }
 
     _np.set_pos_hpr_scale(m_pos, m_hpr, m_scale);
+    _np.clear_model_nodes();
+    _np.flatten_strong();
 }
 
 void DNAStreet::set_texture(const std::string& texture)
