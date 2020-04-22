@@ -22,7 +22,7 @@ __all__ = [
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
     'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
-    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar'
+    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'cmp'
 ]
 
 if __debug__:
@@ -3570,6 +3570,9 @@ def clampScalar(value, a, b):
         else:
             return value
 
+def cmp(a, b):
+    return (a > b) - (a < b)
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3627,3 +3630,4 @@ builtins.DestructiveScratchPad = DestructiveScratchPad
 builtins.clampScalar = clampScalar
 builtins.isClient = isClient
 builtins.triglerp = triglerp
+builtins.cmp = cmp
