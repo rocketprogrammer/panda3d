@@ -233,8 +233,12 @@ class AstronInternalRepository(ConnectionRepository):
         elif msgType in (STATESERVER_OBJECT_CHANGING_AI,
                          STATESERVER_OBJECT_DELETE_RAM):
             self.handleObjExit(di)
+        elif msgType == STATESERVER_OBJECT_GET_AI_RESP:
+            self.handleObjGetAIResp(di)
         elif msgType == STATESERVER_OBJECT_CHANGING_LOCATION:
             self.handleObjLocation(di)
+        elif msgType == STATESERVER_OBJECT_LOCATION_ACK:
+            self.handleObjLocationAck(di)
         elif msgType in (DBSERVER_CREATE_OBJECT_RESP,
                          DBSERVER_OBJECT_GET_ALL_RESP,
                          DBSERVER_OBJECT_GET_FIELDS_RESP,
@@ -268,6 +272,29 @@ class AstronInternalRepository(ConnectionRepository):
             return
 
         do.setLocation(parentId, zoneId)
+
+    def handleObjLocationAck(self, di):
+        doId = di.getUint32()
+        zoneId = di.getUint32()
+
+        # Tell the StateServer that we have acknowledged the location change.
+        dg = PyDatagram()
+        dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_LOCATION_ACK)
+        dg.addUint32(doId)
+        dg.addUint32(zoneId)
+        self.send(dg)
+
+    def handleObjGetAIResp(self, di):
+        context = di.getUint32()
+        doId = di.getUint32()
+        aiChannel = di.getUint64()
+
+        dg = PyDatagram()
+        dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_GET_AI_RESP)
+        dg.addUint32(context)
+        dg.addUint32(self.GameGlobalsId)
+        dg.addUint64(self.ourChannel)
+        self.send(dg)
 
     def handleObjEntry(self, di, other):
         doId = di.getUint32()
