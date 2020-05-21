@@ -40,6 +40,7 @@ import random
 import time
 import builtins
 import importlib
+import bisect
 
 __report_indent = 3
 
