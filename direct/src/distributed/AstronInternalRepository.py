@@ -294,7 +294,6 @@ class AstronInternalRepository(ConnectionRepository):
         context = di.getUint32()
         doId = di.getUint32()
         aiChannel = di.getUint64()
-        
         dg = PyDatagram()
         dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_GET_AI_RESP)
         dg.addUint32(context)
