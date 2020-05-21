@@ -30,10 +30,6 @@ from .icon import Icon
 import panda3d.core as p3d
 
 
-if 'basestring' not in globals():
-    basestring = str
-
-
 if sys.version_info < (3, 0):
     # Python 3 defines these subtypes of IOError, but Python 2 doesn't.
     FileNotFoundError = IOError
@@ -48,7 +44,7 @@ if sys.version_info < (3, 0):
 
 
 def _parse_list(input):
-    if isinstance(input, basestring):
+    if isinstance(input, str):
         input = input.strip().replace(',', '\n')
         if input:
             return [item.strip() for item in input.split('\n') if item.strip()]
@@ -123,45 +119,7 @@ PACKAGE_LIB_DIRS = {
     'scipy':  ['scipy/extra-dll'],
 }
 
-# site.py for Python 2.
-SITE_PY2 = u"""
-import sys
-
-sys.frozen = True
-
-# Override __import__ to set __file__ for frozen modules.
-prev_import = __import__
-def __import__(*args, **kwargs):
-    mod = prev_import(*args, **kwargs)
-    if mod:
-        mod.__file__ = sys.executable
-    return mod
-
-# Add our custom __import__ version to the global scope, as well as a builtin
-# definition for __file__ so that it is available in the module itself.
-import __builtin__
-__builtin__.__import__ = __import__
-__builtin__.__file__ = sys.executable
-del __builtin__
-
-# Set the TCL_LIBRARY directory to the location of the Tcl/Tk/Tix files.
-import os
-tcl_dir = os.path.join(os.path.dirname(sys.executable), 'tcl')
-if os.path.isdir(tcl_dir):
-    for dir in os.listdir(tcl_dir):
-        sub_dir = os.path.join(tcl_dir, dir)
-        if os.path.isdir(sub_dir):
-            if dir.startswith('tcl'):
-                os.environ['TCL_LIBRARY'] = sub_dir
-            if dir.startswith('tk'):
-                os.environ['TK_LIBRARY'] = sub_dir
-            if dir.startswith('tix'):
-                os.environ['TIX_LIBRARY'] = sub_dir
-del os
-"""
-
-# site.py for Python 3.
-SITE_PY3 = u"""
+SITE_PY = u"""
 import sys
 from _frozen_importlib import _imp, FrozenImporter
 
@@ -208,8 +166,6 @@ if os.path.isdir(tcl_dir):
                 os.environ['TIX_LIBRARY'] = sub_dir
 del os
 """
-
-SITE_PY = SITE_PY3 if sys.version_info >= (3,) else SITE_PY2
 
 
 class build_apps(setuptools.Command):
@@ -406,10 +362,6 @@ class build_apps(setuptools.Command):
         abi_tag = 'cp%d%d' % (sys.version_info[:2])
         if sys.version_info < (3, 8):
             abi_tag += 'm'
-
-        # For these distributions, we need to append 'u' on Linux
-        if abi_tag in ('cp26m', 'cp27m', 'cp32m') and not platform.startswith('win') and not platform.startswith('macosx'):
-            abi_tag += 'u'
 
         whldir = os.path.join(whlcache, '_'.join((platform, abi_tag)))
         os.makedirs(whldir, exist_ok=True)
@@ -806,11 +758,10 @@ class build_apps(setuptools.Command):
                     basename = module.rsplit('.', 1)[0] + '.' + basename
 
                 # Remove python version string
-                if sys.version_info >= (3, 0):
-                    parts = basename.split('.')
-                    if len(parts) >= 3 and '-' in parts[-2]:
-                        parts = parts[:-2] + parts[-1:]
-                        basename = '.'.join(parts)
+                parts = basename.split('.')
+                if len(parts) >= 3 and '-' in parts[-2]:
+                    parts = parts[:-2] + parts[-1:]
+                    basename = '.'.join(parts)
             else:
                 # Builtin module, but might not be builtin in wheel libs, so double check
                 if module in whl_modules:
@@ -829,9 +780,8 @@ class build_apps(setuptools.Command):
         #TODO: get this to work on non-Windows platforms.
         if sys.platform == "win32" and platform.startswith('win'):
             tcl_dir = os.path.join(sys.prefix, 'tcl')
-            tkinter_name = 'tkinter' if sys.version_info >= (3, 0) else 'Tkinter'
 
-            if os.path.isdir(tcl_dir) and tkinter_name in freezer_modules:
+            if os.path.isdir(tcl_dir) and 'tkinter' in freezer_modules:
                 self.announce('Copying Tcl files', distutils.log.INFO)
                 os.makedirs(os.path.join(builddir, 'tcl'))
 
