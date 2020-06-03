@@ -40,11 +40,11 @@ import random
 import time
 import builtins
 import importlib
+import bisect
 
 __report_indent = 3
 
 from panda3d.core import ConfigVariableBool
-
 
 """
 # with one integer positional arg, this uses about 4/5 of the memory of the Functor class below
