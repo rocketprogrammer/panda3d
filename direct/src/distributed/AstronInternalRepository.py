@@ -1,27 +1,30 @@
+from builtins import range
+
+import collections
+
 from panda3d.core import *
-from panda3d.direct import DCPacker
-from MsgTypes import *
+from panda3d.direct import *
+from .MsgTypes import *
 from direct.showbase import ShowBase # __builtin__.config
 from direct.task.TaskManagerGlobal import * # taskMgr
 from direct.directnotify import DirectNotifyGlobal
-from ConnectionRepository import ConnectionRepository
-from PyDatagram import PyDatagram
-from PyDatagramIterator import PyDatagramIterator
-from AstronDatabaseInterface import AstronDatabaseInterface
-from NetMessenger import NetMessenger
-import collections
+from .ConnectionRepository import ConnectionRepository
+from .PyDatagram import PyDatagram
+from .PyDatagramIterator import PyDatagramIterator
+from .AstronDatabaseInterface import AstronDatabaseInterface
+from .NetMessenger import NetMessenger
 
 # Helper functions for logging output:
 def msgpack_length(dg, length, fix, maxfix, tag8, tag16, tag32):
     if length < maxfix:
         dg.addUint8(fix + length)
-    elif tag8 is not None and length < 1<<8:
+    elif tag8 is not None and length < 1 << 8:
         dg.addUint8(tag8)
         dg.addUint8(length)
-    elif tag16 is not None and length < 1<<16:
+    elif tag16 is not None and length < 1 << 16:
         dg.addUint8(tag16)
         dg.addBeUint16(length)
-    elif tag32 is not None and length < 1<<32:
+    elif tag32 is not None and length < 1 << 32:
         dg.addUint8(tag32)
         dg.addBeUint32(length)
     else:
@@ -34,7 +37,7 @@ def msgpack_encode(dg, element):
         dg.addUint8(0xc2)
     elif element is True:
         dg.addUint8(0xc3)
-    elif isinstance(element, (int, long)):
+    elif isinstance(element, int):
         if -32 <= element < 128:
             dg.addInt8(element)
         elif 128 <= element < 256:
@@ -43,10 +46,10 @@ def msgpack_encode(dg, element):
         elif 256 <= element < 65536:
             dg.addUint8(0xcd)
             dg.addBeUint16(element)
-        elif 65536 <= element < (1<<32):
+        elif 65536 <= element < (1 << 32):
             dg.addUint8(0xce)
             dg.addBeUint32(element)
-        elif (1<<32) <= element < (1<<64):
+        elif (1 << 32) <= element < (1 << 64):
             dg.addUint8(0xcf)
             dg.addBeUint64(element)
         elif -128 <= element < -32:
@@ -55,29 +58,32 @@ def msgpack_encode(dg, element):
         elif -32768 <= element < -128:
             dg.addUint8(0xd1)
             dg.addBeInt16(element)
-        elif -1<<31 <= element < -32768:
+        elif -1 << 31 <= element < -32768:
             dg.addUint8(0xd2)
             dg.addBeInt32(element)
-        elif -1<<63 <= element < -1<<31:
+        elif -1 << 63 <= element < -1 << 31:
             dg.addUint8(0xd3)
             dg.addBeInt64(element)
         else:
             raise ValueError('int out of range for msgpack: %d' % element)
     elif isinstance(element, dict):
         msgpack_length(dg, len(element), 0x80, 0x10, None, 0xde, 0xdf)
-        for k,v in element.items():
+        for k, v in list(element.items()):
             msgpack_encode(dg, k)
             msgpack_encode(dg, v)
     elif isinstance(element, list):
         msgpack_length(dg, len(element), 0x90, 0x10, None, 0xdc, 0xdd)
         for v in element:
             msgpack_encode(dg, v)
-    elif isinstance(element, basestring):
+    elif isinstance(element, str):
         # 0xd9 is str 8 in all recent versions of the MsgPack spec, but somehow
         # Logstash bundles a MsgPack implementation SO OLD that this isn't
         # handled correctly so this function avoids it too
-        msgpack_length(dg, len(element), 0xa0, 0x20, None, 0xda, 0xdb)
-        dg.appendData(element)
+        if isinstance(element, bytes):
+            element = element.decode()
+        elementBytes = element.encode('utf-8')
+        msgpack_length(dg, len(elementBytes), 0xa0, 0x20, None, 0xda, 0xdb)
+        dg.appendData(elementBytes)
     elif isinstance(element, float):
         # Python does not distinguish between floats and doubles, so we send
         # everything as a double in MsgPack:
@@ -112,13 +118,13 @@ class AstronInternalRepository(ConnectionRepository):
                 self.setVerbose(1)
 
         # The State Server we are configured to use for creating objects.
-        #If this is None, generating objects is not possible.
+        # If this is None, generating objects is not possible.
         self.serverId = self.config.GetInt('air-stateserver', 0) or None
         if serverId is not None:
             self.serverId = serverId
 
         maxChannels = self.config.GetInt('air-channel-allocation', 1000000)
-        self.channelAllocator = UniqueIdAllocator(baseChannel, baseChannel+maxChannels-1)
+        self.channelAllocator = UniqueIdAllocator(baseChannel, baseChannel + maxChannels - 1)
         self._registeredChannels = set()
 
         self.__contextCounter = 0
@@ -207,7 +213,7 @@ class AstronInternalRepository(ConnectionRepository):
         dg2 = PyDatagram()
         dg2.addServerControlHeader(CONTROL_ADD_POST_REMOVE)
         dg2.addUint64(self.ourChannel)
-        dg2.addString(dg.getMessage())
+        dg2.addBlob(dg.getMessage())
         self.send(dg2)
 
     def clearPostRemove(self):
@@ -233,8 +239,12 @@ class AstronInternalRepository(ConnectionRepository):
         elif msgType in (STATESERVER_OBJECT_CHANGING_AI,
                          STATESERVER_OBJECT_DELETE_RAM):
             self.handleObjExit(di)
+        elif msgType == STATESERVER_OBJECT_GET_AI_RESP:
+            self.handleObjGetAIResp(di)
         elif msgType == STATESERVER_OBJECT_CHANGING_LOCATION:
             self.handleObjLocation(di)
+        elif msgType == STATESERVER_OBJECT_LOCATION_ACK:
+            self.handleObjLocationAck(di)
         elif msgType in (DBSERVER_CREATE_OBJECT_RESP,
                          DBSERVER_OBJECT_GET_ALL_RESP,
                          DBSERVER_OBJECT_GET_FIELDS_RESP,
@@ -269,6 +279,28 @@ class AstronInternalRepository(ConnectionRepository):
 
         do.setLocation(parentId, zoneId)
 
+    def handleObjLocationAck(self, di):
+        doId = di.getUint32()
+        zoneId = di.getUint32()
+        
+        # Tell the StateServer that we have acknowledged the location change.
+        dg = PyDatagram()
+        dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_LOCATION_ACK)
+        dg.addUint32(doId)
+        dg.addUint32(zoneId)
+        self.send(dg)
+        
+    def handleObjGetAIResp(self, di):
+        context = di.getUint32()
+        doId = di.getUint32()
+        aiChannel = di.getUint64()
+        dg = PyDatagram()
+        dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_GET_AI_RESP)
+        dg.addUint32(context)
+        dg.addUint32(self.GameGlobalsId)
+        dg.addUint64(self.ourChannel)
+        self.send(dg)
+        
     def handleObjEntry(self, di, other):
         doId = di.getUint32()
         parentId = di.getUint32()
@@ -317,14 +349,13 @@ class AstronInternalRepository(ConnectionRepository):
         activated = di.getUint8()
 
         if ctx not in self.__callbacks:
-            self.notify.warning('Received unexpected DBSS_OBJECT_GET_ACTIVATED_RESP (ctx: %d)' %ctx)
+            self.notify.warning('Received unexpected DBSS_OBJECT_GET_ACTIVATED_RESP (ctx: %d)' % ctx)
             return
 
         try:
             self.__callbacks[ctx](doId, activated)
         finally:
             del self.__callbacks[ctx]
-
 
     def getActivated(self, doId, callback):
         ctx = self.getContext()
@@ -408,7 +439,7 @@ class AstronInternalRepository(ConnectionRepository):
         unpacker.setUnpackData(di.getRemainingBytes())
 
         # Required:
-        for i in xrange(dclass.getNumInheritedFields()):
+        for i in range(dclass.getNumInheritedFields()):
             field = dclass.getInheritedField(i)
             if not field.isRequired() or field.asMolecularField(): continue
             unpacker.beginUnpack(field)
@@ -417,7 +448,7 @@ class AstronInternalRepository(ConnectionRepository):
 
         # Other:
         other = unpacker.rawUnpackUint16()
-        for i in xrange(other):
+        for i in range(other):
             field = dclass.getFieldByIndex(unpacker.rawUnpackUint16())
             unpacker.beginUnpack(field)
             fields[field.getName()] = field.unpackArgs(unpacker)
@@ -499,7 +530,7 @@ class AstronInternalRepository(ConnectionRepository):
         fieldPacker = DCPacker()
         fieldCount = 0
         if dclass and fields:
-            for k,v in fields.items():
+            for k, v in list(fields.items()):
                 field = dclass.getFieldByName(k)
                 if not field:
                     self.notify.error('Activation request for %s object contains '
@@ -522,7 +553,7 @@ class AstronInternalRepository(ConnectionRepository):
             dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_SET_FIELDS)
             dg.addUint32(doId)
             dg.addUint16(fieldCount)
-            dg.appendData(fieldPacker.getString())
+            dg.appendData(fieldPacker.getBytes())
             self.send(dg)
             # Now slide it into the zone we expect to see it in (so it
             # generates onto us with all of the fields in place)
@@ -674,9 +705,9 @@ class AstronInternalRepository(ConnectionRepository):
         log['type'] = logtype
         log['sender'] = self.eventLogId
 
-        for i,v in enumerate(args):
+        for i , v in enumerate(args):
             # +1 because the logtype was _0, so we start at _1
-            log['_%d' % (i+1)] = v
+            log['_%d' % (i + 1)] = v
 
         log.update(kwargs)
 

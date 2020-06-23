@@ -43,12 +43,12 @@ class ObjectCount(Job):
         yield None
         counts.reverse()
         yield None
-        print "===== ObjectCount: '%s' =====" % self.getJobName()
+        print("===== ObjectCount: '%s' =====" % self.getJobName())
 
         for count in counts:
             types = count2type[count]
             for type in types:
-                print '%s: %s' % (count, type)
+                print('%s: %s' % (count, type))
                 yield None
 
         yield Job.Done

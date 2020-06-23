@@ -23,12 +23,7 @@ from . import DirectGuiGlobals as DGG
 from .DirectGuiBase import *
 from .OnscreenImage import OnscreenImage
 from .OnscreenGeom import OnscreenGeom
-import sys
-
-if sys.version_info >= (3, 0):
-    stringType = str
-else:
-    stringType = basestring
+from .OnscreenText import OnscreenText
 
 
 class DirectFrame(DirectGuiWidget):
@@ -100,14 +95,11 @@ class DirectFrame(DirectGuiWidget):
 
     def setText(self, text=None):
         if text is not None:
-            self['text'] = text
+            self["text"] = text
 
-        # Determine if user passed in single string or a sequence
-        if self['text'] == None:
-            textList = (None,) * self['numStates']
-        elif isinstance(self['text'], stringType):
-            # If just passing in a single string, make a tuple out of it
-            textList = (self['text'],) * self['numStates']
+        text = self["text"]
+        if text is None or isinstance(text, str):
+            text_list = (text,) * self['numStates']
         else:
             # Otherwise, hope that the user has passed in a tuple/list
             textList = self['text']
@@ -146,18 +138,13 @@ class DirectFrame(DirectGuiWidget):
 
     def setGeom(self, geom=None):
         if geom is not None:
-            self['geom'] = geom
+            self["geom"] = geom
 
-        # Determine argument type
-        geom = self['geom']
-
-        if geom == None:
-            # Passed in None
-            geomList = (None,) * self['numStates']
-        elif isinstance(geom, NodePath) or \
-             isinstance(geom, stringType):
-            # Passed in a single node path, make a tuple out of it
-            geomList = (geom,) * self['numStates']
+        geom = self["geom"]
+        if geom is None or \
+           isinstance(geom, NodePath) or \
+           isinstance(geom, str):
+            geom_list = (geom,) * self['numStates']
         else:
             # Otherwise, hope that the user has passed in a tuple/list
             geomList = geom
@@ -195,18 +182,18 @@ class DirectFrame(DirectGuiWidget):
 
     def setImage(self, image=None):
         if image is not None:
-            self['image'] = image
+            self["image"] = image
 
-        # Determine argument type
-        arg = self['image']
-        if arg == None:
-            # Passed in None
-            imageList = (None,) * self['numStates']
-        elif isinstance(arg, NodePath) or \
-             isinstance(arg, Texture) or \
-             isinstance(arg, stringType):
-            # Passed in a single node path, make a tuple out of it
-            imageList = (arg,) * self['numStates']
+        image = self["image"]
+        if image is None or \
+           isinstance(image, NodePath) or \
+           isinstance(image, Texture) or \
+           isinstance(image, str) or \
+           isinstance(image, Filename) or \
+           (len(image) == 2 and \
+            isinstance(image[0], str) and \
+            isinstance(image[1], str)):
+            image_list = (image,) * self['numStates']
         else:
             # Otherwise, hope that the user has passed in a tuple/list
             if ((len(arg) == 2) and
