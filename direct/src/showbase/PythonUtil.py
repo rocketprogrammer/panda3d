@@ -2910,7 +2910,6 @@ class Camera(ParamObj):
         base.camera.setFov(self.fov)
     ...
 
-
 EXAMPLE USAGE
 =============
 
@@ -3604,3 +3603,4 @@ builtins.clampScalar = clampScalar
 builtins.isClient = isClient
 builtins.triglerp = triglerp
 builtins.bpdb = bpdb
+builtins.describeException = describeException
