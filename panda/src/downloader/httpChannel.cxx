@@ -29,11 +29,11 @@
 
 #include "openSSLWrapper.h"
 
-#if defined(WIN32_VC) || defined(WIN64_VC)
-  #include <WinSock2.h>
+#ifdef _WIN32
+  #include <winsock2.h>
   #include <windows.h>  // for select()
   #undef X509_NAME
-#endif  // WIN32_VC
+#endif  // _WIN32
 
 using std::istream;
 using std::min;
@@ -1627,26 +1627,6 @@ run_ssl_handshake() {
     _status_entry._status_code = SC_ssl_invalid_server_certificate;
     _state = S_failure;
     return false;
-  }
-
-  X509_NAME *subject = X509_get_subject_name(cert);
-  if (downloader_cat.is_debug()) {
-    string org_name = get_x509_name_component(subject, NID_organizationName);
-    string org_unit_name = get_x509_name_component(subject, NID_organizationalUnitName);
-    string common_name = get_x509_name_component(subject, NID_commonName);
-
-    downloader_cat.debug()
-      << _NOTIFY_HTTP_CHANNEL_ID
-      << "Server is " << common_name << " from " << org_unit_name
-      << " / " << org_name << "\n";
-
-    if (downloader_cat.is_spam()) {
-      downloader_cat.spam()
-        << _NOTIFY_HTTP_CHANNEL_ID
-        << "Received certificate from server:\n" << std::flush;
-      X509_print_fp(stderr, cert);
-      fflush(stderr);
-    }
   }
 
   bool cert_preapproved = false;

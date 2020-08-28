@@ -19,6 +19,15 @@ from makepandacore import ColorText, LocateBinary, GetExtensionSuffix, SetVerbos
 from base64 import urlsafe_b64encode
 
 
+def get_real_filepath(filename):
+    if sys.version_info[0] >= 3:
+        from pathlib import Path
+        return str(Path(filename).resolve())
+    else:
+        # well then...
+        return os.path.realpath(filename)
+
+
 def get_abi_tag():
     if sys.version_info >= (3, 0):
         soabi = get_config_var('SOABI')
@@ -92,7 +101,7 @@ EXCLUDE_EXT = [".pyc", ".pyo", ".N", ".prebuilt", ".xcf", ".plist", ".vcproj", "
 # Plug-ins to install.
 PLUGIN_LIBS = ["pandagl", "pandagles", "pandagles2", "pandadx9", "p3tinydisplay", "p3ptloader", "p3assimp", "p3ffmpeg", "p3openal_audio", "p3fmod_audio"]
 
-# Libraries included in manylinux ABI that should be ignored.  See PEP 513/571.
+# Libraries included in manylinux ABI that should be ignored.  See PEP 513/571/599.
 MANYLINUX_LIBS = [
     "libgcc_s.so.1", "libstdc++.so.6", "libm.so.6", "libdl.so.2", "librt.so.1",
     "libcrypt.so.1", "libc.so.6", "libnsl.so.1", "libutil.so.1",
@@ -407,6 +416,7 @@ class WheelFile(object):
                     deps_path = '@executable_path/../Frameworks'
                 else:
                     deps_path = '@loader_path'
+                remove_signature = False
                 loader_path = [os.path.dirname(source_path)]
                 for dep in deps:
                     if dep.endswith('/Python'):
@@ -422,6 +432,15 @@ class WheelFile(object):
                             # It won't be included, so no use adjusting the path.
                             continue
                         new_dep = os.path.join(deps_path, os.path.relpath(target_dep, os.path.dirname(target_path)))
+
+                    elif '@rpath' in dep:
+                        # Unlike makepanda, CMake uses @rpath instead of
+                        # @loader_path. This means we can just search for the
+                        # dependencies like normal.
+                        dep_path = dep.replace('@rpath', '.')
+                        target_dep = os.path.dirname(target_path) + '/' + os.path.basename(dep)
+                        self.consider_add_dependency(target_dep, dep_path)
+                        continue
 
                     elif dep.startswith('/Library/Frameworks/Python.framework/'):
                         # Add this dependency if it's in the Python directory.
@@ -439,6 +458,11 @@ class WheelFile(object):
                         continue
 
                     subprocess.call(["install_name_tool", "-change", dep, new_dep, temp.name])
+                    remove_signature = True
+
+                # Remove the codesign signature if we modified the library.
+                if remove_signature:
+                    subprocess.call(["codesign", "--remove-signature", temp.name])
             else:
                 # On other unixes, we just add dependencies normally.
                 for dep in deps:
@@ -530,10 +554,14 @@ def makewheel(version, output_dir, platform=None):
         else:
             print("Could not find platform.dat in build directory")
             platform = get_platform()
-            if platform.startswith("linux-"):
-                # Is this manylinux1?
-                if os.path.isfile("/lib/libc-2.5.so") and os.path.isdir("/opt/python"):
+            if platform.startswith("linux-") and os.path.isdir("/opt/python"):
+                # Is this manylinux?
+                if os.path.isfile("/lib/libc-2.5.so") or os.path.isfile("/lib64/libc-2.5.so"):
                     platform = platform.replace("linux", "manylinux1")
+                elif os.path.isfile("/lib/libc-2.12.so") or os.path.isfile("/lib64/libc-2.12.so"):
+                    platform = platform.replace("linux", "manylinux2010")
+                elif os.path.isfile("/lib/libc-2.17.so") or os.path.isfile("/lib64/libc-2.17.so"):
+                    platform = platform.replace("linux", "manylinux2014")
 
     platform = platform.replace('-', '_').replace('.', '_')
 
@@ -592,6 +620,14 @@ def makewheel(version, output_dir, platform=None):
             whl.lib_path += ["/lib", "/usr/lib"]
 
         whl.ignore_deps.update(MANYLINUX_LIBS)
+    elif platform.startswith('linux'):
+        whl.lib_path.append('/usr/local/lib')
+        whl.lib_path.append('/usr/lib')
+
+        if platform.endswith("_x86_64"):
+            whl.lib_path += ["/lib64", "/usr/lib64"]
+        else:
+            whl.lib_path += ["/lib", "/usr/lib"]
 
     # Add the trees with Python modules.
     whl.write_directory('direct', direct_dir)
@@ -678,6 +714,13 @@ if __debug__:
         if file.endswith('.py'):
             whl.write_file('pandac/' + file, os.path.join(pandac_dir, file))
 
+    # Let's also add the interrogate databases.
+    input_dir = os.path.join(pandac_dir, 'input')
+    if os.path.isdir(input_dir):
+        for file in os.listdir(input_dir):
+            if file.endswith('.in'):
+                whl.write_file('pandac/input/' + file, os.path.join(input_dir, file))
+
     # Add a panda3d-tools directory containing the executables.
     entry_points = '[console_scripts]\n'
     entry_points += 'eggcacher = direct.directscripts.eggcacher:main\n'
@@ -694,10 +737,15 @@ if __debug__:
             # Put the .exe files inside the panda3d-tools directory.
             whl.write_file('panda3d_tools/' + file, source_path)
 
+            if basename.endswith('_bin'):
+                # These tools won't be invoked by the user directly.
+                continue
+
             # Tell pip to create a wrapper script.
             funcname = basename.replace('-', '_')
             entry_points += '{0} = panda3d_tools:{1}\n'.format(basename, funcname)
             tools_init += '{0} = lambda: _exec_tool({1!r})\n'.format(funcname, file)
+
     entry_points += '[distutils.commands]\n'
     entry_points += 'build_apps = direct.dist.commands:build_apps\n'
     entry_points += 'bdist_apps = direct.dist.commands:bdist_apps\n'
@@ -723,8 +771,16 @@ if __debug__:
         pylib_path = os.path.join(get_config_var('LIBDIR'), pylib_name)
     else:
         pylib_name = get_config_var('LDLIBRARY')
-        pylib_path = os.path.join(get_config_var('LIBDIR'), pylib_name)
-    whl.write_file('deploy_libs/' + pylib_name, pylib_path)
+        pylib_arch = get_config_var('MULTIARCH')
+        libdir = get_config_var('LIBDIR')
+        if pylib_arch and os.path.exists(os.path.join(libdir, pylib_arch, pylib_name)):
+            pylib_path = os.path.join(libdir, pylib_arch, pylib_name)
+        else:
+            pylib_path = os.path.join(libdir, pylib_name)
+
+    # If Python was linked statically, we don't need to include this.
+    if not pylib_name.endswith('.a'):
+        whl.write_file('deploy_libs/' + pylib_name, pylib_path)
 
     whl.close()
 

@@ -57,7 +57,7 @@ RPMRELEASE="1"
 GIT_COMMIT=None
 MAJOR_VERSION=None
 OSXTARGET=None
-global STRDXSDKVERSION, BOOUSEINTELCOMPILER
+global STRDXSDKVERSION, BOOUSEINTELCOMPILER, NIRAI_MODE
 STRDXSDKVERSION = 'default'
 WINDOWS_SDK = None
 MSVC_VERSION = None
@@ -65,6 +65,7 @@ BOOUSEINTELCOMPILER = False
 OPENCV_VER_23 = False
 PLATFORM = None
 COPY_PYTHON = True
+NIRAI_MODE = False
 
 if "MACOSX_DEPLOYMENT_TARGET" in os.environ:
     OSXTARGET=os.environ["MACOSX_DEPLOYMENT_TARGET"]
@@ -75,7 +76,7 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "EIGEN",                                             # Linear algebra acceleration
   "OPENAL", "FMODEX",                                  # Audio playback
   "VORBIS", "OPUS", "FFMPEG", "SWSCALE", "SWRESAMPLE", # Audio decoding
-  "ODE", "PHYSX", "BULLET", "PANDAPHYSICS",            # Physics
+  "ODE", "BULLET", "PANDAPHYSICS",                     # Physics
   "SPEEDTREE",                                         # SpeedTree
   "ZLIB", "PNG", "JPEG", "TIFF", "OPENEXR", "SQUISH",  # 2D Formats support
   ] + MAYAVERSIONS + MAXVERSIONS + [ "FCOLLADA", "ASSIMP", "EGG", # 3D Formats support
@@ -85,7 +86,6 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "ARTOOLKIT", "OPENCV", "DIRECTCAM", "VISION",        # Augmented Reality
   "GTK2",                                              # GTK2 is used for PStats on Unix
   "MFC", "WX", "FLTK",                                 # Used for web plug-in only
-  "ROCKET",                                            # GUI libraries
   "COCOA",                                             # Mac OS X toolkits
   "X11",                                               # Unix platform support
   "PANDATOOL", "PVIEW", "DEPLOYTOOLS",                 # Toolchain
@@ -94,6 +94,7 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "PANDAPARTICLESYSTEM",                               # Built in particle system
   "CONTRIB",                                           # Experimental
   "SSE2", "NEON",                                      # Compiler features
+  "DNA",                                               # Toontown
 ])
 
 CheckPandaSourceTree()
@@ -146,10 +147,11 @@ def usage(problem):
     print("")
     print("  --nothing         (disable every third-party lib)")
     print("  --everything      (enable every third-party lib)")
-    print("  --directx-sdk=X   (specify version of DirectX SDK to use: jun2010, aug2009, mar2009, aug2006)")
-    print("  --windows-sdk=X   (specify Windows SDK version, eg. 7.0, 7.1 or 10.  Default is 7.1)")
+    print("  --directx-sdk=X   (specify version of DirectX SDK to use: jun2010, aug2009)")
+    print("  --windows-sdk=X   (specify Windows SDK version, eg. 7.1, 8.1 or 10.  Default is 8.1)")
     print("  --msvc-version=X  (specify Visual C++ version, eg. 10, 11, 12, 14, 14.1, 14.2.  Default is 14)")
     print("  --use-icl         (experimental setting to use an intel compiler instead of MSVC on Windows)")
+    print("  --nirai         (enable Nirai support)")
     print("")
     print("The simplest way to compile panda is to just type:")
     print("")
@@ -163,11 +165,12 @@ def parseopts(args):
     global DEBVERSION,WHLVERSION,RPMRELEASE,GIT_COMMIT
     global STRDXSDKVERSION, WINDOWS_SDK, MSVC_VERSION, BOOUSEINTELCOMPILER
     global COPY_PYTHON
+    global NIRAI_MODE
 
     # Options for which to display a deprecation warning.
     removedopts = [
         "use-touchinput", "no-touchinput", "no-awesomium", "no-directscripts",
-        "no-carbon", "universal",
+        "no-carbon", "universal", "no-physx", "no-rocket"
         ]
 
     # All recognized options.
@@ -178,6 +181,7 @@ def parseopts(args):
         "static","debversion=","rpmrelease=","p3dsuffix=","rtdist-version=",
         "directx-sdk=", "windows-sdk=", "msvc-version=", "clean", "use-icl",
         "target=", "arch=", "git-commit=", "no-copy-python",
+        "cggl-incdir=", "cggl-libdir=", "nirai"
         ] + removedopts
 
     anything = 0
@@ -237,10 +241,11 @@ def parseopts(args):
             elif (option=="--use-icl"): BOOUSEINTELCOMPILER = True
             elif (option=="--clean"): clean_build = True
             elif (option=="--no-copy-python"): COPY_PYTHON = False
+            elif (option=="--nirai"): NIRAI_MODE = True
             elif (option[2:] in removedopts):
                 Warn("Ignoring removed option %s" % (option))
             else:
-                for pkg in PkgListGet():
+                for pkg in PkgListGet() + ['CGGL']:
                     if option == "--use-" + pkg.lower():
                         PkgEnable(pkg)
                         break
@@ -273,6 +278,17 @@ def parseopts(args):
             assert OSXTARGET[0] == 10
         except:
             usage("Invalid setting for OSXTARGET")
+
+        if OSXTARGET < (10, 9):
+            warn_prefix = "%sERROR:%s " % (GetColor("red"), GetColor())
+            print("=========================================================================")
+            print(warn_prefix + "Support for macOS versions before 10.9 has been discontinued.")
+            print(warn_prefix + "For more information, or any questions, please visit:")
+            print("  https://github.com/panda3d/panda3d/issues/300")
+            print("=========================================================================")
+            sys.stdout.flush()
+            time.sleep(1.0)
+            sys.exit(1)
     else:
         OSXTARGET = None
 
@@ -310,10 +326,6 @@ def parseopts(args):
             sys.stdout.flush()
             time.sleep(1.0)
             sys.exit(1)
-
-        if not WINDOWS_SDK:
-            print("No Windows SDK version specified. Defaulting to '7.1'.")
-            WINDOWS_SDK = '7.1'
 
     if clean_build and os.path.isdir(GetOutputDir()):
         print("Deleting %s" % (GetOutputDir()))
@@ -378,6 +390,8 @@ elif target == 'darwin':
     else:
         maj, min = platform.mac_ver()[0].split('.')[:2]
         osxver = int(maj), int(min)
+        if osxver < (10, 9):
+            osxver = (10, 9)
 
     arch_tag = GetTargetArch()
     PLATFORM = 'macosx-{0}.{1}-{2}'.format(osxver[0], osxver[1], arch_tag)
@@ -388,6 +402,20 @@ elif target == 'linux' and (os.path.isfile("/lib/libc-2.5.so") or os.path.isfile
         PLATFORM = 'manylinux1-x86_64'
     else:
         PLATFORM = 'manylinux1-i686'
+
+elif target == 'linux' and (os.path.isfile("/lib/libc-2.12.so") or os.path.isfile("/lib64/libc-2.12.so")) and os.path.isdir("/opt/python"):
+    # Same sloppy check for manylinux2010.
+    if GetTargetArch() in ('x86_64', 'amd64'):
+        PLATFORM = 'manylinux2010-x86_64'
+    else:
+        PLATFORM = 'manylinux2010-i686'
+
+elif target == 'linux' and (os.path.isfile("/lib/libc-2.17.so") or os.path.isfile("/lib64/libc-2.17.so")) and os.path.isdir("/opt/python"):
+    # Same sloppy check for manylinux2014.
+    if GetTargetArch() in ('x86_64', 'amd64'):
+        PLATFORM = 'manylinux2014-x86_64'
+    else:
+        PLATFORM = 'manylinux2014-i686'
 
 elif not CrossCompiling():
     if HasTargetArch():
@@ -452,23 +480,21 @@ SdkLocateMax()
 SdkLocateMacOSX(OSXTARGET)
 SdkLocatePython(False)
 SdkLocateWindows(WINDOWS_SDK)
-SdkLocatePhysX()
 SdkLocateSpeedTree()
 SdkLocateAndroid()
 
 SdkAutoDisableDirectX()
 SdkAutoDisableMaya()
 SdkAutoDisableMax()
-SdkAutoDisablePhysX()
 SdkAutoDisableSpeedTree()
 
 if not PkgSkip("PYTHON") and SDK["PYTHONVERSION"] == "python2.7":
     warn_prefix = "%sWARNING:%s " % (GetColor("red"), GetColor())
-    print("=========================================================================")
-    print(warn_prefix + "Python 2.7 will reach EOL after December 31, 2019, and will not")
-    print(warn_prefix + "be supported after that date.  Please ensure you are prepared")
-    print(warn_prefix + "by planning your upgrade to Python 3 now.")
-    print("=========================================================================")
+    print("==========================================================================")
+    print(warn_prefix + "Python 2.7 has reached EOL as of January 1, 2020 and is no longer")
+    print(warn_prefix + "maintained.  Panda3D will soon cease to work with this version.")
+    print(warn_prefix + "Please upgrade to Python 3 now.")
+    print("==========================================================================")
     sys.stdout.flush()
     # Give the user some time to contemplate their sins
     time.sleep(6.0)
@@ -487,6 +513,8 @@ if GetHost() == 'windows' and GetTarget() == 'windows':
     SdkLocateVisualStudio(MSVC_VERSION)
 else:
     COMPILER = "GCC"
+
+print("Nirai support: %s" % (NIRAI_MODE))
 
 SetupBuildEnvironment(COMPILER)
 
@@ -541,10 +569,7 @@ if (COMPILER == "MSVC"):
 
             LibName(pkg, 'd3dVNUM.lib'.replace("VNUM", vnum))
             LibName(pkg, 'd3dxVNUM.lib'.replace("VNUM", vnum))
-            if int(vnum) >= 9 and "GENERIC_DXERR_LIBRARY" in SDK:
-                LibName(pkg, 'dxerr.lib')
-            else:
-                LibName(pkg, 'dxerrVNUM.lib'.replace("VNUM", vnum))
+            LibName(pkg, 'dxerr.lib')
             #LibName(pkg, 'ddraw.lib')
             LibName(pkg, 'dxguid.lib')
 
@@ -605,8 +630,11 @@ if (COMPILER == "MSVC"):
             suffix = "-2_2"
         elif os.path.isfile(GetThirdpartyDir() + "openexr/lib/IlmImf-2_3.lib"):
             suffix = "-2_3"
+        elif os.path.isfile(GetThirdpartyDir() + "openexr/lib/IlmImf-2_4.lib"):
+            suffix = "-2_4"
+            LibName("OPENEXR", GetThirdpartyDir() + "openexr/lib/Imath" + suffix + ".lib")
         if os.path.isfile(GetThirdpartyDir() + "openexr/lib/IlmImf" + suffix + "_s.lib"):
-            suffix += "_s"
+            suffix += "_s"  # _s suffix observed for OpenEXR 2.3 only so far
         LibName("OPENEXR", GetThirdpartyDir() + "openexr/lib/IlmImf" + suffix + ".lib")
         LibName("OPENEXR", GetThirdpartyDir() + "openexr/lib/IlmThread" + suffix + ".lib")
         LibName("OPENEXR", GetThirdpartyDir() + "openexr/lib/Iex" + suffix + ".lib")
@@ -651,13 +679,6 @@ if (COMPILER == "MSVC"):
             LibName("SQUISH",   GetThirdpartyDir() + "squish/lib/squishd.lib")
         else:
             LibName("SQUISH",   GetThirdpartyDir() + "squish/lib/squish.lib")
-    if (PkgSkip("ROCKET")==0):
-        LibName("ROCKET", GetThirdpartyDir() + "rocket/lib/RocketCore.lib")
-        LibName("ROCKET", GetThirdpartyDir() + "rocket/lib/RocketControls.lib")
-        if (PkgSkip("PYTHON")==0):
-            LibName("ROCKET", GetThirdpartyDir() + "rocket/lib/" + SDK["PYTHONVERSION"] + "/boost_python-vc100-mt-1_54.lib")
-        if (GetOptimize() <= 3):
-            LibName("ROCKET", GetThirdpartyDir() + "rocket/lib/RocketDebugger.lib")
     if (PkgSkip("OPENAL")==0):
         LibName("OPENAL", GetThirdpartyDir() + "openal/lib/OpenAL32.lib")
         if not os.path.isfile(GetThirdpartyDir() + "openal/bin/OpenAL32.dll"):
@@ -699,20 +720,6 @@ if (COMPILER == "MSVC"):
             LibName(pkg, SDK[pkg] +  '/lib/mesh.lib')
             LibName(pkg, SDK[pkg] +  '/lib/maxutil.lib')
             LibName(pkg, SDK[pkg] +  '/lib/paramblk2.lib')
-    if (PkgSkip("PHYSX")==0):
-        if GetTargetArch() == 'x64':
-            LibName("PHYSX",  SDK["PHYSXLIBS"] + "/PhysXLoader64.lib")
-            LibName("PHYSX",  SDK["PHYSXLIBS"] + "/NxCharacter64.lib")
-        else:
-            LibName("PHYSX",  SDK["PHYSXLIBS"] + "/PhysXLoader.lib")
-            LibName("PHYSX",  SDK["PHYSXLIBS"] + "/NxCharacter.lib")
-
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/Physics/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/PhysXLoader/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/NxCharacter/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/NxExtensions/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/Foundation/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/Cooking/include")
 
     if (PkgSkip("SPEEDTREE")==0):
         if GetTargetArch() == 'x64':
@@ -799,12 +806,73 @@ if (COMPILER=="GCC"):
     SmartPkgEnable("JPEG",      "",          ("jpeg"), "jpeglib.h")
     SmartPkgEnable("PNG",       "libpng",    ("png"), "png.h", tool = "libpng-config")
 
+    # Copy freetype libraries to be specified after harfbuzz libraries as well,
+    # because there's a circular dependency between the two libraries.
+    if not PkgSkip("FREETYPE") and not PkgSkip("HARFBUZZ"):
+        for (opt, name) in LIBNAMES:
+            if opt == "FREETYPE":
+                LibName("HARFBUZZ", name)
+
     if not PkgSkip("FFMPEG"):
         if GetTarget() == "darwin":
             LibName("FFMPEG", "-framework VideoDecodeAcceleration")
         elif os.path.isfile(GetThirdpartyDir() + "ffmpeg/lib/libavcodec.a"):
             # Needed when linking ffmpeg statically on Linux.
             LibName("FFMPEG", "-Wl,-Bsymbolic")
+            # Don't export ffmpeg symbols from libp3ffmpeg when linking statically.
+            for ffmpeg_lib in ffmpeg_libs:
+                LibName("FFMPEG", "-Wl,--exclude-libs,%s.a" % (ffmpeg_lib))
+
+    if GetTarget() != "darwin":
+        for fcollada_lib in fcollada_libs:
+            LibName("FCOLLADA", "-Wl,--exclude-libs,lib%s.a" % (fcollada_lib))
+
+        if not PkgSkip("SWSCALE"):
+            LibName("SWSCALE", "-Wl,--exclude-libs,libswscale.a")
+
+        if not PkgSkip("SWRESAMPLE"):
+            LibName("SWRESAMPLE", "-Wl,--exclude-libs,libswresample.a")
+
+        if not PkgSkip("JPEG"):
+            LibName("JPEG", "-Wl,--exclude-libs,libjpeg.a")
+
+        if not PkgSkip("TIFF"):
+            LibName("TIFF", "-Wl,--exclude-libs,libtiff.a")
+
+        if not PkgSkip("PNG"):
+            LibName("PNG", "-Wl,--exclude-libs,libpng.a")
+            LibName("PNG", "-Wl,--exclude-libs,libpng16.a")
+
+        if not PkgSkip("SQUISH"):
+            LibName("SQUISH", "-Wl,--exclude-libs,libsquish.a")
+
+        if not PkgSkip("OPENEXR"):
+            LibName("OPENEXR", "-Wl,--exclude-libs,libHalf.a")
+            LibName("OPENEXR", "-Wl,--exclude-libs,libIex.a")
+            LibName("OPENEXR", "-Wl,--exclude-libs,libIexMath.a")
+            LibName("OPENEXR", "-Wl,--exclude-libs,libIlmImf.a")
+            LibName("OPENEXR", "-Wl,--exclude-libs,libIlmImfUtil.a")
+            LibName("OPENEXR", "-Wl,--exclude-libs,libIlmThread.a")
+            LibName("OPENEXR", "-Wl,--exclude-libs,libImath.a")
+
+        if not PkgSkip("VORBIS"):
+            LibName("VORBIS", "-Wl,--exclude-libs,libogg.a")
+            LibName("VORBIS", "-Wl,--exclude-libs,libvorbis.a")
+            LibName("VORBIS", "-Wl,--exclude-libs,libvorbisenc.a")
+            LibName("VORBIS", "-Wl,--exclude-libs,libvorbisfile.a")
+
+        if not PkgSkip("OPUS"):
+            LibName("OPUS", "-Wl,--exclude-libs,libogg.a")
+            LibName("OPUS", "-Wl,--exclude-libs,libopus.a")
+            LibName("OPUS", "-Wl,--exclude-libs,libopusfile.a")
+
+        if not PkgSkip("VRPN"):
+            LibName("VRPN", "-Wl,--exclude-libs,libvrpn.a")
+            LibName("VRPN", "-Wl,--exclude-libs,libquat.a")
+
+        if not PkgSkip("ARTOOLKIT"):
+            LibName("ARTOOLKIT", "-Wl,--exclude-libs,libAR.a")
+            LibName("ARTOOLKIT", "-Wl,--exclude-libs,libARMulti.a")
 
     if PkgSkip("FFMPEG") or GetTarget() == "darwin":
         cv_lib = ChooseLib(("opencv_core", "cv"), "OPENCV")
@@ -817,9 +885,13 @@ if (COMPILER=="GCC"):
     else:
         PkgDisable("OPENCV")
 
-    if GetTarget() == "darwin" and not PkgSkip("OPENAL"):
-        LibName("OPENAL", "-framework AudioToolbox")
-        LibName("OPENAL", "-framework CoreAudio")
+    if not PkgSkip("OPENAL"):
+        if GetTarget() == "darwin":
+            LibName("OPENAL", "-framework AudioUnit")
+            LibName("OPENAL", "-framework AudioToolbox")
+            LibName("OPENAL", "-framework CoreAudio")
+        else:
+            LibName("OPENAL", "-Wl,--exclude-libs,libopenal.a")
 
     if not PkgSkip("ASSIMP") and \
         os.path.isfile(GetThirdpartyDir() + "assimp/lib/libassimp.a"):
@@ -828,11 +900,9 @@ if (COMPILER=="GCC"):
         if os.path.isfile(irrxml):
             LibName("ASSIMP", irrxml)
 
-    rocket_libs = ("RocketCore", "RocketControls")
-    if (GetOptimize() <= 3):
-        rocket_libs += ("RocketDebugger",)
-    rocket_libs += ("boost_python",)
-    SmartPkgEnable("ROCKET",    "",          rocket_libs, "Rocket/Core.h")
+            if GetTarget() != "darwin":
+                LibName("ASSIMP", "-Wl,--exclude-libs,libassimp.a")
+                LibName("ASSIMP", "-Wl,--exclude-libs,libIrrXML.a")
 
     if not PkgSkip("PYTHON"):
         python_lib = SDK["PYTHONVERSION"]
@@ -845,6 +915,10 @@ if (COMPILER=="GCC"):
     SmartPkgEnable("OPENSSL",   "openssl",   ("ssl", "crypto"), ("openssl/ssl.h", "openssl/crypto.h"))
     SmartPkgEnable("ZLIB",      "zlib",      ("z"), "zlib.h")
     SmartPkgEnable("GTK2",      "gtk+-2.0")
+
+    if not PkgSkip("OPENSSL") and GetTarget() != "darwin":
+        LibName("OPENSSL", "-Wl,--exclude-libs,libssl.a")
+        LibName("OPENSSL", "-Wl,--exclude-libs,libcrypto.a")
 
     if GetTarget() != 'darwin':
         # CgGL is covered by the Cg framework, and we don't need X11 components on OSX
@@ -901,8 +975,6 @@ if (COMPILER=="GCC"):
         LibName("GL", "-dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib")
 
         # Temporary exceptions to removal of this flag
-        if not PkgSkip("ROCKET"):
-            LibName("ROCKET", "-undefined dynamic_lookup")
         if not PkgSkip("FFMPEG"):
             LibName("FFMPEG", "-undefined dynamic_lookup")
         if not PkgSkip("ASSIMP"):
@@ -920,11 +992,12 @@ if (COMPILER=="GCC"):
     for pkg in MAYAVERSIONS:
         if (PkgSkip(pkg)==0 and (pkg in SDK)):
             if GetTarget() == 'darwin':
-                LibName(pkg, "-Wl,-rpath," + SDK[pkg] + "/Maya.app/Contents/MacOS")
+                LibName(pkg, "-Wl,-rpath,/Applications/Autodesk/" + pkg.lower() + "/Maya.app/Contents/MacOS")
             else:
                 LibName(pkg, "-Wl,-rpath," + SDK[pkg] + "/lib")
             LibName(pkg, "-lOpenMaya")
             LibName(pkg, "-lOpenMayaAnim")
+            LibName(pkg, "-lOpenMayaUI")
             LibName(pkg, "-lAnimSlice")
             LibName(pkg, "-lDeformSlice")
             LibName(pkg, "-lModifiers")
@@ -943,26 +1016,12 @@ if (COMPILER=="GCC"):
             LibName(pkg, "-lDependEngine")
             LibName(pkg, "-lCommandEngine")
             LibName(pkg, "-lFoundation")
-            LibName(pkg, "-lIMFbase")
+            if pkg != "MAYA2020":
+                LibName(pkg, "-lIMFbase")
             if GetTarget() != 'darwin':
                 LibName(pkg, "-lOpenMayalib")
             else:
                 LibName(pkg, "-dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib")
-
-    if (PkgSkip("PHYSX")==0):
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/Physics/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/PhysXLoader/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/NxCharacter/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/NxExtensions/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/Foundation/include")
-        IncDirectory("PHYSX", SDK["PHYSX"] + "/Cooking/include")
-        LibDirectory("PHYSX", SDK["PHYSXLIBS"])
-        if (GetHost() == "darwin"):
-            LibName("PHYSX", SDK["PHYSXLIBS"] + "/osxstatic/PhysXCooking.a")
-            LibName("PHYSX", SDK["PHYSXLIBS"] + "/osxstatic/PhysXCore.a")
-        else:
-            LibName("PHYSX", "-lPhysXLoader")
-            LibName("PHYSX", "-lNxCharacter")
 
 DefSymbol("WITHINPANDA", "WITHIN_PANDA", "1")
 if GetLinkAllStatic():
@@ -1055,11 +1114,8 @@ def CompileCxx(obj,src,opts):
                 cmd += "/favor:blend "
             cmd += "/wd4996 /wd4275 /wd4273 "
 
-            # We still target Windows XP.
-            cmd += "/DWINVER=0x501 "
-            # Work around a WinXP/2003 bug when using VS 2015+.
-            if SDK.get("VISUALSTUDIO_VERSION") >= (14,0):
-                cmd += "/Zc:threadSafeInit- "
+            # Set the minimum version to Windows Vista.
+            cmd += "/DWINVER=0x600 "
 
             cmd += "/Fo" + obj + " /nologo /c"
             if GetTargetArch() != 'x64' and (not PkgSkip("SSE2") or 'SSE2' in opts):
@@ -1087,7 +1143,7 @@ def CompileCxx(obj,src,opts):
             if ("BIGOBJ" in opts) or GetTargetArch() == 'x64':
                 cmd += " /bigobj"
 
-            cmd += " /Zm300 /DWIN32_VC /DWIN32"
+            cmd += " /Zm300"
             if 'EXCEPTIONS' in opts:
                 cmd += " /EHsc"
             else:
@@ -1096,13 +1152,6 @@ def CompileCxx(obj,src,opts):
             if 'RTTI' not in opts:
                  cmd += " /GR-"
 
-            if GetTargetArch() == 'x64':
-                cmd += " /DWIN64_VC /DWIN64"
-
-            if WINDOWS_SDK.startswith('7.') and MSVC_VERSION > (10,):
-                # To preserve Windows XP compatibility.
-                cmd += " /D_USING_V110_SDK71_"
-
             cmd += " /W3 " + BracketNameWithQuotes(src)
             oscmd(cmd)
         else:
@@ -1110,7 +1159,7 @@ def CompileCxx(obj,src,opts):
             if GetTargetArch() == 'x64':
                 cmd += "/favor:blend "
             cmd += "/wd4996 /wd4275 /wd4267 /wd4101 /wd4273 "
-            cmd += "/DWINVER=0x501 "
+            cmd += "/DWINVER=0x600 "
             cmd += "/Fo" + obj + " /c"
             for x in ipath: cmd += " /I" + x
             for (opt,dir) in INCDIRECTORIES:
@@ -1183,9 +1232,7 @@ def CompileCxx(obj,src,opts):
                 cmd += " /Qopt-report:2 /Qopt-report-phase:hlo /Qopt-report-phase:hpo"    # some optimization reports
             else:
                 cmd += " /W1 "
-            cmd += " /EHa /Zm300 /DWIN32_VC /DWIN32"
-            if GetTargetArch() == 'x64':
-                cmd += " /DWIN64_VC /DWIN64"
+            cmd += " /EHa /Zm300"
             cmd += " " + BracketNameWithQuotes(src)
 
             oscmd(cmd)
@@ -1424,9 +1471,9 @@ def CompileIgate(woutd,wsrc,opts):
     cmd += ' -srcdir %s -I%s' % (srcdir, srcdir)
     cmd += ' -DCPPPARSER -D__STDC__=1 -D__cplusplus=201103L'
     if (COMPILER=="MSVC"):
-        cmd += ' -DWIN32_VC -DWIN32 -D_WIN32'
+        cmd += ' -D_WIN32'
         if GetTargetArch() == 'x64':
-            cmd += ' -DWIN64_VC -DWIN64 -D_WIN64 -D_M_X64 -D_M_AMD64'
+            cmd += ' -D_WIN64 -D_M_X64 -D_M_AMD64'
         else:
             cmd += ' -D_M_IX86'
         # NOTE: this 1600 value is the version number for VC2010.
@@ -1596,9 +1643,9 @@ def CompileLink(dll, obj, opts):
             subsystem = GetValueOption(opts, "SUBSYSTEM:") or "CONSOLE"
             cmd += " /SUBSYSTEM:" + subsystem
             if GetTargetArch() == 'x64':
-                cmd += ",5.02"
+                cmd += ",6.00"
             else:
-                cmd += ",5.01"
+                cmd += ",6.00"
 
             if dll.endswith(".dll") or dll.endswith(".pyd"):
                 cmd += ' /IMPLIB:' + GetOutputDir() + '/lib/' + os.path.splitext(os.path.basename(dll))[0] + ".lib"
@@ -1877,6 +1924,8 @@ def CompileRsrc(target, src, opts):
     ipath = GetListOption(opts, "DIR:")
     if os.path.isfile("/usr/bin/Rez"):
         cmd = "Rez -useDF"
+    elif os.path.isfile("/Library/Developer/CommandLineTools/usr/bin/Rez"):
+        cmd = "/Library/Developer/CommandLineTools/usr/bin/Rez -useDF"
     else:
         cmd = "/Developer/Tools/Rez -useDF"
     cmd += " -o " + BracketNameWithQuotes(target)
@@ -2247,8 +2296,6 @@ DTOOL_CONFIG=[
     ("HAVE_SQUISH",                    'UNDEF',                  'UNDEF'),
     ("HAVE_COCOA",                     'UNDEF',                  'UNDEF'),
     ("HAVE_OPENAL_FRAMEWORK",          'UNDEF',                  'UNDEF'),
-    ("HAVE_ROCKET_PYTHON",             '1',                      '1'),
-    ("HAVE_ROCKET_DEBUGGER",           'UNDEF',                  'UNDEF'),
     ("USE_TAU",                        'UNDEF',                  'UNDEF'),
     ("PRC_SAVE_DESCRIPTIONS",          '1',                      '1'),
 #    ("_SECURE_SCL",                    '0',                      'UNDEF'),
@@ -2343,14 +2390,6 @@ def WriteConfigSettings():
     if (GetOptimize() <= 2 and GetTarget() == "windows"):
         dtool_config["USE_DEBUG_PYTHON"] = '1'
 
-    # This should probably be more sophisticated, such as based
-    # on whether the libRocket Python modules are available.
-    if (PkgSkip("PYTHON") != 0):
-        dtool_config["HAVE_ROCKET_PYTHON"] = 'UNDEF'
-
-    if (GetOptimize() <= 3):
-        dtool_config["HAVE_ROCKET_DEBUGGER"] = '1'
-
     if (GetOptimize() <= 3):
         if (dtool_config["HAVE_NET"] != 'UNDEF'):
             dtool_config["DO_PSTATS"] = '1'
@@ -2379,12 +2418,6 @@ def WriteConfigSettings():
     # longer need to disable it for this platform.
 ##     if GetTarget() == 'windows' and GetTargetArch() == 'x64':
 ##         dtool_config["SIMPLE_THREADS"] = 'UNDEF'
-
-
-    if ("GENERIC_DXERR_LIBRARY" in SDK):
-        dtool_config["USE_GENERIC_DXERR_LIBRARY"] = "1"
-    else:
-        dtool_config["USE_GENERIC_DXERR_LIBRARY"] = "UNDEF"
 
     if (PkgSkip("SPEEDTREE")==0):
         speedtree_parameters["SPEEDTREE_OPENGL"] = "UNDEF"
@@ -2560,7 +2593,7 @@ __version__ = '%s'
 if __debug__:
     import sys
     if sys.version_info < (3, 0):
-        sys.stderr.write("WARNING: Python 2.7 will reach EOL after December 31, 2019.\\n")
+        sys.stderr.write("WARNING: Python 2.7 has reached EOL as of January 1, 2020.\\n")
         sys.stderr.write("To suppress this warning, upgrade to Python 3.\\n")
         sys.stderr.flush()
     del sys
@@ -2586,7 +2619,13 @@ if not PkgSkip("PYTHON"):
     ConditionalWriteFile(GetOutputDir() + '/panda3d/__init__.py', p3d_init)
 
     # Also add this file, for backward compatibility.
-    ConditionalWriteFile(GetOutputDir() + '/panda3d/dtoolconfig.py', """
+    ConditionalWriteFile(GetOutputDir() + '/panda3d/dtoolconfig.py', """\
+'''Alias of :mod:`panda3d.interrogatedb`.
+
+.. deprecated:: 1.10.0
+   This module has been renamed to :mod:`panda3d.interrogatedb`.
+'''
+
 if __debug__:
     print("Warning: panda3d.dtoolconfig is deprecated, use panda3d.interrogatedb instead.")
 from .interrogatedb import *
@@ -2698,13 +2737,27 @@ else:
     # otherwise, disable it.
     confautoprc = confautoprc.replace('#st#', '#')
 
-if PkgSkip("ASSIMP"):
+confautoprc = confautoprc.replace('\r\n', '\n')
+
+if PkgSkip("ASSIMP") or GetLinkAllStatic():
     confautoprc = confautoprc.replace("load-file-type p3assimp", "#load-file-type p3assimp")
+
+if PkgSkip("EGG") or GetLinkAllStatic():
+    confautoprc = confautoprc.replace("load-file-type egg pandaegg", "#load-file-type egg pandaegg")
+
+if PkgSkip("PANDATOOL") or PkgSkip("EGG") or GetLinkAllStatic():
+    confautoprc = confautoprc.replace("load-file-type p3ptloader", "#load-file-type p3ptloader")
+
+if PkgSkip("FFMPEG") or GetLinkAllStatic():
+    confautoprc = confautoprc.replace("load-audio-type * p3ffmpeg", "#load-audio-type * p3ffmpeg")
+    confautoprc = confautoprc.replace("load-video-type * p3ffmpeg", "#load-video-type * p3ffmpeg")
 
 if (os.path.isfile("makepanda/myconfig.in")):
     configprc = ReadFile("makepanda/myconfig.in")
 else:
     configprc = ReadFile("makepanda/config.in")
+
+configprc = configprc.replace('\r\n', '\n')
 
 if (GetTarget() == 'windows'):
     configprc = configprc.replace("$XDG_CACHE_HOME/panda3d", "$USER_APPDATA/Panda3D-%s" % MAJOR_VERSION)
@@ -2713,6 +2766,21 @@ else:
 
 if (GetTarget() == 'darwin'):
     configprc = configprc.replace("$XDG_CACHE_HOME/panda3d", "$HOME/Library/Caches/Panda3D-%s" % MAJOR_VERSION)
+
+if PkgSkip("GL") or GetLinkAllStatic():
+    configprc = configprc.replace("\nload-display pandagl", "\n#load-display pandagl")
+
+if PkgSkip("GLES") or GetLinkAllStatic():
+    configprc = configprc.replace("\n#load-display pandagles", "")
+
+if PkgSkip("DX9") or GetLinkAllStatic():
+    configprc = configprc.replace("\n#load-display pandadx9", "")
+
+if PkgSkip("TINYDISPLAY") or GetLinkAllStatic():
+    configprc = configprc.replace("\n#load-display p3tinydisplay", "")
+
+if PkgSkip("OPENAL") or GetLinkAllStatic():
+    configprc = configprc.replace("audio-library-name p3openal_audio", "#audio-library-name p3openal_audio")
 
 if GetTarget() == 'windows':
     # Convert to Windows newlines.
@@ -2990,8 +3058,6 @@ CopyAllHeaders('panda/src/parametrics')
 CopyAllHeaders('panda/src/pgui')
 CopyAllHeaders('panda/src/pnmimagetypes')
 CopyAllHeaders('panda/src/recorder')
-if (PkgSkip("ROCKET")==0):
-    CopyAllHeaders('panda/src/rocket')
 if (PkgSkip("VRPN")==0):
     CopyAllHeaders('panda/src/vrpn')
 CopyAllHeaders('panda/src/wgldisplay')
@@ -3039,16 +3105,15 @@ CopyAllHeaders('panda/metalibs/pandagles2')
 CopyAllHeaders('panda/metalibs/pandaphysics')
 CopyAllHeaders('panda/src/testbed')
 
-if (PkgSkip("PHYSX")==0):
-    CopyAllHeaders('panda/src/physx')
-    CopyAllHeaders('panda/metalibs/pandaphysx')
-
 if (PkgSkip("BULLET")==0):
     CopyAllHeaders('panda/src/bullet')
     CopyAllHeaders('panda/metalibs/pandabullet')
 
 if (PkgSkip("SPEEDTREE")==0):
     CopyAllHeaders('panda/src/speedtree')
+
+if (PkgSkip("DNA")==0):
+    CopyAllHeaders('panda/src/toontown')
 
 if (PkgSkip("DIRECT")==0):
     CopyAllHeaders('direct/src/directbase')
@@ -3256,7 +3321,7 @@ TargetAdd('interrogate.exe', input='interrogate_composite2.obj')
 TargetAdd('interrogate.exe', input='libp3cppParser.ilb')
 TargetAdd('interrogate.exe', input=COMMON_DTOOL_LIBS)
 TargetAdd('interrogate.exe', input='libp3interrogatedb.dll')
-TargetAdd('interrogate.exe', opts=['ADVAPI',  'OPENSSL', 'WINSHELL', 'WINGDI', 'WINUSER'])
+TargetAdd('interrogate.exe', opts=['ADVAPI', 'WINSHELL', 'WINGDI', 'WINUSER'])
 
 preamble = WriteEmbeddedStringFile('interrogate_preamble_python_native', inputs=[
 'dtool/src/interrogatedb/py_panda.cxx',
@@ -3271,14 +3336,14 @@ TargetAdd('interrogate_module.exe', input='interrogate_module_preamble_python_na
 TargetAdd('interrogate_module.exe', input='libp3cppParser.ilb')
 TargetAdd('interrogate_module.exe', input=COMMON_DTOOL_LIBS)
 TargetAdd('interrogate_module.exe', input='libp3interrogatedb.dll')
-TargetAdd('interrogate_module.exe', opts=['ADVAPI',  'OPENSSL', 'WINSHELL', 'WINGDI', 'WINUSER'])
+TargetAdd('interrogate_module.exe', opts=['ADVAPI', 'WINSHELL', 'WINGDI', 'WINUSER'])
 
 TargetAdd('parse_file_parse_file.obj', opts=OPTS, input='parse_file.cxx')
 TargetAdd('parse_file.exe', input='parse_file_parse_file.obj')
 TargetAdd('parse_file.exe', input='libp3cppParser.ilb')
 TargetAdd('parse_file.exe', input=COMMON_DTOOL_LIBS)
 TargetAdd('parse_file.exe', input='libp3interrogatedb.dll')
-TargetAdd('parse_file.exe', opts=['ADVAPI',  'OPENSSL', 'WINSHELL', 'WINGDI', 'WINUSER'])
+TargetAdd('parse_file.exe', opts=['ADVAPI', 'WINSHELL', 'WINGDI', 'WINUSER'])
 
 #
 # DIRECTORY: dtool/src/prckeys/
@@ -3289,7 +3354,7 @@ if (PkgSkip("OPENSSL")==0):
   TargetAdd('make-prc-key_makePrcKey.obj', opts=OPTS, input='makePrcKey.cxx')
   TargetAdd('make-prc-key.exe', input='make-prc-key_makePrcKey.obj')
   TargetAdd('make-prc-key.exe', input=COMMON_DTOOL_LIBS)
-  TargetAdd('make-prc-key.exe', opts=['ADVAPI',  'OPENSSL', 'WINSHELL', 'WINGDI', 'WINUSER'])
+  TargetAdd('make-prc-key.exe', opts=['ADVAPI', 'OPENSSL', 'WINSHELL', 'WINGDI', 'WINUSER'])
 
 #
 # DIRECTORY: dtool/src/test_interrogate/
@@ -3300,7 +3365,7 @@ TargetAdd('test_interrogate_test_interrogate.obj', opts=OPTS, input='test_interr
 TargetAdd('test_interrogate.exe', input='test_interrogate_test_interrogate.obj')
 TargetAdd('test_interrogate.exe', input='libp3interrogatedb.dll')
 TargetAdd('test_interrogate.exe', input=COMMON_DTOOL_LIBS)
-TargetAdd('test_interrogate.exe', opts=['ADVAPI',  'OPENSSL', 'WINSHELL', 'WINGDI', 'WINUSER'])
+TargetAdd('test_interrogate.exe', opts=['ADVAPI', 'WINSHELL', 'WINGDI', 'WINUSER'])
 
 #
 # DIRECTORY: dtool/src/dtoolbase/
@@ -3401,7 +3466,7 @@ TargetAdd('libpandaexpress.dll', input='p3express_composite1.obj')
 TargetAdd('libpandaexpress.dll', input='p3express_composite2.obj')
 TargetAdd('libpandaexpress.dll', input='p3pandabase_pandabase.obj')
 TargetAdd('libpandaexpress.dll', input=COMMON_DTOOL_LIBS)
-TargetAdd('libpandaexpress.dll', opts=['ADVAPI', 'WINSOCK2',  'OPENSSL', 'ZLIB', 'WINGDI', 'WINUSER', 'ANDROID'])
+TargetAdd('libpandaexpress.dll', opts=['ADVAPI', 'WINSOCK2', 'OPENSSL', 'ZLIB', 'WINGDI', 'WINUSER', 'ANDROID'])
 
 #
 # DIRECTORY: panda/src/pipeline/
@@ -3527,10 +3592,10 @@ PyTargetAdd('p3pnmimage_pfmFile_ext.obj', opts=OPTS, input='pfmFile_ext.cxx')
 # DIRECTORY: panda/src/nativenet/
 #
 
-OPTS=['DIR:panda/src/nativenet', 'OPENSSL', 'BUILDING:PANDA']
+OPTS=['DIR:panda/src/nativenet', 'BUILDING:PANDA']
 TargetAdd('p3nativenet_composite1.obj', opts=OPTS, input='p3nativenet_composite1.cxx')
 
-OPTS=['DIR:panda/src/nativenet', 'OPENSSL']
+OPTS=['DIR:panda/src/nativenet']
 IGATEFILES=GetDirectoryContents('panda/src/nativenet', ["*.h", "*_composite*.cxx"])
 TargetAdd('libp3nativenet.in', opts=OPTS, input=IGATEFILES)
 TargetAdd('libp3nativenet.in', opts=['IMOD:panda3d.core', 'ILIB:libp3nativenet', 'SRCDIR:panda/src/nativenet'])
@@ -3843,7 +3908,7 @@ TargetAdd('libp3dxml.in', opts=['IMOD:panda3d.core', 'ILIB:libp3dxml', 'SRCDIR:p
 #
 
 OPTS=['DIR:panda/metalibs/panda', 'BUILDING:PANDA', 'JPEG', 'PNG', 'HARFBUZZ',
-    'TIFF', 'OPENEXR', 'ZLIB', 'OPENSSL', 'FREETYPE', 'FFTW', 'ADVAPI', 'WINSOCK2',
+    'TIFF', 'OPENEXR', 'ZLIB', 'FREETYPE', 'FFTW', 'ADVAPI', 'WINSOCK2',
     'SQUISH', 'NVIDIACG', 'VORBIS', 'OPUS', 'WINUSER', 'WINMM', 'WINGDI', 'IPHLPAPI',
     'SETUPAPI', 'IOKIT']
 
@@ -4065,38 +4130,6 @@ if (PkgSkip("VISION") == 0):
   PyTargetAdd('vision.pyd', input=COMMON_PANDA_LIBS)
 
 #
-# DIRECTORY: panda/src/rocket/
-#
-
-if (PkgSkip("ROCKET") == 0):
-  OPTS=['DIR:panda/src/rocket', 'BUILDING:ROCKET', 'ROCKET', 'PYTHON']
-  TargetAdd('p3rocket_composite1.obj', opts=OPTS, input='p3rocket_composite1.cxx')
-
-  TargetAdd('libp3rocket.dll', input='p3rocket_composite1.obj')
-  TargetAdd('libp3rocket.dll', input=COMMON_PANDA_LIBS)
-  TargetAdd('libp3rocket.dll', opts=OPTS)
-
-  OPTS=['DIR:panda/src/rocket', 'ROCKET', 'RTTI', 'EXCEPTIONS']
-  IGATEFILES=GetDirectoryContents('panda/src/rocket', ["rocketInputHandler.h",
-    "rocketInputHandler.cxx", "rocketRegion.h", "rocketRegion.cxx", "rocketRegion_ext.h"])
-  TargetAdd('libp3rocket.in', opts=OPTS, input=IGATEFILES)
-  TargetAdd('libp3rocket.in', opts=['IMOD:panda3d.rocket', 'ILIB:libp3rocket', 'SRCDIR:panda/src/rocket'])
-
-  PyTargetAdd('p3rocket_rocketRegion_ext.obj', opts=OPTS, input='rocketRegion_ext.cxx')
-
-  PyTargetAdd('rocket_module.obj', input='libp3rocket.in')
-  PyTargetAdd('rocket_module.obj', opts=OPTS)
-  PyTargetAdd('rocket_module.obj', opts=['IMOD:panda3d.rocket', 'ILIB:rocket', 'IMPORT:panda3d.core'])
-
-  PyTargetAdd('rocket.pyd', input='rocket_module.obj')
-  PyTargetAdd('rocket.pyd', input='libp3rocket_igate.obj')
-  PyTargetAdd('rocket.pyd', input='p3rocket_rocketRegion_ext.obj')
-  PyTargetAdd('rocket.pyd', input='libp3rocket.dll')
-  PyTargetAdd('rocket.pyd', input='libp3interrogatedb.dll')
-  PyTargetAdd('rocket.pyd', input=COMMON_PANDA_LIBS)
-  PyTargetAdd('rocket.pyd', opts=['ROCKET'])
-
-#
 # DIRECTORY: panda/src/p3skel
 #
 
@@ -4232,7 +4265,7 @@ if PkgSkip("OPENAL") == 0:
 #
 
 if (PkgSkip("OPENSSL")==0 and PkgSkip("DEPLOYTOOLS")==0):
-  OPTS=['DIR:panda/src/downloadertools', 'OPENSSL', 'ADVAPI', 'WINSOCK2', 'WINSHELL', 'WINGDI', 'WINUSER']
+  OPTS=['DIR:panda/src/downloadertools', 'ADVAPI', 'WINSOCK2', 'WINSHELL', 'WINGDI', 'WINUSER']
 
   TargetAdd('pdecrypt_pdecrypt.obj', opts=OPTS, input='pdecrypt.cxx')
   TargetAdd('pdecrypt.exe', input=['pdecrypt_pdecrypt.obj'])
@@ -4249,7 +4282,7 @@ if (PkgSkip("OPENSSL")==0 and PkgSkip("DEPLOYTOOLS")==0):
 #
 
 if (PkgSkip("ZLIB")==0 and PkgSkip("DEPLOYTOOLS")==0):
-  OPTS=['DIR:panda/src/downloadertools', 'ZLIB', 'OPENSSL', 'ADVAPI', 'WINSOCK2', 'WINSHELL', 'WINGDI', 'WINUSER']
+  OPTS=['DIR:panda/src/downloadertools', 'ZLIB', 'ADVAPI', 'WINSOCK2', 'WINSHELL', 'WINGDI', 'WINUSER']
 
   TargetAdd('multify_multify.obj', opts=OPTS, input='multify.cxx')
   TargetAdd('multify.exe', input=['multify_multify.obj'])
@@ -4589,44 +4622,6 @@ if (PkgSkip("BULLET")==0):
   PyTargetAdd('bullet.pyd', opts=['WINUSER', 'BULLET'])
 
 #
-# DIRECTORY: panda/src/physx/
-#
-
-if (PkgSkip("PHYSX")==0):
-  OPTS=['DIR:panda/src/physx', 'BUILDING:PANDAPHYSX', 'PHYSX']
-  TargetAdd('p3physx_composite.obj', opts=OPTS, input='p3physx_composite.cxx')
-
-  OPTS=['DIR:panda/src/physx', 'PHYSX']
-  IGATEFILES=GetDirectoryContents('panda/src/physx', ["*.h", "*_composite*.cxx"])
-  TargetAdd('libpandaphysx.in', opts=OPTS, input=IGATEFILES)
-  TargetAdd('libpandaphysx.in', opts=['IMOD:panda3d.physx', 'ILIB:libpandaphysx', 'SRCDIR:panda/src/physx'])
-
-#
-# DIRECTORY: panda/metalibs/pandaphysx/
-#
-
-if (PkgSkip("PHYSX")==0):
-  OPTS=['DIR:panda/metalibs/pandaphysx', 'BUILDING:PANDAPHYSX', 'PHYSX', 'PYTHON']
-  TargetAdd('pandaphysx_pandaphysx.obj', opts=OPTS, input='pandaphysx.cxx')
-
-  TargetAdd('libpandaphysx.dll', input='pandaphysx_pandaphysx.obj')
-  TargetAdd('libpandaphysx.dll', input='p3physx_composite.obj')
-  TargetAdd('libpandaphysx.dll', input=COMMON_PANDA_LIBS)
-  TargetAdd('libpandaphysx.dll', opts=['WINUSER', 'PHYSX', 'PYTHON'])
-
-  OPTS=['DIR:panda/metalibs/pandaphysx', 'PHYSX']
-  PyTargetAdd('physx_module.obj', input='libpandaphysx.in')
-  PyTargetAdd('physx_module.obj', opts=OPTS)
-  PyTargetAdd('physx_module.obj', opts=['IMOD:panda3d.physx', 'ILIB:physx', 'IMPORT:panda3d.core'])
-
-  PyTargetAdd('physx.pyd', input='physx_module.obj')
-  PyTargetAdd('physx.pyd', input='libpandaphysx_igate.obj')
-  PyTargetAdd('physx.pyd', input='libpandaphysx.dll')
-  PyTargetAdd('physx.pyd', input='libp3interrogatedb.dll')
-  PyTargetAdd('physx.pyd', input=COMMON_PANDA_LIBS)
-  PyTargetAdd('physx.pyd', opts=['WINUSER', 'PHYSX'])
-
-#
 # DIRECTORY: panda/src/physics/
 #
 
@@ -4821,6 +4816,38 @@ if ((GetTarget() in ('windows', 'darwin') or PkgSkip("X11")==0) and PkgSkip("TIN
   TargetAdd('libp3tinydisplay.dll', input=COMMON_PANDA_LIBS)
 
 #
+# DIRECTORY: panda/src/toontown/
+#
+if (PkgSkip("DNA")==0 and PkgSkip("PYTHON")==0):
+    OPTS=['DIR:panda/src/toontown', 'BUILDING:DNA']
+    TargetAdd('toontown_composite.obj', opts=OPTS, input='p3toontown_composite1.cxx')
+
+    OPTS=['DIR:panda/src/toontown', 'BUILDING:DNA', 'BISONPREFIX_dnayy']
+    TargetAdd('p3toontown_dnaParser.obj', opts=OPTS, input='dnaParser.yxx')
+    TargetAdd('p3toontown_dnaLexer.obj', opts=OPTS, input='dnaLexer.lxx')
+
+    TargetAdd('libp3toontown.dll', input='toontown_composite.obj')
+    TargetAdd('libp3toontown.dll', input='p3toontown_dnaParser.obj')
+    TargetAdd('libp3toontown.dll', input='p3toontown_dnaLexer.obj')
+    TargetAdd('libp3toontown.dll', input=COMMON_PANDA_LIBS)
+    TargetAdd('libp3toontown.dll', opts=OPTS)
+
+    OPTS=['DIR:panda/src/toontown']
+    IGATEFILES=GetDirectoryContents('panda/src/toontown', ["*.h", "*_composite*.cxx"])
+    TargetAdd('libp3toontown.in', opts=OPTS, input=IGATEFILES)
+    TargetAdd('libp3toontown.in', opts=['IMOD:panda3d.toontown', 'ILIB:libp3toontown', 'SRCDIR:panda/src/toontown'])
+    
+    PyTargetAdd('toontown_module.obj', input='libp3toontown.in')
+    PyTargetAdd('toontown_module.obj', opts=OPTS)
+    PyTargetAdd('toontown_module.obj', opts=['IMOD:panda3d.toontown', 'ILIB:toontown', 'IMPORT:panda3d.core'])
+    
+    PyTargetAdd('toontown.pyd', input='toontown_module.obj')
+    PyTargetAdd('toontown.pyd', input='libp3toontown_igate.obj')
+    PyTargetAdd('toontown.pyd', input='libp3toontown.dll')
+    PyTargetAdd('toontown.pyd', input='libp3interrogatedb.dll')
+    PyTargetAdd('toontown.pyd', input=COMMON_PANDA_LIBS)
+
+#
 # DIRECTORY: direct/src/directbase/
 #
 
@@ -4836,7 +4863,7 @@ if (PkgSkip("DIRECT")==0):
   OPTS=['DIR:direct/src/dcparser', 'BUILDING:DIRECT_DCPARSER', 'WITHINPANDA', 'BISONPREFIX_dcyy']
   CreateFile(GetOutputDir()+"/include/dcParser.h")
   TargetAdd('p3dcparser_dcParser.obj', opts=OPTS, input='dcParser.yxx')
-  #TargetAdd('dcParser.h', input='p3dcparser_dcParser.obj', opts=['DEPENDENCYONLY'])
+  TargetAdd('dcParser.h', input='p3dcparser_dcParser.obj', opts=['DEPENDENCYONLY'])
   TargetAdd('p3dcparser_dcLexer.obj', opts=OPTS, input='dcLexer.lxx')
   TargetAdd('p3dcparser_composite1.obj', opts=OPTS, input='p3dcparser_composite1.cxx')
   TargetAdd('p3dcparser_composite2.obj', opts=OPTS, input='p3dcparser_composite2.cxx')
@@ -4867,10 +4894,10 @@ if (PkgSkip("DIRECT")==0):
 #
 
 if (PkgSkip("DIRECT")==0):
-  OPTS=['DIR:direct/src/distributed', 'DIR:direct/src/dcparser', 'WITHINPANDA', 'BUILDING:DIRECT', 'OPENSSL']
+  OPTS=['DIR:direct/src/distributed', 'DIR:direct/src/dcparser', 'WITHINPANDA', 'BUILDING:DIRECT']
   TargetAdd('p3distributed_config_distributed.obj', opts=OPTS, input='config_distributed.cxx')
 
-  OPTS=['DIR:direct/src/distributed', 'WITHINPANDA', 'OPENSSL']
+  OPTS=['DIR:direct/src/distributed', 'WITHINPANDA']
   IGATEFILES=GetDirectoryContents('direct/src/distributed', ["*.h", "*.cxx"])
   TargetAdd('libp3distributed.in', opts=OPTS, input=IGATEFILES)
   TargetAdd('libp3distributed.in', opts=['IMOD:panda3d.direct', 'ILIB:libp3distributed', 'SRCDIR:direct/src/distributed'])
@@ -4938,7 +4965,7 @@ if (PkgSkip("DIRECT")==0):
   TargetAdd('libp3direct.dll', input='p3motiontrail_config_motiontrail.obj')
   TargetAdd('libp3direct.dll', input='p3motiontrail_cMotionTrail.obj')
   TargetAdd('libp3direct.dll', input=COMMON_PANDA_LIBS)
-  TargetAdd('libp3direct.dll', opts=['ADVAPI',  'OPENSSL', 'WINUSER', 'WINGDI'])
+  TargetAdd('libp3direct.dll', opts=['ADVAPI', 'WINUSER', 'WINGDI'])
 
   PyTargetAdd('direct_module.obj', input='libp3dcparser.in')
   PyTargetAdd('direct_module.obj', input='libp3showbase.in')
@@ -4946,7 +4973,11 @@ if (PkgSkip("DIRECT")==0):
   PyTargetAdd('direct_module.obj', input='libp3interval.in')
   PyTargetAdd('direct_module.obj', input='libp3distributed.in')
   PyTargetAdd('direct_module.obj', input='libp3motiontrail.in')
-  PyTargetAdd('direct_module.obj', opts=['IMOD:panda3d.direct', 'ILIB:direct', 'IMPORT:panda3d.core'])
+
+  if NIRAI_MODE:
+    PyTargetAdd('direct_module.obj', opts=['IMOD:panda3d.direct', 'ILIB:%s' % ('direct'), 'IMPORT:panda3d.core'])
+  else:
+    PyTargetAdd('direct_module.obj', opts=['IMOD:panda3d.direct', 'ILIB:direct', 'IMPORT:panda3d.core'])
 
   PyTargetAdd('direct.pyd', input='libp3dcparser_igate.obj')
   PyTargetAdd('direct.pyd', input='libp3showbase_igate.obj')
@@ -4966,7 +4997,7 @@ if (PkgSkip("DIRECT")==0):
   PyTargetAdd('direct.pyd', input='libp3direct.dll')
   PyTargetAdd('direct.pyd', input='libp3interrogatedb.dll')
   PyTargetAdd('direct.pyd', input=COMMON_PANDA_LIBS)
-  PyTargetAdd('direct.pyd', opts=['OPENSSL', 'WINUSER', 'WINGDI', 'WINSOCK2'])
+  PyTargetAdd('direct.pyd', opts=['WINUSER', 'WINGDI', 'WINSOCK2'])
 
 #
 # DIRECTORY: direct/src/dcparse/

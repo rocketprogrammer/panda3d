@@ -14,6 +14,13 @@ MsgName2Id = {
 
     'CLIENT_HEARTBEAT':                              5,
 
+    'CLIENT_OBJECT_DISABLE':                         25,
+    'CLIENT_OBJECT_DISABLE_RESP':                    25,
+    'CLIENT_OBJECT_DISABLE_OWNER':                   26,
+    'CLIENT_OBJECT_DISABLE_OWNER_RESP':              26,
+    'CLIENT_OBJECT_DELETE':                          27,
+    'CLIENT_OBJECT_DELETE_RESP':                     27,
+
     'CLIENT_OBJECT_SET_FIELD':                       120,
     'CLIENT_OBJECT_SET_FIELDS':                      121,
     'CLIENT_OBJECT_LEAVING':                         132,
@@ -29,7 +36,6 @@ MsgName2Id = {
     'CLIENT_ADD_INTEREST_MULTIPLE':                  201,
     'CLIENT_REMOVE_INTEREST':                        203,
     'CLIENT_OBJECT_LOCATION':                        140,
-
 
     # These are sent internally inside the Astron cluster.
 
@@ -137,6 +143,7 @@ MsgName2Id = {
     'CLIENTAGENT_ADD_INTEREST':                     1200,
     'CLIENTAGENT_ADD_INTEREST_MULTIPLE':            1201,
     'CLIENTAGENT_REMOVE_INTEREST':                  1203,
+    'CLIENTAGENT_DONE_INTEREST_RESP':               1204,
     }
 
 # create id->name table for debugging

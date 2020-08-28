@@ -753,3 +753,22 @@ class AstronInternalRepository(ConnectionRepository):
         dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_SET_OWNER)
         dg.add_uint64(newOwner)
         self.send(dg)
+
+    def setAllowClientSend(self, avId, dObj, fieldNameList = []):
+        """
+        Overrides the security of a field(s) specified, allows an owner of a DistributedObject to send
+        the field(s) regardless if its marked ownsend/clsend.
+        """
+
+        dg = PyDatagram()
+        dg.addServerHeader(dObj.GetPuppetConnectionChannel(avId), self.ourChannel, CLIENTAGENT_SET_FIELDS_SENDABLE)
+        fieldIds = []
+        for fieldName in fieldNameList:
+            field = dObj.dclass.getFieldByName(fieldName)
+            if field:
+                fieldIds.append(field.getNumber())
+        dg.addUint32(dObj.getDoId())
+        dg.addUint16(len(fieldIds))
+        for fieldId in fieldIds:
+            dg.addUint16(fieldId)
+        self.send(dg)
