@@ -22,7 +22,7 @@ from direct.task.Task import Task
 from pandac.PandaModules import *
 import math
 
-from PhysicsWalker import PhysicsWalker
+from .PhysicsWalker import PhysicsWalker
 
 class ShipPilot2(PhysicsWalker):
     notify = directNotify.newCategory("PhysicsWalker")
@@ -426,7 +426,7 @@ class ShipPilot2(PhysicsWalker):
             indicator.instanceTo(contactIndicatorNode)
             self.physContactIndicator=contactIndicatorNode
         else:
-            print "failed load of physics indicator"
+            print("failed load of physics indicator")
 
     def avatarPhysicsIndicator(self, task):
         #assert self.debugPrint("avatarPhysicsIndicator()")
@@ -624,8 +624,8 @@ class ShipPilot2(PhysicsWalker):
         straightSailBonus *= self.MAX_STRAIGHT_SAIL_BONUS
         straightSailBonus += 1.0
 
-        print "##################"
-        print straightSailBonus
+        print("##################")
+        print(straightSailBonus)
         
         # this was causing the boat to get stuck moving forward or back
         if 0:
