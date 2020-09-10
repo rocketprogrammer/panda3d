@@ -42,6 +42,7 @@ import builtins
 import importlib
 import bisect
 import functools
+from . import BpDb
 
 __report_indent = 3
 
@@ -56,7 +57,6 @@ def Functor(function, *args, **kArgs):
         return function(*(argsCopy + cArgs), **kArgs)
     return functor
 """
-
 
 class Functor:
     def __init__(self, function, *args, **kargs):
@@ -1572,7 +1572,7 @@ def appendStr(obj, st):
             return s
         oldStr = Functor(stringer, str(obj))
         stringer = None
-    obj.__str__ = types.MethodType(Functor(appendedStr, oldStr, st), obj, obj.__class__)
+    obj.__str__ = types.MethodType(Functor(appendedStr, oldStr, st), obj)
     appendedStr = None
     return obj
 
@@ -2910,7 +2910,6 @@ class Camera(ParamObj):
         base.camera.setFov(self.fov)
     ...
 
-
 EXAMPLE USAGE
 =============
 
@@ -3060,7 +3059,7 @@ class ParamObj:
                 def defaultSetter(self, value, param=param):
                     #print '%s=%s for %s' % (param, value, id(self))
                     setattr(self, param, value)
-                self.__class__.__dict__[setterName] = defaultSetter
+                setattr(self.__class__, setterName, defaultSetter)
 
             # is there a getter defined?
             if not hasattr(self, getterName):
@@ -3069,7 +3068,7 @@ class ParamObj:
                 def defaultGetter(self, param=param,
                                   default=self.ParamSet.getDefaultValue(param)):
                     return getattr(self, param, default)
-                self.__class__.__dict__[getterName] = defaultGetter
+                setattr(self.__class__, getterName, defaultGetter)
 
             # have we already installed a setter stub?
             origSetterName = '%s_ORIG' % (setterName,)
@@ -3360,12 +3359,12 @@ class POD:
                 if not hasattr(cls, setterName):
                     def defaultSetter(self, value, name=name):
                         setattr(self, name, value)
-                    cls.__dict__[setterName] = defaultSetter
+                    setattr(cls, setterName, defaultSetter)
                 getterName = getSetterName(name, 'get')
                 if not hasattr(cls, getterName):
                     def defaultGetter(self, name=name):
                         return getattr(self, name)
-                    cls.__dict__[getterName] = defaultGetter
+                    setattr(cls, getterName, defaultGetter)
         # this dict will hold all of the aggregated default data values for
         # this particular class, including values from its base classes
         cls._DataSet = {}
@@ -3395,6 +3394,7 @@ if __debug__ and __name__ == '__main__':
         DataSet = {
             'foo': dict,
             }
+    p1 = PODtest()
     p2 = PODtest()
     assert hasattr(p1, 'foo')
     # make sure the getter is working
@@ -3532,6 +3532,18 @@ def clampScalar(value, a, b):
         else:
             return value
 
+#set up bpdb
+bpdb = BpDb.BpDb()
+def bpdbGetEnabled():
+    enabled = True
+    try:
+        enabled = __dev__
+        enabled = ConfigVariableBool('force-breakpoints', enabled).getValue()
+    finally:
+        return enabled
+bpdb.setEnabledCallback(bpdbGetEnabled)
+bpdb.setConfigCallback(lambda cfg: ConfigVariableBool('want-bp-%s' % (cfg.lower(),), 0).getValue())
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3590,3 +3602,5 @@ builtins.DestructiveScratchPad = DestructiveScratchPad
 builtins.clampScalar = clampScalar
 builtins.isClient = isClient
 builtins.triglerp = triglerp
+builtins.bpdb = bpdb
+builtins.describeException = describeException
