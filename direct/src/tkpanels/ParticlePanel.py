@@ -1272,7 +1272,7 @@ class ParticlePanel(AppShell):
             initialdir = path,
             title = 'Load Particle Effect',
             parent = self.parent)
-        if particleFilename and particleFilename != 'None':
+        if particleFilename:
             # Delete existing particles and forces
             self.particleEffect.loadConfig(
                 Filename.fromOsSpecific(particleFilename))
