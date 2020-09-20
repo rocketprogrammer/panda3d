@@ -19,7 +19,7 @@ from pandac.PandaModules import *
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.showbase.InputStateGlobal import inputState
 from direct.task.Task import Task
-from PhysicsWalker import PhysicsWalker
+from .PhysicsWalker import PhysicsWalker
 import math
 
 class ShipPilot(PhysicsWalker):
@@ -261,7 +261,7 @@ class ShipPilot(PhysicsWalker):
             indicator.instanceTo(contactIndicatorNode)
             self.physContactIndicator=contactIndicatorNode
         else:
-            print "failed load of physics indicator"
+            print("failed load of physics indicator")
 
     def avatarPhysicsIndicator(self, task):
         #assert self.debugPrint("avatarPhysicsIndicator()")

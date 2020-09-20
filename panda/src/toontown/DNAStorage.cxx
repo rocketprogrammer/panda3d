@@ -509,7 +509,7 @@ void DNAStorage::r_discover_connections(PT(DNASuitPoint) point, graph_id_t id)
         }
         else
         {
-            for (auto& it = m_suit_edges[index].begin(); it != m_suit_edges[index].end(); ++it)
+            for (auto it = m_suit_edges[index].begin(); it != m_suit_edges[index].end(); ++it)
             {
                 PT(DNASuitEdge) edge = *it;
                 PT(DNASuitPoint) end_point = (edge->get_end_point() != nullptr ? edge->get_end_point() : point);
