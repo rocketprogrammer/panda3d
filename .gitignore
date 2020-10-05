@@ -6,6 +6,7 @@
 /targetroot/
 /dstroot/
 *.zip
+/sdks/
 
 # Core dumps and traces
 core
