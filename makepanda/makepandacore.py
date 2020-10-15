@@ -3359,7 +3359,7 @@ def GetCurrentPythonVersionInfo():
 
     from distutils.sysconfig import get_python_lib
     return {
-        "version": SDK["PYTHONVERSION"][6:],
+        "version": SDK["PYTHONVERSION"][6:].rstrip('dmu'),
         "soabi": GetPythonABI(),
         "ext_suffix": GetExtensionSuffix(),
         "executable": sys.executable,
@@ -3387,7 +3387,7 @@ def UpdatePythonVersionInfoFile(new_info):
                version_info["soabi"] == new_info["soabi"] or \
                not os.path.isfile(core_pyd) or \
                version_info["version"].split(".", 1)[0] == "2" or \
-               version_info["version"] in ("3.0", "3.1", "3.2", "3.3", "3.4"):
+               version_info["version"] in ("3.0", "3.1", "3.2", "3.3", "3.4", "3.5"):
                 json_data.remove(version_info)
 
     if not PkgSkip("PYTHON"):

@@ -9,8 +9,8 @@
 ########################################################################
 
 import sys
-if sys.version_info < (3, 5):
-    print("This version of Python is not supported, use version 3.5 or higher.")
+if sys.version_info < (3, 6):
+    print("This version of Python is not supported, use version 3.6 or higher.")
     exit(1)
 
 try:
@@ -1118,8 +1118,12 @@ def CompileCxx(obj,src,opts):
             cmd += "/DWINVER=0x600 "
 
             cmd += "/Fo" + obj + " /nologo /c"
-            if GetTargetArch() != 'x64' and (not PkgSkip("SSE2") or 'SSE2' in opts):
-                cmd += " /arch:SSE2"
+            if GetTargetArch() == 'x86':
+                # x86 (32 bit) MSVC 2015+ defaults to /arch:SSE2
+                if not PkgSkip("SSE2") or 'SSE2' in opts:   # x86 with SSE2
+                    cmd += " /arch:SSE2"    # let's still be explicit and pass in /arch:SSE2
+                else:                                       # x86 without SSE2
+                    cmd += " /arch:IA32"
             for x in ipath: cmd += " /I" + x
             for (opt,dir) in INCDIRECTORIES:
                 if (opt=="ALWAYS") or (opt in opts): cmd += " /I" + BracketNameWithQuotes(dir)
@@ -1437,7 +1441,7 @@ def CompileFlex(wobj,wsrc,opts):
             oscmd(flex +    " -P" + pre + " -o"+wdst+" "+wsrc)
 
     # Finally, compile the generated source file.
-    CompileCxx(wobj,wdst,opts)
+    CompileCxx(wobj, wdst, opts + ["FLEX"])
 
 ########################################################################
 ##
