@@ -95,7 +95,6 @@ except ImportError:
     importlib.import_module = import_module
     sys.modules['importlib'] = importlib
 
-
 class Functor:
     def __init__(self, function, *args, **kargs):
         assert callable(function), "function should be a callable obj"
