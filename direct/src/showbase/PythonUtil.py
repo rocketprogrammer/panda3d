@@ -95,6 +95,7 @@ except ImportError:
     importlib.import_module = import_module
     sys.modules['importlib'] = importlib
 
+
 class Functor:
     def __init__(self, function, *args, **kargs):
         assert callable(function), "function should be a callable obj"
@@ -2265,11 +2266,11 @@ class HotkeyBreaker:
             breakKeys = (breakKeys,)
         for key in breakKeys:
             self.addBreakKey(key)
-        
+
     def addBreakKey(self,breakKey):
         if __dev__:
             self.do.accept(breakKey,self.breakFunc,extraArgs = [breakKey])
-        
+
     def removeBreakKey(self,breakKey):
         if __dev__:
             self.do.ignore(breakKey)
@@ -2722,7 +2723,6 @@ class PriorityCallbacks:
     def clear(self):
         while self._callbacks:
             self._callbacks.pop()
-
         self._token2item = {}
 
     def add(self, callback, priority=None):
@@ -2743,7 +2743,7 @@ class PriorityCallbacks:
 
     def __call__(self):
         callbacks = self._callbacks[:]
-        for (priority, callback) in callbacks:
+        for priority, callback in callbacks:
             callback()
 
 def recordCreationStack(cls):
@@ -3091,7 +3091,7 @@ class ParamObj:
 
             # set the default value on the object
             setattr(self, param, self.ParamSet.getDefaultValue(param))
-            
+
             setterName = getSetterName(param)
             getterName = getSetterName(param, 'get')
 
@@ -3180,7 +3180,7 @@ class ParamObj:
             del self.__dict__[setterName]
             """
         pass
-    
+
     def setDefaultParams(self):
         # set all the default parameters on ourself
         self.ParamSet().applyTo(self)
@@ -3625,3 +3625,5 @@ builtins.repeatableRepr = repeatableRepr
 builtins.notNone = notNone
 builtins.DestructiveScratchPad = DestructiveScratchPad
 builtins.clampScalar = clampScalar
+builtins.isClient = isClient
+builtins.triglerp = triglerp
