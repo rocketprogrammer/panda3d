@@ -39,6 +39,8 @@ import sys
 import random
 import time
 import bisect
+from HTMLParser import HTMLParser
+import ElementTree as ET
 
 __report_indent = 3
 
