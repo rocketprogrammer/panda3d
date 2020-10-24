@@ -257,7 +257,6 @@ class DistributedCartesianGrid(DistributedNode, CartesianGridBase):
             av.detachNode()
         #av.b_setLocation(0, 0)
 
-
     def handleAvatarZoneChange(self, av, zoneId):
         assert self.notify.debug("handleAvatarZoneChange(%s, %s)" % (av.doId, zoneId))
         # This method can be overridden by derived classes that

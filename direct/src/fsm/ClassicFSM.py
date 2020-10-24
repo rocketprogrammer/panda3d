@@ -151,7 +151,6 @@ class ClassicFSM(DirectObject):
     def getCurrentState(self):
         return(self.__currentState)
 
-
     # lookup funcs
 
     def getStateNamed(self, stateName):
@@ -219,18 +218,19 @@ class ClassicFSM(DirectObject):
             self.__internalStateInFlux = 0
             ClassicFSM.notify.error("[%s]: enter: no such state" % (self.__name))
 
-    def __transition(self, aState, enterArgList=[], exitArgList=[]):
+    def __transition(self, aState, enterArgList=[], exitArgList=[], exitCurrent = 1):
         """
         Exit currentState and enter given one
         """
         assert not self.__internalStateInFlux
         self.__internalStateInFlux = 1
-        self.__exitCurrent(exitArgList)
+        if exitCurrent:
+            self.__exitCurrent(exitArgList)
         self.__enter(aState, enterArgList)
         assert not self.__internalStateInFlux
 
     def request(self, aStateName, enterArgList=[], exitArgList=[],
-                force=0):
+                force=0, exitCurrent = 1):
         """
         Attempt transition from currentState to given one.
         Return true is transition exists to given state,
@@ -279,7 +279,8 @@ class ClassicFSM(DirectObject):
         if transitionAllowed or force:
             self.__transition(aState,
                               enterArgList,
-                              exitArgList)
+                              exitArgList,
+                              exitCurrent)
             return 1
         # We can implicitly always transition to our final state.
         elif (aStateName == self.__finalState.getName()):
