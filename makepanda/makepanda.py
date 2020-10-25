@@ -4862,7 +4862,7 @@ if (PkgSkip("HTTP")==0):
 
     IGATEFILES=GetDirectoryContents('direct/src/http', ["*.h", "*_composite.cxx"])
     TargetAdd('p3http.in', opts=OPTS, input=IGATEFILES)
-    TargetAdd('p3http.in', opts=['IMOD:panda3d.core', 'ILIB:p3http', 'SRCDIR:direct/src/http'])
+    TargetAdd('p3http.in', opts=['IMOD:panda3d.http', 'ILIB:p3http', 'SRCDIR:direct/src/http'])
     PyTargetAdd('p3http_igate.obj', opts=OPTS, input='p3http.in')
 
 #
