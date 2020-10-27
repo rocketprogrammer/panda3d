@@ -988,6 +988,11 @@ class ShowBase(DirectObject.DirectObject):
 
         return self.win != None
 
+    def isMainWindowOpen(self):
+        if self.win != None:
+            return self.win.isValid()
+        return 0
+
     def openMainWindow(self, *args, **kw):
         """
         Creates the initial, main window for the application, and sets
@@ -1559,6 +1564,7 @@ class ShowBase(DirectObject.DirectObject):
         self.trackball = NodePath(Trackball('trackball'))
         self.drive = NodePath(DriveInterface('drive'))
         self.mouse2cam = NodePath(Transform2SG('mouse2cam'))
+        self.dataUnused = NodePath('dataUnused')
 
     # [gjeon] now you can create multiple mouse watchers to support multiple windows
     def setupMouse(self, win, fMultiWin=False):
