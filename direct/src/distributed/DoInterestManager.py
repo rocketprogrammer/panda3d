@@ -582,8 +582,8 @@ class DoInterestManager(DirectObject.DirectObject):
         This handles the interest done messages and may dispatch an event
         """
         assert DoInterestManager.notify.debugCall()
-        contextId = di.getUint32()
         handle = di.getUint16()
+        contextId = di.getUint32()
         if handle >= 32000:
             # This is a server-sent interest.
             return
