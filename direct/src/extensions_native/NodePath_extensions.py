@@ -837,3 +837,38 @@ def analyze(self):
 Dtool_funcToMethod(analyze, NodePath)
 del analyze
 #####################################################################
+
+from panda3d.core import NodePathCollection
+
+# For iterating over children
+def asList(self):
+        """Converts a NodePathCollection into a list"""
+        if self.isEmpty():
+                return []
+        else:
+                npList = []
+                for nodePathIndex in range(self.getNumPaths()):
+                        npList.append(self.getPath(nodePathIndex))
+                return npList
+
+Dtool_funcToMethod(asList, NodePathCollection)
+
+    # user callable lerp methods
+def lerpColorScale(self, *posArgs, **keyArgs):
+        """lerpColorScale(self, *positionArgs, **keywordArgs)
+        determine which lerpColorScale* to call based on arguments
+        """
+        if (len(posArgs) == 2):
+            return apply(self.lerpColorScaleVBase4, posArgs, keyArgs)
+        elif (len(posArgs) == 3):
+            return apply(self.lerpColorScaleVBase4VBase4, posArgs, keyArgs)
+        elif (len(posArgs) == 5):
+            return apply(self.lerpColorScaleRGBA, posArgs, keyArgs)
+        elif (len(posArgs) == 9):
+            return apply(self.lerpColorScaleRGBARGBA, posArgs, keyArgs)
+        else:
+            # bad args
+            raise Exception("Error: NodePath.lerpColorScale: bad number of args")
+
+Dtool_funcToMethod(lerpColorScale, NodePath)
+del lerpColorScale
