@@ -94,7 +94,7 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "PANDAPARTICLESYSTEM",                               # Built in particle system
   "CONTRIB",                                           # Experimental
   "SSE2", "NEON",                                      # Compiler features
-  "DNA", "HTTP"                                        # Toontown
+  "DNA",                                               # Toontown
 ])
 
 CheckPandaSourceTree()
@@ -3173,9 +3173,6 @@ if (PkgSkip("CONTRIB")==0):
     CopyAllHeaders('contrib/src/contribbase')
     CopyAllHeaders('contrib/src/ai')
 
-if (PkgSkip("HTTP")==0):
-    CopyAllHeaders('panda/src/http')
-
 ########################################################################
 #
 # These definitions are syntactic shorthand.  They make it easy
@@ -3955,7 +3952,6 @@ TargetAdd('libpanda.dll', input='p3event_composite1.obj')
 TargetAdd('libpanda.dll', input='p3event_composite2.obj')
 TargetAdd('libpanda.dll', input='p3gobj_composite1.obj')
 TargetAdd('libpanda.dll', input='p3gobj_composite2.obj')
-TargetAdd('libpanda.dll', input='p3http_composite1.obj')
 TargetAdd('libpanda.dll', input='p3gsgbase_composite1.obj')
 TargetAdd('libpanda.dll', input='p3linmath_composite1.obj')
 TargetAdd('libpanda.dll', input='p3linmath_composite2.obj')
@@ -4014,7 +4010,6 @@ PyTargetAdd('core_module.obj', input='libp3display.in')
 PyTargetAdd('core_module.obj', input='libp3pipeline.in')
 PyTargetAdd('core_module.obj', input='libp3event.in')
 PyTargetAdd('core_module.obj', input='libp3gobj.in')
-PyTargetAdd('core_module.obj', input='p3http.in')
 PyTargetAdd('core_module.obj', input='libp3gsgbase.in')
 PyTargetAdd('core_module.obj', input='libp3linmath.in')
 PyTargetAdd('core_module.obj', input='libp3mathutil.in')
@@ -4061,7 +4056,6 @@ PyTargetAdd('core.pyd', input='libp3display_igate.obj')
 PyTargetAdd('core.pyd', input='libp3pipeline_igate.obj')
 PyTargetAdd('core.pyd', input='libp3event_igate.obj')
 PyTargetAdd('core.pyd', input='libp3gobj_igate.obj')
-PyTargetAdd('core.pyd', input='p3http_igate.obj')
 PyTargetAdd('core.pyd', input='libp3gsgbase_igate.obj')
 PyTargetAdd('core.pyd', input='libp3linmath_igate.obj')
 PyTargetAdd('core.pyd', input='libp3mathutil_igate.obj')
@@ -4852,18 +4846,6 @@ if (PkgSkip("DNA")==0 and PkgSkip("PYTHON")==0):
     PyTargetAdd('toontown.pyd', input='libp3toontown.dll')
     PyTargetAdd('toontown.pyd', input='libp3interrogatedb.dll')
     PyTargetAdd('toontown.pyd', input=COMMON_PANDA_LIBS)
-
-#
-# DIRECTORY: panda/src/http/
-#
-if (PkgSkip("HTTP")==0):
-    OPTS=['DIR:panda/src/http']
-    TargetAdd('p3http_composite1.obj', opts=OPTS, input='p3http_composite1.cxx')
-
-    IGATEFILES=GetDirectoryContents('panda/src/http', ["*.h", "*_composite.cxx"])
-    TargetAdd('p3http.in', opts=OPTS, input=IGATEFILES)
-    TargetAdd('p3http.in', opts=['IMOD:panda3d.core', 'ILIB:p3http', 'SRCDIR:panda/src/http'])
-    PyTargetAdd('p3http_igate.obj', opts=OPTS, input='p3http.in')
 
 #
 # DIRECTORY: direct/src/directbase/
