@@ -79,6 +79,9 @@ def exitfunc():
     if getattr(builtins, 'base', None) is not None:
         builtins.base.destroy()
 
+builtins.FADE_SORT_INDEX = 1000
+builtins.NO_FADE_SORT_INDEX = 2000
+
 # Now ShowBase is a DirectObject.  We need this so ShowBase can hang
 # hooks on messages, particularly on window-event.  This doesn't
 # *seem* to cause anyone any problems.
