@@ -123,6 +123,9 @@ class DirectScrolledList(DirectFrame):
         self.recordMaxHeight()
         self.scrollTo(0)
 
+        # Items per second to move
+        self.numItemsVisible = self["numItemsVisible"]
+
     def setForceHeight(self):
         assert self.notify.debugStateCall(self)
         self.__forceHeight = self["forceHeight"]
