@@ -3174,7 +3174,7 @@ if (PkgSkip("CONTRIB")==0):
     CopyAllHeaders('contrib/src/ai')
 
 if (PkgSkip("HTTP")==0):
-    CopyAllHeaders('direct/src/http')
+    CopyAllHeaders('panda/src/http')
 
 ########################################################################
 #
@@ -4854,15 +4854,15 @@ if (PkgSkip("DNA")==0 and PkgSkip("PYTHON")==0):
     PyTargetAdd('toontown.pyd', input=COMMON_PANDA_LIBS)
 
 #
-# DIRECTORY: direct/src/http/
+# DIRECTORY: panda/src/http/
 #
 if (PkgSkip("HTTP")==0):
-    OPTS=['DIR:direct/src/http']
+    OPTS=['DIR:panda/src/http']
     TargetAdd('p3http_composite1.obj', opts=OPTS, input='p3http_composite1.cxx')
 
-    IGATEFILES=GetDirectoryContents('direct/src/http', ["*.h", "*_composite.cxx"])
+    IGATEFILES=GetDirectoryContents('panda/src/http', ["*.h", "*_composite.cxx"])
     TargetAdd('p3http.in', opts=OPTS, input=IGATEFILES)
-    TargetAdd('p3http.in', opts=['IMOD:panda3d.core', 'ILIB:p3http', 'SRCDIR:direct/src/http'])
+    TargetAdd('p3http.in', opts=['IMOD:panda3d.core', 'ILIB:p3http', 'SRCDIR:panda/src/http'])
     PyTargetAdd('p3http_igate.obj', opts=OPTS, input='p3http.in')
 
 #
