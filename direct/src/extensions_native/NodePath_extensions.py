@@ -21,7 +21,6 @@ del id
 #####################################################################
 def getChildrenAsList(self):
         """Deprecated.  Converts a node path's child NodePathCollection into a list"""
-        print("Warning: NodePath.getChildrenAsList() is deprecated.  Use get_children() instead.")
         return list(self.getChildren())
 
 Dtool_funcToMethod(getChildrenAsList, NodePath)
@@ -870,30 +869,6 @@ Dtool_funcToMethod(lerpColorScale, NodePath)
 del lerpColorScale
 
 #####################################################################
-def lerpColorScaleVBase4(self, endColor, time,
-                        blendType="noBlend", auto=None, task=None):
-        """lerpColorScaleVBase4(self, VBase4, float, string="noBlend", string=none,
-        string=none)
-        """
-        def functorFunc(self = self, endColor = endColor):
-            from pandac.PandaModules import ColorScaleLerpFunctor
-            # just end vec4, use current color for start
-            startColor = self.getColor()
-            functor = ColorScaleLerpFunctor(
-                self, startColor, endColor)
-            return functor
-        #determine whether to use auto, spawned, or blocking lerp
-        if (auto != None):
-            return self.__autoLerp(functorFunc, time, blendType, auto)
-        elif (task != None):
-            return self.__lerp(functorFunc, time, blendType, task)
-        else:
-            return self.__lerp(functorFunc, time, blendType)
-
-Dtool_funcToMethod(lerpColorScaleVBase4, NodePath)
-del lerpColorScaleVBase4
-
-#####################################################################
 def lerpColorScaleVBase4VBase4(self, startColor, endColor, time,
                           blendType="noBlend", auto=None, task=None):
         """lerpColorScaleVBase4VBase4(self, VBase4, VBase4, float, string="noBlend",
@@ -901,8 +876,9 @@ def lerpColorScaleVBase4VBase4(self, startColor, endColor, time,
         """
         def functorFunc(self = self, startColor = startColor,
                         endColor = endColor):
+            from direct.interval.IntervalGlobal import LerpColorInterval
             # start color and end vec
-            functor = self.colorScaleInterval(
+            functor = LerpColorInterval(
                 self, startColor, endColor)
             return functor
         #determine whether to use auto, spawned, or blocking lerp
@@ -915,6 +891,8 @@ def lerpColorScaleVBase4VBase4(self, startColor, endColor, time,
 
 Dtool_funcToMethod(lerpColorScaleVBase4VBase4, NodePath)
 del lerpColorScaleVBase4VBase4
+#####################################################################
+
 #####################################################################
 
 def __lerp(self, functorFunc, duration, blendType, taskName=None):
@@ -934,11 +912,10 @@ def __lerp(self, functorFunc, duration, blendType, taskName=None):
         def lerpTaskFunc(task):
             from pandac.PandaModules import ClockObject
             from direct.task.Task import Task, cont, done
-            from direct.interval.IntervalGlobal import LerpFunctionInterval
             if task.init == 1:
                 # make the lerp
                 functor = task.functorFunc()
-                task.lerp = LerpFunctionInterval(functor, task.duration, task.blendType)
+                task.lerp = self.colorScaleInterval(functor, task.duration, task.blendType)
                 task.init = 0
             dt = globalClock.getDt()
             task.lerp.setStepSize(dt)
@@ -968,3 +945,114 @@ def __lerp(self, functorFunc, duration, blendType, taskName=None):
 Dtool_funcToMethod(__lerp, NodePath)
 del __lerp
 #####################################################################
+
+def lerpPos(self, *posArgs, **keyArgs):
+        """lerpPos(self, *positionArgs, **keywordArgs)
+        Determine whether to call lerpPosXYZ or lerpPosPoint3
+        based on the first argument
+        """
+        # check to see if lerping with three
+        # floats or a Point3
+        if (len(posArgs) == 4):
+            return apply(self.lerpPosXYZ, posArgs, keyArgs)
+        elif(len(posArgs) == 2):
+            return apply(self.lerpPosPoint3, posArgs, keyArgs)
+        else:
+            # bad number off args
+            raise Exception("Error: NodePath.lerpPos: bad number of args")
+
+Dtool_funcToMethod(lerpPos, NodePath)
+del lerpPos
+#####################################################################
+
+def lerpPosPoint3(self, pos, time, other=None,
+                      blendType="noBlend", auto=None, task=None):
+        """lerpPosPoint3(self, Point3, float, string="noBlend", string=None,
+        string=None, NodePath=None)
+        Perform a pos lerp with a Point3 as the end point
+        """
+        def functorFunc(self = self, pos = pos, other = other):
+            from pandac.PandaModules import PosLerpFunctor
+            if (other != None):
+                #lerp wrt other
+                functor = PosLerpFunctor(
+                    self, (self.getPos(other)), pos, other)
+            else:
+                functor = PosLerpFunctor(
+                    self, (self.getPos()), pos)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+
+Dtool_funcToMethod(lerpPosPoint3, NodePath)
+del lerpPosPoint3
+#####################################################################
+
+# user callable lerp methods
+def lerpColor(self, *posArgs, **keyArgs):
+        """lerpColor(self, *positionArgs, **keywordArgs)
+        determine which lerpColor* to call based on arguments
+        """
+        if (len(posArgs) == 2):
+            return apply(self.lerpColorVBase4, posArgs, keyArgs)
+        elif (len(posArgs) == 3):
+            return apply(self.lerpColorVBase4VBase4, posArgs, keyArgs)
+        elif (len(posArgs) == 5):
+            return apply(self.lerpColorRGBA, posArgs, keyArgs)
+        elif (len(posArgs) == 9):
+            return apply(self.lerpColorRGBARGBA, posArgs, keyArgs)
+        else:
+            # bad args
+            raise Exception("Error: NodePath.lerpColor: bad number of args")
+
+Dtool_funcToMethod(lerpColor, NodePath)
+del lerpColor
+#####################################################################
+
+def lerpPosHpr(self, *posArgs, **keyArgs):
+        """lerpPosHpr(self, *positionArgs, **keywordArgs)
+        Determine whether to call lerpPosHprXYZHPR or lerpHprPoint3VBase3
+        based on first argument
+        """
+        # check to see if lerping with
+        # six floats or a Point3 and a VBase3
+        if (len(posArgs) == 7):
+            return apply(self.lerpPosHprXYZHPR, posArgs, keyArgs)
+        elif(len(posArgs) == 3):
+            return apply(self.lerpPosHprPoint3VBase3, posArgs, keyArgs)
+        else:
+            # bad number off args
+            raise Exception("Error: NodePath.lerpPosHpr: bad number of args")
+
+Dtool_funcToMethod(lerpPosHpr, NodePath)
+del lerpPosHpr
+
+#####################################################################
+def lerpColorVBase4VBase4(self, startColor, endColor, time,
+                          blendType="noBlend", auto=None, task=None):
+        """lerpColorVBase4VBase4(self, VBase4, VBase4, float, string="noBlend",
+        string=none, string=none)
+        """
+        def functorFunc(self = self, startColor = startColor,
+                        endColor = endColor):
+            from pandac.PandaModules import ColorLerpFunctor
+            # start color and end vec
+            functor = ColorLerpFunctor(
+                self, startColor, endColor)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorVBase4VBase4, NodePath)
+del lerpColorVBase4VBase4
