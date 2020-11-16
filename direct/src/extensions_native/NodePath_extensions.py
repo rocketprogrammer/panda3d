@@ -38,7 +38,6 @@ del printChildren
 
 def removeChildren(self):
         """Deprecated.  Deletes the children of the bottom node of a node path"""
-        print("Warning: NodePath.removeChildren() is deprecated.  Use get_children().detach() instead.")
         self.getChildren().detach()
 Dtool_funcToMethod(removeChildren, NodePath)
 del removeChildren
