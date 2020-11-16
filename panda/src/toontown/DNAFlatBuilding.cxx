@@ -56,7 +56,8 @@ void DNAFlatBuilding::setup_flat(NodePath& np, DNAStorage* store, const char chr
         wall_np.set_effect(DecalEffect::make());
     }
 
-    node.flatten_medium();
+    node.clear_model_nodes();
+    node.flatten_strong();
     node.stash();
 }
 

@@ -9,17 +9,6 @@ class EXPCL_DNA DNAFlatBuilding : public DNANode
         DNAFlatBuilding(const std::string& name);
         ~DNAFlatBuilding();
         
-        WRITE_PDNA
-        {
-            DNANode::write_pdna(dg, false);
-            
-            dg.add_int16(floor(m_width * 10));
-            dg.add_bool(m_has_door);
-            
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-        
         WRITE_DNA
         {
             DNANode::write_dna(out, false, indent);

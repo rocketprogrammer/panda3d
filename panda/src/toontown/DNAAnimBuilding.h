@@ -9,16 +9,6 @@ class EXPCL_DNA DNAAnimBuilding : public DNALandmarkBuilding
         DNAAnimBuilding(const std::string& name);
         ~DNAAnimBuilding();
         
-        WRITE_PDNA
-        {
-            DNALandmarkBuilding::write_pdna(dg, false);
-
-            dg.add_string(m_anim_name);
-            
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-        
         WRITE_DNA
         {
             DNALandmarkBuilding::write_dna(out, false, indent);

@@ -11,21 +11,6 @@ class EXPCL_DNA DNAStreet : public DNANode
         DNAStreet(const std::string& name);
         ~DNAStreet();
 
-        WRITE_PDNA
-        {
-            DNANode::write_pdna(dg, false);
-
-            dg.add_string(m_code);
-
-            dg.add_string(m_street_texture);
-            dg.add_string(m_sidewalk_texture);
-            dg.add_string(m_curb_texture);
-
-            pack_color(dg, m_street_color);
-            pack_color(dg, m_sidewalk_color);
-            pack_color(dg, m_curb_color);
-        }
-
         WRITE_DNA
         {
             DNANode::write_dna(out, false, indent);

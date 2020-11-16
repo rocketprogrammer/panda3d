@@ -489,95 +489,54 @@ void DNAStorage::get_adjacent_points(PT(DNASuitPoint) point, suit_point_vec_t& v
         vec.push_back(it->get_end_point());
 }
 
+void DNAStorage::r_discover_connections(PT(DNASuitPoint) point, graph_id_t id)
+{
+    graph_id_t point_graph_id = point->get_graph_id();
+    if (point_graph_id != 0)
+    {
+        if (point_graph_id != id)
+        {
+            dna_cat.warning() << "Discovered mismatching indexes: " << id << " and " << point_graph_id << std::endl;
+        }
+    }
+    else
+    {
+        point->set_graph_id(id);
+        point_index_t index = point->get_index();
+        if (m_suit_edges.find(index) == m_suit_edges.end())
+        {
+            dna_cat.warning() << "Discovered suit edge without index: " << index << std::endl;
+        }
+        else
+        {
+            for (auto it = m_suit_edges[index].begin(); it != m_suit_edges[index].end(); ++it)
+            {
+                PT(DNASuitEdge) edge = *it;
+                PT(DNASuitPoint) end_point = (edge->get_end_point() != nullptr ? edge->get_end_point() : point);
+                r_discover_connections(end_point, id);
+            }
+        }
+    }
+}
+
 bool DNAStorage::discover_continuity()
 {
-    // To do
-    return true;
+    graph_id_t counter = 0;
+    for (suit_point_vec_t::iterator it = m_suit_points.begin(); it != m_suit_points.end(); ++it)
+    {
+        PT(DNASuitPoint) point = *it;
+        if (!point->get_graph_id())
+        {
+            ++counter;
+            r_discover_connections(point, counter);
+        }
+    }
+
+    return counter != 0;
 }
 
 #define PACK_NODES(X) dg.add_uint16(X.size()); for (nodes_t::iterator it = X.begin(); it != X.end(); ++it) {dg.add_string(it->first);\
                                     dg.add_string((it->second).filename); dg.add_string((it->second).search);}
-
-void DNAStorage::write_pdna(Datagram& dg)
-{
-    // Catalog codes
-    dg.add_uint16(m_catalog_codes.size());
-    for (catalog_codes_map_t::iterator it = m_catalog_codes.begin(); it != m_catalog_codes.end(); ++it)
-    {
-        dg.add_string(it->first);
-
-        string_vec_t codes = it->second;
-        dg.add_uint8(codes.size());
-        for (string_vec_t::iterator code = codes.begin(); code != codes.end(); ++code)
-            dg.add_string(*code);
-    }
-
-    // Textures
-    dg.add_uint16(m_textures.size());
-    for (texture_map_t::iterator it = m_textures.begin(); it != m_textures.end(); ++it)
-    {
-        dg.add_string(it->first);
-        dg.add_string((it->second)->get_filename());
-    }
-
-    // Fonts
-    dg.add_uint16(m_fonts.size());
-    for (font_map_t::iterator it = m_fonts.begin(); it != m_fonts.end(); ++it)
-    {
-        dg.add_string(it->first);
-        dg.add_string(m_font_filenames[it->first]);
-    }
-
-    // Nodes
-    PACK_NODES(m_nodes);
-    PACK_NODES(m_hood_nodes);
-    PACK_NODES(m_place_nodes);
-
-    // Blocks
-    dg.add_uint16(m_block_numbers.size());
-    for (block_number_vec_t::iterator it = m_block_numbers.begin(); it != m_block_numbers.end(); ++it)
-    {
-        block_number_t block_number = *it;
-        dg.add_uint8(block_number);
-        dg.add_uint16(m_block_zones[block_number]);
-        dg.add_string(m_block_titles[block_number]);
-        dg.add_string(m_block_articles[block_number]);
-        dg.add_string(m_block_building_types[block_number]);
-    }
-
-    // Suit points
-    dg.add_uint16(m_suit_points.size());
-    for (suit_point_vec_t::iterator it = m_suit_points.begin(); it != m_suit_points.end(); ++it)
-    {
-        PT(DNASuitPoint) point = *it;
-        dg.add_uint16(point->get_index());
-        dg.add_uint8(point->get_point_type());
-
-        dg.add_int32(floor(point->get_pos().get_x() * 100));
-        dg.add_int32(floor(point->get_pos().get_y() * 100));
-        dg.add_int32(floor(point->get_pos().get_z() * 100));
-
-        dg.add_int16(point->get_landmark_building_index());
-    }
-
-    // Suit edges
-    dg.add_uint16(m_suit_edges.size());
-    for (suit_edge_map_t::iterator it = m_suit_edges.begin(); it != m_suit_edges.end(); ++it)
-    {
-        point_index_t start_point_index = it->first;
-        std::vector<PT(DNASuitEdge)> edges = it->second;
-
-        dg.add_uint16(start_point_index);
-        dg.add_uint16(edges.size());
-
-        for (std::vector<PT(DNASuitEdge)>::iterator it = edges.begin(); it != edges.end(); ++it)
-        {
-            PT(DNASuitEdge) edge = *it;
-            dg.add_uint16(edge->get_end_point()->get_index());
-            dg.add_uint16(edge->get_zone_id());
-        }
-    }
-}
 
 void DNAStorage::write_dna(std::ostream& out)
 {

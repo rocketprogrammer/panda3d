@@ -12,14 +12,6 @@ class EXPCL_DNA DNADoor : public DNAGroup
         static void setup_door(NodePath door_np, NodePath parent_np, NodePath door_origin, DNAStorage* store, const std::string& block, LVecBase4f& color);
         static void setup_door(NodePath door_np, NodePath parent_np, NodePath door_origin, DNAStorage* store, block_number_t block, LVecBase4f& color);
 
-        WRITE_PDNA
-        {
-            DNAGroup::write_pdna(dg, false);
-
-            dg.add_string(m_code);
-            PACK_COLOR;
-        }
-
         WRITE_DNA
         {
             DNAGroup::write_dna(out, false, indent);

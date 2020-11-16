@@ -13,14 +13,6 @@ class EXPCL_DNA DNAWindows : public DNAGroup
                           const std::string& code, float scale,
                           LVecBase4f& color, DNAStorage* store,
                           bool flip=false);
-                          
-        WRITE_PDNA
-        {
-            DNAGroup::write_pdna(dg, false);            
-            dg.add_string(m_code);
-            PACK_COLOR;
-            dg.add_uint8(m_window_count);
-        }
         
         WRITE_DNA
         {

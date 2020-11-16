@@ -9,18 +9,6 @@ class EXPCL_DNA DNAWall : public DNANode
         DNAWall(const std::string& name);
         ~DNAWall();
         
-        WRITE_PDNA
-        {
-            DNANode::write_pdna(dg, false);
-            
-            dg.add_string(m_code);
-            dg.add_int16(floor(m_height * 100));
-            PACK_COLOR;
-            
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-        
         WRITE_DNA
         {
             DNANode::write_dna(out, false, indent);

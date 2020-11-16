@@ -39,7 +39,7 @@ void DNACornice::traverse(NodePath& np, DNAStorage* store)
     
     NodePath _np = node.copy_to(internal_node, 0);
     _np.set_scale(1, scale_ratio, scale_ratio);
-    _np.set_effect(DecalEffect::make());
+    _np.set_depth_offset(1, 1);
     
     node = node.get_parent().find("**/*_nd");
     NodePath np_d = node.copy_to(internal_node, 1);
@@ -47,5 +47,6 @@ void DNACornice::traverse(NodePath& np, DNAStorage* store)
     
     internal_node.set_z(node.get_scale().get_z());
     internal_node.set_color(m_color);
+    internal_node.clear_model_nodes();
     internal_node.flatten_strong();
 }

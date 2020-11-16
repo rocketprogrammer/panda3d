@@ -10,12 +10,6 @@ class EXPCL_DNA DNAData : public DNAGroup
         DNAData(const std::string& name);
         ~DNAData();
 
-        WRITE_PDNA
-        {
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-
         WRITE_DNA
         {
             if (recursive)

@@ -34,38 +34,6 @@ class EXPCL_DNA DNAVisGroup : public DNAGroup
         size_t get_num_battle_cells();
         PT(DNABattleCell) get_battle_cell(size_t index);
 
-        WRITE_PDNA
-        {
-            DNAGroup::write_pdna(dg, false);
-
-            dg.add_uint16(m_suit_edges.size());
-            for (suit_edge_vec_t::iterator it = m_suit_edges.begin(); it != m_suit_edges.end(); ++it)
-            {
-                PT(DNASuitEdge) edge = *it;
-                dg.add_uint16(edge->get_start_point()->get_index());
-                dg.add_uint16(edge->get_end_point()->get_index());
-            }
-
-            dg.add_uint16(m_visibles.size());
-            for (visibles_vec_t::iterator it = m_visibles.begin(); it != m_visibles.end(); ++it)
-                dg.add_string(*it);
-
-            dg.add_uint16(m_battle_cells.size());
-            for (battle_cell_vec_t::iterator it = m_battle_cells.begin(); it != m_battle_cells.end(); ++it)
-            {
-                PT(DNABattleCell) cell = *it;
-                dg.add_uint8(cell->get_width());
-                dg.add_uint8(cell->get_height());
-
-                dg.add_uint32(floor(cell->get_pos().get_x() * 100));
-                dg.add_uint32(floor(cell->get_pos().get_y() * 100));
-                dg.add_uint32(floor(cell->get_pos().get_z() * 100));
-            }
-
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-
         WRITE_DNA
         {
             DNAGroup::write_dna(out, false, indent);

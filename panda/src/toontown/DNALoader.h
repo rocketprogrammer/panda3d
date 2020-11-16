@@ -18,8 +18,6 @@ class EXPCL_DNA DNALoader
         PT(DNAGroup) load_DNA_file_AI(DNAStorage* store, const Filename& file);
 
     private:
-       void handle_storage_data(DatagramIterator& dgi);
-       void handle_comp_data(DatagramIterator& dgi);
        void load_DNA_file_base(DNAStorage* store, const Filename& file);
 
        DNAStorage* m_cur_store;

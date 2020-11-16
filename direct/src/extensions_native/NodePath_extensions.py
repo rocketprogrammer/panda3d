@@ -14,7 +14,6 @@ from .extension_native_helpers import Dtool_funcToMethod
 ####################################################################
 def id(self):
         """Deprecated.  Returns a unique id identifying the NodePath instance"""
-        print("Warning: NodePath.id() is deprecated.  Use hash(NodePath) or NodePath.get_key() instead.")
         return self.getKey()
 
 Dtool_funcToMethod(id, NodePath)
@@ -102,7 +101,6 @@ del isolate
 
 def remove(self):
         """Deprecated.  Remove a node path from the scene graph"""
-        print("Warning: NodePath.remove() is deprecated.  Use remove_node() instead.")
         # Send message in case anyone needs to do something
         # before node is deleted
         messenger.send('preRemoveNodePath', [self])
@@ -384,7 +382,6 @@ del iScale
 #####################################################################
 def iPosHpr(self, other = None):
         """ Deprecated.  Set node path's pos and hpr to 0, 0, 0 """
-        print("NodePath.iPosHpr() is deprecated.")
         if other:
             self.setPosHpr(other, 0, 0, 0, 0, 0, 0)
         else:
@@ -395,7 +392,6 @@ del iPosHpr
 #####################################################################
 def iPosHprScale(self, other = None):
         """ Deprecated.  Set node path's pos and hpr to 0, 0, 0 and scale to 1, 1, 1 """
-        print("NodePath.iPosHprScale() is deprecated.")
         if other:
             self.setPosHprScale(other, 0, 0, 0, 0, 0, 0, 1, 1, 1)
         else:
@@ -872,3 +868,103 @@ def lerpColorScale(self, *posArgs, **keyArgs):
 
 Dtool_funcToMethod(lerpColorScale, NodePath)
 del lerpColorScale
+
+#####################################################################
+def lerpColorScaleVBase4(self, endColor, time,
+                        blendType="noBlend", auto=None, task=None):
+        """lerpColorScaleVBase4(self, VBase4, float, string="noBlend", string=none,
+        string=none)
+        """
+        def functorFunc(self = self, endColor = endColor):
+            from pandac.PandaModules import ColorScaleLerpFunctor
+            # just end vec4, use current color for start
+            startColor = self.getColor()
+            functor = ColorScaleLerpFunctor(
+                self, startColor, endColor)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorScaleVBase4, NodePath)
+del lerpColorScaleVBase4
+
+#####################################################################
+def lerpColorScaleVBase4VBase4(self, startColor, endColor, time,
+                          blendType="noBlend", auto=None, task=None):
+        """lerpColorScaleVBase4VBase4(self, VBase4, VBase4, float, string="noBlend",
+        string=none, string=none)
+        """
+        def functorFunc(self = self, startColor = startColor,
+                        endColor = endColor):
+            # start color and end vec
+            functor = self.colorScaleInterval(
+                self, startColor, endColor)
+            return functor
+        #determine whether to use auto, spawned, or blocking lerp
+        if (auto != None):
+            return self.__autoLerp(functorFunc, time, blendType, auto)
+        elif (task != None):
+            return self.__lerp(functorFunc, time, blendType, task)
+        else:
+            return self.__lerp(functorFunc, time, blendType)
+
+Dtool_funcToMethod(lerpColorScaleVBase4VBase4, NodePath)
+del lerpColorScaleVBase4VBase4
+#####################################################################
+
+def __lerp(self, functorFunc, duration, blendType, taskName=None):
+        """
+        __lerp(self, functorFunc, float, string, string)
+        Basic lerp functionality used by other lerps.
+        Fire off a lerp. Make it a task if taskName given.
+        """
+        # functorFunc is a function which can be called to create a functor.
+        # functor creation is defered so initial state (sampled in functorFunc)
+        # will be appropriate for the time the lerp is spawned
+        from direct.task import Task
+        from direct.showbase import LerpBlendHelpers
+        from direct.task.TaskManagerGlobal import taskMgr
+
+        # make the task function
+        def lerpTaskFunc(task):
+            from pandac.PandaModules import ClockObject
+            from direct.task.Task import Task, cont, done
+            from direct.interval.IntervalGlobal import LerpFunctionInterval
+            if task.init == 1:
+                # make the lerp
+                functor = task.functorFunc()
+                task.lerp = LerpFunctionInterval(functor, task.duration, task.blendType)
+                task.init = 0
+            dt = globalClock.getDt()
+            task.lerp.setStepSize(dt)
+            task.lerp.step()
+            if (task.lerp.isDone()):
+                # Reset the init flag, in case the task gets re-used
+                task.init = 1
+                return(done)
+            else:
+                return(cont)
+
+        # make the lerp task
+        lerpTask = Task.Task(lerpTaskFunc)
+        lerpTask.init = 1
+        lerpTask.functorFunc = functorFunc
+        lerpTask.duration = duration
+        lerpTask.blendType = LerpBlendHelpers.getBlend(blendType)
+
+        if (taskName == None):
+            # don't spawn a task, return one instead
+            return lerpTask
+        else:
+            # spawn the lerp task
+            taskMgr.add(lerpTask, taskName)
+            return lerpTask
+
+Dtool_funcToMethod(__lerp, NodePath)
+del __lerp
+#####################################################################

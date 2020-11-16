@@ -9,16 +9,6 @@ class EXPCL_DNA DNAAnimProp : public DNAProp
         DNAAnimProp(const std::string& name);
         ~DNAAnimProp();
         
-        WRITE_PDNA
-        {
-            DNAProp::write_pdna(dg, false);
-            
-            dg.add_string(m_anim_name);
-            
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-        
         WRITE_DNA
         {
             DNAProp::write_dna(out, false, indent);

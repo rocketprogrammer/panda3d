@@ -12,26 +12,6 @@ class EXPCL_DNA DNANode : public DNAGroup
         DNANode(const std::string& name);
         ~DNANode();
         
-        WRITE_PDNA
-        {
-            DNAGroup::write_pdna(dg, false);
-            
-            dg.add_int32(floor(m_pos.get_x() * 100));
-            dg.add_int32(floor(m_pos.get_y() * 100));
-            dg.add_int32(floor(m_pos.get_z() * 100));
-            
-            dg.add_int32(floor(m_hpr.get_x() * 100));
-            dg.add_int32(floor(m_hpr.get_y() * 100));
-            dg.add_int32(floor(m_hpr.get_z() * 100));
-            
-            dg.add_uint16(floor(m_scale.get_x() * 100));
-            dg.add_uint16(floor(m_scale.get_y() * 100));
-            dg.add_uint16(floor(m_scale.get_z() * 100));
-            
-            if (recursive)
-                pack_children_pdna(dg);
-        }
-        
         WRITE_DNA
         {
             DNAGroup::write_dna(out, false, indent);
