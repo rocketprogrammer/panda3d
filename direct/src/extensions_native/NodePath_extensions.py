@@ -347,7 +347,6 @@ del printTransform
 
 def iPos(self, other = None):
         """ Deprecated.  Set node path's pos to 0, 0, 0 """
-        print("NodePath.iPos() is deprecated.")
         if other:
             self.setPos(other, 0, 0, 0)
         else:
