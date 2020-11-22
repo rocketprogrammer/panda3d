@@ -31,7 +31,7 @@ class LandingPage:
         searchPath.appendDirectory(Filename.fromOsSpecific(os.path.expandvars('$DIRECT/src/http')))
         searchPath.appendDirectory(Filename.fromOsSpecific(os.path.expandvars('direct/src/http')))
         searchPath.appendDirectory(Filename.fromOsSpecific(os.path.expandvars('direct/http')))
-        searchPath.appendDirectory(Filename('game/toontown/http'))
+        searchPath.appendDirectory(Filename('resources/http'))
         found = vfs.resolveFilename(filename,searchPath)
         if not found:
             raise Exception("Couldn't find direct/http/favicon.ico")
