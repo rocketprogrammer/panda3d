@@ -64,7 +64,7 @@ RPMRELEASE="1"
 GIT_COMMIT=None
 MAJOR_VERSION=None
 OSX_ARCHS=[]
-global STRDXSDKVERSION, BOOUSEINTELCOMPILER
+global STRDXSDKVERSION, BOOUSEINTELCOMPILER, NIRAI_MODE
 STRDXSDKVERSION = 'default'
 WINDOWS_SDK = None
 MSVC_VERSION = None
@@ -185,7 +185,7 @@ def parseopts(args):
         "static","debversion=","rpmrelease=","p3dsuffix=","rtdist-version=",
         "directx-sdk=", "windows-sdk=", "msvc-version=", "clean", "use-icl",
         "universal", "target=", "arch=", "git-commit=", "no-copy-python",
-        "cggl-incdir=", "cggl-libdir=",
+        "cggl-incdir=", "cggl-libdir=", "nirai"
         ] + removedopts
 
     anything = 0
@@ -246,6 +246,7 @@ def parseopts(args):
             elif (option=="--use-icl"): BOOUSEINTELCOMPILER = True
             elif (option=="--clean"): clean_build = True
             elif (option=="--no-copy-python"): COPY_PYTHON = False
+            elif (option=="--nirai"): NIRAI_MODE = True
             elif (option[2:] in removedopts or option[2:]+'=' in removedopts):
                 Warn("Ignoring removed option %s" % (option))
             else:

@@ -2760,7 +2760,7 @@ def nonRepeatingRandomList(vals, max):
 if not hasattr(builtins, 'enumerate'):
 
     def enumerate(L):
-        return zip(xrange(len(L)), L)
+        return zip(range(len(L)), L)
 
     builtins.enumerate = enumerate
 else:
@@ -3471,11 +3471,11 @@ def triglerp(v0, v1, t):
     return lerp(v0, v1, (v + 1.0) / 2.0)
 
 def repeatableRepr(obj):
-    if type(obj) is types.DictType:
-        keys = obj.keys()
+    if type(obj) is dict:
+        keys = list(obj.keys())
         keys.sort()
         s = '{'
-        for i in xrange(len(keys)):
+        for i in range(len(keys)):
             key = keys[i]
             s += repeatableRepr(key)
             s += ': '
