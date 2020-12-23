@@ -67,7 +67,7 @@ class NetMessenger(Messenger):
 
         messageType=self.__message2type[message]
         datagram.addUint16(messageType)
-        datagram.addString(str(dumps(sentArgs)))
+        datagram.addBlob(dumps(sentArgs))
 
         return datagram
 
@@ -103,7 +103,7 @@ class NetMessenger(Messenger):
             return
 
         message = self.__type2message[msgType]
-        sentArgs=loads(di.getString())
+        sentArgs=loads(di.getBlob())
 
         if type(sentArgs) != list:
             self.notify.warning('Received non-list item in %s message: %r' %

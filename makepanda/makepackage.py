@@ -117,8 +117,8 @@ deps: {DEPENDS}
 MACOS_SCRIPT_PREFIX = \
 """#!/bin/bash
 IFS=.
-read -a version_info <<< "`sw_vers -productVersion`'"
-if (( ${version_info[1]} < 15 )); then
+read -a version_info <<< "`sw_vers -productVersion`"
+if (( ${version_info[0]} == 10 && ${version_info[1]} < 15 )); then
 """
 
 MACOS_SCRIPT_POSTFIX = \
@@ -153,6 +153,7 @@ def MakeInstallerNSIS(version, file, title, installdir, compressor="lzma", **kwa
         'BUILT'     : '..\\' + outputdir,
         'SOURCE'    : '..',
         'REGVIEW'   : regview,
+        'MAJOR_VER' : '.'.join(version.split('.')[:2]),
     }
 
     # Are we shipping a version of Python?
@@ -388,7 +389,8 @@ def MakeInstallerOSX(version, python_versions=[], installdir=None, **kwargs):
     oscmd("cp -R %s/models                dstroot/base/%s/models" % (outputdir, installdir))
     oscmd("cp -R doc/LICENSE              dstroot/base/%s/LICENSE" % installdir)
     oscmd("cp -R doc/ReleaseNotes         dstroot/base/%s/ReleaseNotes" % installdir)
-    oscmd("cp -R %s/Frameworks            dstroot/base/%s/Frameworks" % (outputdir, installdir))
+    if os.path.isdir(outputdir+"/Frameworks") and os.listdir(outputdir+"/Frameworks"):
+        oscmd("cp -R %s/Frameworks            dstroot/base/%s/Frameworks" % (outputdir, installdir))
     if os.path.isdir(outputdir+"/plugins"):
         oscmd("cp -R %s/plugins           dstroot/base/%s/plugins" % (outputdir, installdir))
 

@@ -22,7 +22,8 @@ __all__ = [
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
     'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
-    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'cmp'
+    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'cmp',
+    'ParamObj'
 ]
 
 if __debug__:
@@ -1572,7 +1573,7 @@ def appendStr(obj, st):
             return s
         oldStr = Functor(stringer, str(obj))
         stringer = None
-    obj.__str__ = types.MethodType(Functor(appendedStr, oldStr, st), obj)
+    obj.__str__ = types.MethodType(Functor(appendedStr, oldStr, st), obj, obj.__class__)
     appendedStr = None
     return obj
 
