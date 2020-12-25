@@ -1,15 +1,16 @@
-/**
- * PANDA 3D SOFTWARE
- * Copyright (c) Carnegie Mellon University.  All rights reserved.
- *
- * All use of this software is subject to the terms of the revised BSD
- * license.  You should have received a copy of this license along
- * with this source code in a file named "LICENSE."
- *
- * @file cDistributedSmoothNodeBase.cxx
- * @author drose
- * @date 2004-09-03
- */
+// Filename: cDistributedSmoothNodeBase.cxx
+// Created by:  drose (03Sep04)
+//
+////////////////////////////////////////////////////////////////////
+//
+// PANDA 3D SOFTWARE
+// Copyright (c) Carnegie Mellon University.  All rights reserved.
+//
+// All use of this software is subject to the terms of the revised BSD
+// license.  You should have received a copy of this license along
+// with this source code in a file named "LICENSE."
+//
+////////////////////////////////////////////////////////////////////
 
 #include "cDistributedSmoothNodeBase.h"
 #include "cConnectionRepository.h"
@@ -25,11 +26,13 @@
 static const PN_stdfloat smooth_node_epsilon = 0.01;
 static const double network_time_precision = 100.0;  // Matches ClockDelta.py
 
-/**
- *
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::Constructor
+//       Access: Published
+//  Description:
+////////////////////////////////////////////////////////////////////
 CDistributedSmoothNodeBase::
-CDistributedSmoothNodeBase() {
+CDistributedSmoothNodeBase(): _store_e(0), _dirty_e(false){
   _repository = nullptr;
   _is_ai = false;
   _ai_id = 0;
@@ -37,24 +40,26 @@ CDistributedSmoothNodeBase() {
 #ifdef HAVE_PYTHON
   _clock_delta = nullptr;
 #endif
-
-  _currL[0] = 0;
-  _currL[1] = 0;
 }
 
-/**
- *
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::Destructor
+//       Access: Published
+//  Description:
+////////////////////////////////////////////////////////////////////
 CDistributedSmoothNodeBase::
 ~CDistributedSmoothNodeBase() {
 }
 
-/**
- * Initializes the internal structures from some constructs that are normally
- * stored only in Python.  Also reads the current node's pos & hpr values in
- * preparation for transmitting them via one of the broadcast_pos_hpr_*()
- * methods.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::initialize
+//       Access: Published
+//  Description: Initializes the internal structures from some
+//               constructs that are normally stored only in Python.
+//               Also reads the current node's pos & hpr values in
+//               preparation for transmitting them via one of the
+//               broadcast_pos_hpr_*() methods.
+////////////////////////////////////////////////////////////////////
 void CDistributedSmoothNodeBase::
 initialize(const NodePath &node_path, DCClass *dclass, CHANNEL_TYPE do_id) {
   _node_path = node_path;
@@ -68,24 +73,24 @@ initialize(const NodePath &node_path, DCClass *dclass, CHANNEL_TYPE do_id) {
   _store_stop = false;
 }
 
-/**
- * Broadcasts the current pos/hpr in its complete form.
- */
-void CDistributedSmoothNodeBase::
-send_everything() {
-  _currL[0] = _currL[1];
-  d_setSmPosHprL(_store_xyz[0], _store_xyz[1], _store_xyz[2],
-                 _store_hpr[0], _store_hpr[1], _store_hpr[2], _currL[0]);
-}
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::refresh_pos_hpr
+//       Access: Published
+//  Description: Examines the complete pos/hpr information to see
+//               which of the six elements have changed, and
+//               stores the info internally. You must send any
+//               updates for any detected changes manually.
+//               Returns flags associated with the changed values.
+////////////////////////////////////////////////////////////////////
+int CDistributedSmoothNodeBase::
+refresh_pos_hpr() {
+  // We may not be initialized yet.
+  if (_node_path.is_empty()) {
+    return 0;
+  }
 
-/**
- * Examines the complete pos/hpr information to see which of the six elements
- * have changed, and broadcasts the appropriate messages.
- */
-void CDistributedSmoothNodeBase::
-broadcast_pos_hpr_full() {
-  LPoint3 xyz = _node_path.get_pos();
-  LVecBase3 hpr = _node_path.get_hpr();
+  LPoint3f xyz = _node_path.get_pos();
+  LVecBase3f hpr = _node_path.get_hpr();
 
   int flags = 0;
 
@@ -119,16 +124,40 @@ broadcast_pos_hpr_full() {
     flags |= F_new_r;
   }
 
-  if (_currL[0] != _currL[1]) {
-    // location (zoneId) has changed, send out all info copy over 'set'
-    // location over to 'sent' location
-    _currL[0] = _currL[1];
-    // Any other change
-    _store_stop = false;
-    d_setSmPosHprL(_store_xyz[0], _store_xyz[1], _store_xyz[2],
-                   _store_hpr[0], _store_hpr[1], _store_hpr[2], _currL[0]);
+  if (_dirty_e) {
+    flags |= F_new_e;
+  }
 
-  } else if (flags == 0) {
+  return flags;
+}
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::send_everything
+//       Access: Published
+//  Description: Broadcasts the current pos/hpr in its complete form.
+////////////////////////////////////////////////////////////////////
+void CDistributedSmoothNodeBase::
+send_everything() {
+  _dirty_e = false;
+  d_setSmPosHprE(_store_xyz[0], _store_xyz[1], _store_xyz[2],
+                 _store_hpr[0], _store_hpr[1], _store_hpr[2],
+                 _store_e);
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::broadcast_pos_hpr_full
+//       Access: Published
+//  Description: Examines the complete pos/hpr information to see
+//               which of the six elements have changed, and
+//               broadcasts the appropriate messages.
+////////////////////////////////////////////////////////////////////
+void CDistributedSmoothNodeBase::
+broadcast_pos_hpr_full() {
+  LPoint3f xyz = _node_path.get_pos();
+  LVecBase3f hpr = _node_path.get_hpr();
+
+  int flags = refresh_pos_hpr();
+
+  if (flags == 0) {
     // No change.  Send one and only one "stop" message.
     if (!_store_stop) {
       _store_stop = true;
@@ -175,6 +204,11 @@ broadcast_pos_hpr_full() {
     _store_stop = false;
     d_setSmXYZH(_store_xyz[0], _store_xyz[1], _store_xyz[2], _store_hpr[0]);
 
+  } else if (flags & F_new_e) {
+    // Only change in embedded
+    _store_stop = false;
+    send_everything();
+
   } else {
     // Any other change
     _store_stop = false;
@@ -183,14 +217,16 @@ broadcast_pos_hpr_full() {
   }
 }
 
-/**
- * Examines only X, Y, and H of the pos/hpr information, and broadcasts the
- * appropriate messages.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::broadcast_pos_hpr_xyh
+//       Access: Published
+//  Description: Examines only X, Y, and H of the pos/hpr information,
+//               and broadcasts the appropriate messages.
+////////////////////////////////////////////////////////////////////
 void CDistributedSmoothNodeBase::
 broadcast_pos_hpr_xyh() {
-  LPoint3 xyz = _node_path.get_pos();
-  LVecBase3 hpr = _node_path.get_hpr();
+  LPoint3f xyz = _node_path.get_pos();
+  LVecBase3f hpr = _node_path.get_hpr();
 
   int flags = 0;
 
@@ -233,13 +269,15 @@ broadcast_pos_hpr_xyh() {
   }
 }
 
-/**
- * Examines only X and Y of the pos/hpr information, and broadcasts the
- * appropriate messages.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::broadcast_pos_hpr_xy
+//       Access: Published
+//  Description: Examines only X and Y of the pos/hpr information,
+//               and broadcasts the appropriate messages.
+////////////////////////////////////////////////////////////////////
 void CDistributedSmoothNodeBase::
 broadcast_pos_hpr_xy() {
-  LPoint3 xyz = _node_path.get_pos();
+  LPoint3f xyz = _node_path.get_pos();
 
   int flags = 0;
 
@@ -267,12 +305,15 @@ broadcast_pos_hpr_xy() {
   }
 }
 
-/**
- * Fills up the packer with the data appropriate for sending an update on the
- * indicated field name, up until the arguments.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::begin_send_update
+//       Access: Private
+//  Description: Fills up the packer with the data appropriate for
+//               sending an update on the indicated field name, up
+//               until the arguments.
+////////////////////////////////////////////////////////////////////
 void CDistributedSmoothNodeBase::
-begin_send_update(DCPacker &packer, const std::string &field_name) {
+begin_send_update(DCPacker &packer, const string &field_name) {
   DCField *field = _dclass->get_field_by_name(field_name);
   nassertv(field != nullptr);
 
@@ -281,7 +322,7 @@ begin_send_update(DCPacker &packer, const std::string &field_name) {
     packer.raw_pack_uint8(1);
     packer.RAW_PACK_CHANNEL(_do_id);
     packer.RAW_PACK_CHANNEL(_ai_id);
-    // packer.raw_pack_uint8('A');
+    //packer.raw_pack_uint8('A');
     packer.raw_pack_uint16(STATESERVER_OBJECT_SET_FIELD);
     packer.raw_pack_uint32(_do_id);
     packer.raw_pack_uint16(field->get_number());
@@ -296,13 +337,14 @@ begin_send_update(DCPacker &packer, const std::string &field_name) {
   packer.push();
 }
 
-/**
- * Appends the timestamp and sends the update.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::finish_send_update
+//       Access: Private
+//  Description: Appends the timestamp and sends the update.
+////////////////////////////////////////////////////////////////////
 void CDistributedSmoothNodeBase::
 finish_send_update(DCPacker &packer) {
 #ifdef HAVE_PYTHON
-  nassertv(_clock_delta != nullptr);
   PyObject *clock_delta = PyObject_GetAttrString(_clock_delta, "delta");
   nassertv(clock_delta != nullptr);
   double delta = PyFloat_AsDouble(clock_delta);
@@ -314,8 +356,8 @@ finish_send_update(DCPacker &packer) {
   double local_time = ClockObject::get_global_clock()->get_real_time();
 
   int network_time = (int)cfloor(((local_time - delta) * network_time_precision) + 0.5);
-  // Preserves the lower NetworkTimeBits of the networkTime value, and extends
-  // the sign bit all the way up.
+  // Preserves the lower NetworkTimeBits of the networkTime value,
+  // and extends the sign bit all the way up.
   network_time = ((network_time + 0x8000) & 0xFFFF) - 0x8000;
   packer.pack_int(network_time);
 
@@ -323,20 +365,19 @@ finish_send_update(DCPacker &packer) {
   bool pack_ok = packer.end_pack();
   if (pack_ok) {
     Datagram dg(packer.get_data(), packer.get_length());
-    nassertv(_repository != nullptr);
     _repository->send_datagram(dg);
 
   } else {
 #ifndef NDEBUG
     if (packer.had_range_error()) {
-      std::ostringstream error;
+      ostringstream error;
       error << "Node position out of range for DC file: "
             << _node_path << " pos = " << _store_xyz
             << " hpr = " << _store_hpr
-            << " zoneId = " << _currL[0];
+            << " embedded = " << _store_e;
 
 #ifdef HAVE_PYTHON
-      std::string message = error.str();
+      string message = error.str();
       distributed_cat.warning()
         << message << "\n";
       PyErr_SetString(PyExc_ValueError, message.c_str());
@@ -358,15 +399,25 @@ finish_send_update(DCPacker &packer) {
   }
 }
 
-/**
- * Appends the timestamp and sends the update.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CDistributedSmoothNodeBase::set_embedded_val
+//       Access: Private
+//  Description: published function to set current embedded value for
+//               this object. It will be sent out with the next
+//               telemetry broadcast.
+//               We expose this because we can't infer changes in this
+//               value from the contained NodePath as we can with
+//               telemetry.
+////////////////////////////////////////////////////////////////////
 void CDistributedSmoothNodeBase::
-set_curr_l(uint64_t l) {
-  _currL[1] = l;
+set_embedded_val(uint64_t e) {
+  if (e != _store_e) {
+    _store_e = e;
+    _dirty_e = true;
+  }
 }
 
-void CDistributedSmoothNodeBase::
-print_curr_l() {
-  std::cout << "printCurrL: sent l: " << _currL[1] << " last set l: " << _currL[0] << "\n";
+uint64_t CDistributedSmoothNodeBase::
+get_embedded_val() const {
+  return _store_e;
 }

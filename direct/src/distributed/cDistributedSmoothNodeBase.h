@@ -1,15 +1,16 @@
-/**
- * PANDA 3D SOFTWARE
- * Copyright (c) Carnegie Mellon University.  All rights reserved.
- *
- * All use of this software is subject to the terms of the revised BSD
- * license.  You should have received a copy of this license along
- * with this source code in a file named "LICENSE."
- *
- * @file cDistributedSmoothNodeBase.h
- * @author drose
- * @date 2004-09-03
- */
+// Filename: cDistributedSmoothNodeBase.h
+// Created by:  drose (03Sep04)
+//
+////////////////////////////////////////////////////////////////////
+//
+// PANDA 3D SOFTWARE
+// Copyright (c) Carnegie Mellon University.  All rights reserved.
+//
+// All use of this software is subject to the terms of the revised BSD
+// license.  You should have received a copy of this license along
+// with this source code in a file named "LICENSE."
+//
+////////////////////////////////////////////////////////////////////
 
 #ifndef CDISTRIBUTEDSMOOTHNODEBASE_H
 #define CDISTRIBUTEDSMOOTHNODEBASE_H
@@ -23,10 +24,12 @@
 class DCClass;
 class CConnectionRepository;
 
-/**
- * This class defines some basic methods of DistributedSmoothNodeBase which
- * have been moved into C++ as a performance optimization.
- */
+////////////////////////////////////////////////////////////////////
+//       Class : CDistributedSmoothNodeBase
+// Description : This class defines some basic methods of
+//               DistributedSmoothNodeBase which have been moved into
+//               C++ as a performance optimization.
+////////////////////////////////////////////////////////////////////
 class CDistributedSmoothNodeBase {
 PUBLISHED:
   CDistributedSmoothNodeBase();
@@ -44,29 +47,33 @@ PUBLISHED:
   void initialize(const NodePath &node_path, DCClass *dclass,
                   CHANNEL_TYPE do_id);
 
+  int refresh_pos_hpr();
   void send_everything();
 
   void broadcast_pos_hpr_full();
   void broadcast_pos_hpr_xyh();
   void broadcast_pos_hpr_xy();
 
-  void set_curr_l(uint64_t l);
-  void print_curr_l();
+  // This value is used to embed another data point into the telemetry stream.
+  // For instance, an object on a grid would need to have a way to switch grid
+  // cells at the same instant the positional data wraps.
+  void set_embedded_val(uint64_t e);
+  uint64_t get_embedded_val() const;
 
 private:
   INLINE static bool only_changed(int flags, int compare);
 
   INLINE void d_setSmStop();
-  INLINE void d_setSmH(PN_stdfloat h);
-  INLINE void d_setSmZ(PN_stdfloat z);
-  INLINE void d_setSmXY(PN_stdfloat x, PN_stdfloat y);
-  INLINE void d_setSmXZ(PN_stdfloat x, PN_stdfloat z);
-  INLINE void d_setSmPos(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z);
-  INLINE void d_setSmHpr(PN_stdfloat h, PN_stdfloat p, PN_stdfloat r);
-  INLINE void d_setSmXYH(PN_stdfloat x, PN_stdfloat y, PN_stdfloat h);
-  INLINE void d_setSmXYZH(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h);
-  INLINE void d_setSmPosHpr(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r);
-  INLINE void d_setSmPosHprL(PN_stdfloat x, PN_stdfloat y, PN_stdfloat z, PN_stdfloat h, PN_stdfloat p, PN_stdfloat r, uint64_t l);
+  INLINE void d_setSmH(float h);
+  INLINE void d_setSmZ(float z);
+  INLINE void d_setSmXY(float x, float y);
+  INLINE void d_setSmXZ(float x, float z);
+  INLINE void d_setSmPos(float x, float y, float z);
+  INLINE void d_setSmHpr(float h, float p, float r);
+  INLINE void d_setSmXYH(float x, float y, float h);
+  INLINE void d_setSmXYZH(float x, float y, float z, float h);
+  INLINE void d_setSmPosHpr(float x, float y, float z, float h, float p, float r);
+  INLINE void d_setSmPosHprE(float x, float y, float z, float h, float p, float r, uint64_t e);
 
   void begin_send_update(DCPacker &packer, const std::string &field_name);
   void finish_send_update(DCPacker &packer);
@@ -78,6 +85,7 @@ private:
     F_new_h     = 0x08,
     F_new_p     = 0x10,
     F_new_r     = 0x20,
+    F_new_e     = 0x40,
   };
 
   NodePath _node_path;
@@ -91,12 +99,11 @@ private:
   PyObject *_clock_delta;
 #endif
 
-  LPoint3 _store_xyz;
-  LVecBase3 _store_hpr;
+  LPoint3f _store_xyz;
+  LVecBase3f _store_hpr;
+  uint64_t _store_e;
+  bool _dirty_e; // set when _store_e has been changed;
   bool _store_stop;
-  // contains most recently sent location info as index 0, index 1 contains
-  // most recently set location info
-  uint64_t _currL[2];
 };
 
 #include "cDistributedSmoothNodeBase.I"

@@ -117,11 +117,6 @@ class GridChild:
                 self.cr.removeTaggedInterest(interestInfo[0])
         self._gridInterests = {}
 
-
-
-
-
-
 class SmoothGridChild(GridChild):
     """
     SmoothNodes have a special requirement in that they need to send
