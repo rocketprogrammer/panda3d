@@ -1,4 +1,4 @@
-from pandac.PandaModules import Vec3, NodePath
+from panda3d.core import Vec3, NodePath
 from .GridChild import GridChild
 
 class CartesianGridBase:
@@ -187,7 +187,6 @@ class CartesianGridBase:
         zoneId = self.getZoneFromXYZ(child.getPos())
         if self.isGridZone(zoneId):
             self.setChildGridCells(child, zoneId)
-            self.manageChild(child)
             return zoneId
         else:
             assert self.notify.warning("Placing object on grid in non-grid zone(%s): %s" % (zoneId, child))
@@ -216,6 +215,12 @@ class CartesianGridBase:
         self.__manageChild(child, setup = True)
         if not self.__managementTask:
             self.startManagementTask()
+
+    def isManagedChild(self, child):
+        """
+        Ask if given child is currently managed by this grid
+        """
+        return child in self.__managedChildren
 
     def ignoreChild(self, child):
         """
@@ -247,6 +252,16 @@ class CartesianGridBase:
             self.__manageChild(child)
         return task._return
 
+    #--------------------------------------------------------------------------
+    # Function:   determine if given child has a valid interest on the given
+    #               grid
+    # Parameters:
+    # Changes:
+    # Returns:
+    #--------------------------------------------------------------------------
+    def validGridInterest(self, child, gridId):
+        return True
+
     def __manageChild(self, child, setup = False):
         assert child, "Must have a non-empty nodepath"
         assert child.getGrid() is self
@@ -255,6 +270,9 @@ class CartesianGridBase:
         gridIds = child.getGridInterestIds()
         for currGridId in gridIds:
             currGrid = getBase().getRepository().doId2do.get(currGridId)
+            if not currGrid:
+                # grid is gone or this client is cleaned up, ignore
+                continue
             adjustGrid = False
             newZoneId = None
             if currGrid is self:
@@ -280,8 +298,27 @@ class CartesianGridBase:
 
                 if currGrid.isGridZone(newZoneId):
                     if currGrid is self:
-                        child.setGridCell(self, newZoneId)
+                        child.setGridCell(self, newZoneId, updateInterest=True)
+                        # have to verify new position? were getting some crashes
+                        # where ncps would be out of range
+                        # TODO: add logging info to determine where object is and
+                        # what state they are in
+                        child.checkPosition()
                         child.sendCurrentPosition()
+                        if not self.validGridInterest(child, currGridId):
+                            # i am on a client and this grid interest is not registered
+                            # with the server so we cannot perform any actual set location
+                            self.notify.warning("skipping setLocation with child %s and grid %s"%(
+                                child,currGridId))
+                            continue
+                        # for debugging...only in QA so we can test disconnect bug,
+                        # can remove if solved
+                        if (config.GetBool('print-interest-debug', 1) and
+                            game.process == 'client' and
+                            launcher.getValue("GAME_ENVIRONMENT", "DEV") in ["QA","DEV"]):
+                            base.cr.printInterestSets()
+                            self.notify.warning("pre-setLocation: interests from child %s are %s"%(
+                                child.doId,child._gridInterests))
                         child.b_setLocation(self.getDoId(), newZoneId)
                     else:
                         # not my parent grid, just update interest
@@ -289,7 +326,7 @@ class CartesianGridBase:
                 else:
                     self.notify.warning(
                         "%s handleChildCellChange %s: not a valid zone (%s) for pos %s" %(
-                        self.doId, child.doId, zoneId, pos))
+                        self.doId, child.doId, newZoneId, child.getPos(currGrid)))
 
     def stopManagementTask(self):
         if self.__managementTask:
@@ -298,3 +335,7 @@ class CartesianGridBase:
 
     def taskName(self, taskString):
         assert False, "Subclasses must define this"
+
+    def forceManagePass(self,child,setup=False):
+        if child in self.__managedChildren:
+            self.__manageChild(child, setup = setup)

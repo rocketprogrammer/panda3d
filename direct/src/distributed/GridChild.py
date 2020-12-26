@@ -20,21 +20,24 @@ class GridChild:
         self.enableGridInterest(False)
 
     @report(types = ['args'], dConfigParam = 'smoothnode')
-    def setGridCell(self, grid, zoneId):
+    def setGridCell(self, grid, zoneId, updateInterest=False):
         if not hasattr(self,'getParent'):
             return
         if grid is None:
             self.__setGridParent(None)
             self.__clearGridInterest()
         else:
+            hadParent = True
             if not self._gridParent:
+                hadParent = False
                 self.__setGridParent(GridParent(self))
 
             # Does the (wrt)ReparentTo() operation
             self._gridParent.setGridCell(grid, zoneId)
 
             # Moves the grid interest along with this child
-            self.updateGridInterest(grid, zoneId)
+            if updateInterest or hadParent == False:
+                self.updateGridInterest(grid, zoneId)
 
     def updateGridInterest(self, grid, zoneId):
         # add additional grid interests (sometimes we want more
@@ -53,10 +56,7 @@ class GridChild:
                 else:
                     self.notify.warning("unknown grid interest %s"%currGridId)
         else:
-            for currGridId, interestInfo in self._gridInterests.items():
-                self.cr.removeTaggedInterest(interestInfo[0])
-            #self.__clearGridInterest()
-            pass
+            self.__clearGridInterest()
 
     def isOnAGrid(self):
         return self._gridParent is not None
@@ -87,6 +87,16 @@ class GridChild:
                 % self.doId)
             return
 
+        # check zoneId
+        if zoneId < 0 or not grid.isValidZone(zoneId):
+            # make sure zoneId is valid
+            self.notify.warning("__setGridInterest: given bad zoneId [%s] [%s] [%s] [%s] [%s]"%(
+                zoneId, grid, self, str(self.getPos(grid)), str(self._gridInterests)))
+            printStack()
+            # try to catch this case in dev
+            assert 0, "Invalid zoneId"
+            return
+
         gridDoId = grid.getDoId()
         existingInterest = self._gridInterests.get(gridDoId)
         if self._gridInterestEnabled:
@@ -101,21 +111,36 @@ class GridChild:
                 self._gridInterests[gridDoId] = [newInterest,zoneId]
         else:
             # indicate we want this grid interest once gridInterestEnabled is True
-            if game.process == 'client':
-                # we only care about interests on the client
-                self._gridInterests[gridDoId] = [None,zoneId]
+            # this is needed on AI so location gets updated as child moves around
+            self._gridInterests[gridDoId] = [None,zoneId]
 
     def getGridInterestIds(self):
-        return list(self._gridInterests.keys())
+        return self._gridInterests.keys()
 
+    def getGridInterestReference(self,gridDoId):
+        return self._gridInterests.get(gridDoId,[None,None])[0]
     def getGridInterestZoneId(self,gridDoId):
         return self._gridInterests.get(gridDoId,[None,None])[1]
 
+    def clearinGridInterest(self):
+        pass
+
     def __clearGridInterest(self):
-        if self._gridInterestEnabled:
-            for currGridId, interestInfo in self._gridInterests.items():
+        #if self._gridInterestEnabled:
+        self.clearinGridInterest()
+        for currGridId, interestInfo in self._gridInterests.items():
+            if interestInfo[0]:
                 self.cr.removeTaggedInterest(interestInfo[0])
         self._gridInterests = {}
+
+    #--------------------------------------------------------------------------
+    # Function:   verify position of child is within any limits
+    # Parameters: none
+    # Changes:    none
+    # Returns:    False if no change made
+    #--------------------------------------------------------------------------
+    def checkPosition(self):
+        return False
 
 class SmoothGridChild(GridChild):
     """
@@ -133,12 +158,23 @@ class SmoothGridChild(GridChild):
                'All GridChild objects must be instances of DistributedSmoothNodeBase'
 
     @report(types = ['args'], dConfigParam = 'smoothnode')
-    def setGridCell(self, grid, zoneId):
-        GridChild.setGridCell(self, grid, zoneId)
+    def setGridCell(self, grid, zoneId, updateInterest=False):
+        GridChild.setGridCell(self, grid, zoneId, updateInterest=updateInterest)
         if grid and self.isGenerated(): # we get our cnode in DistributedSmoothNodeBase.generate()
             self.cnode.setEmbeddedVal(zoneId)
 
     @report(types = ['args'], dConfigParam = 'smoothnode')
+    def updateCurrentZone(self):
+        if self.isOnAGrid():
+            currGrid = self.getGrid()
+            # check actual zone matches zone I have interest in
+            zoneId = currGrid.getZoneFromXYZ(self.getPos(currGrid))
+            existingInterest = self._gridInterests.get(currGrid.doId)
+            if existingInterest and existingInterest[1] != zoneId:
+                # we want to update interest here since actual position
+                # of grid child is now in the new zone
+                self.updateGridInterest(currGrid, zoneId)
+
     def transformTelemetry(self, x, y, z, h, p, r, e):
         # We don't really need to transform telemetry, but
         # we do update our grid cell such that the new
