@@ -74,7 +74,6 @@ BOOUSEINTELCOMPILER = False
 OPENCV_VER_23 = False
 PLATFORM = None
 COPY_PYTHON = True
-NIRAI_MODE = False
 
 PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "GL", "GLES", "GLES2"] + DXVERSIONS + ["TINYDISPLAY", "NVIDIACG", # 3D graphics
@@ -157,7 +156,6 @@ def usage(problem):
     print("  --windows-sdk=X   (specify Windows SDK version, eg. 7.1, 8.1 or 10.  Default is 8.1)")
     print("  --msvc-version=X  (specify Visual C++ version, eg. 10, 11, 12, 14, 14.1, 14.2.  Default is 14)")
     print("  --use-icl         (experimental setting to use an intel compiler instead of MSVC on Windows)")
-    print("  --nirai         (enable Nirai support)")
     print("")
     print("The simplest way to compile panda is to just type:")
     print("")
@@ -171,7 +169,6 @@ def parseopts(args):
     global DEBVERSION,WHLVERSION,RPMRELEASE,GIT_COMMIT
     global STRDXSDKVERSION, WINDOWS_SDK, MSVC_VERSION, BOOUSEINTELCOMPILER
     global COPY_PYTHON
-    global NIRAI_MODE
 
     # Options for which to display a deprecation warning.
     removedopts = [
@@ -187,7 +184,7 @@ def parseopts(args):
         "static","debversion=","rpmrelease=","p3dsuffix=","rtdist-version=",
         "directx-sdk=", "windows-sdk=", "msvc-version=", "clean", "use-icl",
         "universal", "target=", "arch=", "git-commit=", "no-copy-python",
-        "cggl-incdir=", "cggl-libdir=", "nirai"
+        "cggl-incdir=", "cggl-libdir="
         ] + removedopts
 
     anything = 0
@@ -248,7 +245,6 @@ def parseopts(args):
             elif (option=="--use-icl"): BOOUSEINTELCOMPILER = True
             elif (option=="--clean"): clean_build = True
             elif (option=="--no-copy-python"): COPY_PYTHON = False
-            elif (option=="--nirai"): NIRAI_MODE = True
             elif (option[2:] in removedopts or option[2:]+'=' in removedopts):
                 Warn("Ignoring removed option %s" % (option))
             else:
@@ -523,8 +519,6 @@ if GetHost() == 'windows' and GetTarget() == 'windows':
     SdkLocateVisualStudio(MSVC_VERSION)
 else:
     COMPILER = "GCC"
-
-print("Nirai support: %s" % (NIRAI_MODE))
 
 SetupBuildEnvironment(COMPILER)
 
