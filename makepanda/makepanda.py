@@ -3186,7 +3186,7 @@ if not PkgSkip("BULLET"):
 if not PkgSkip("SPEEDTREE"):
     CopyAllHeaders('contrib/src/speedtree')
 
-if (PkgSkip("DNA")==0):
+if not PkgSkip("DNA"):
     CopyAllHeaders('panda/src/toontown')
 
 if not PkgSkip("DIRECT"):
