@@ -11,6 +11,7 @@ from panda3d.core import *
 from .MsgTypes import *
 from direct.showbase.PythonUtil import *
 from direct.showbase import DirectObject
+from direct.showbase.MessengerGlobal import messenger
 from .PyDatagram import PyDatagram
 from direct.directnotify.DirectNotifyGlobal import directNotify
 import types
@@ -374,7 +375,7 @@ class DoInterestManager(DirectObject.DirectObject):
             return
         autoInterests = obj.getAutoInterests()
         obj._autoInterestHandle = None
-        if not len(autoInterests):
+        if len(autoInterests) == 0:
             return
         obj._autoInterestHandle = self.addAutoInterest(obj.doId, autoInterests, '%s-autoInterest' % obj.__class__.__name__)
     def closeAutoInterests(self, obj):
@@ -660,7 +661,8 @@ if __debug__:
                 if failed:
                     self.stream.write("failures=%d" % failed)
                 if errored:
-                    if failed: self.stream.write(", ")
+                    if failed:
+                        self.stream.write(", ")
                     self.stream.write("errors=%d" % errored)
                 self.stream.writeln(")")
             else:
