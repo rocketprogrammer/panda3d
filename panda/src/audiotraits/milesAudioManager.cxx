@@ -916,6 +916,8 @@ load(const Filename &file_name) {
     sd->_file_type =
       AIL_file_type(&sd->_raw_data[0], sd->_raw_data.size());
 
+	audio_debug("AIL_file_type: " << sd->_file_type);
+
     if (sd->_file_type == AILFILETYPE_MIDI) {
       // A standard MIDI file.  We have to convert this to XMIDI for Miles.
       void *xmi;
@@ -940,8 +942,8 @@ load(const Filename &file_name) {
 
     bool expand_to_wav = false;
 
-    if (sd->_file_type != AILFILETYPE_MPEG_L3_AUDIO) {
-      audio_debug(sd->_basename << " is not an mp3 file.");
+    if (sd->_file_type != AILFILETYPE_MPEG_L3_AUDIO && sd->_file_type != AILFILETYPE_OGG_VORBIS) {
+      audio_debug(sd->_basename << " is not an mp3 file or ogg vorbis file.");
     } else if ((int)sd->_raw_data.size() >= miles_audio_expand_mp3_threshold) {
       audio_debug(sd->_basename << " is too large to expand in-memory.");
     } else {

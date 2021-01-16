@@ -410,7 +410,14 @@ get_speaker_level(int index) {
 
   if(_sample != 0) {
     int numLevels;
-    float *levels = AIL_sample_channel_levels(_sample, &numLevels);
+	MSS_SPEAKER sources[] = { MSS_SPEAKER_FRONT_LEFT, MSS_SPEAKER_FRONT_RIGHT, MSS_SPEAKER_FRONT_CENTER,
+		MSS_SPEAKER_LOW_FREQUENCY, MSS_SPEAKER_BACK_LEFT, MSS_SPEAKER_BACK_RIGHT, MSS_SPEAKER_FRONT_LEFT_OF_CENTER,
+		MSS_SPEAKER_FRONT_RIGHT_OF_CENTER, MSS_SPEAKER_BACK_CENTER };
+	MSS_SPEAKER dests[] = { MSS_SPEAKER_FRONT_LEFT, MSS_SPEAKER_FRONT_RIGHT, MSS_SPEAKER_FRONT_CENTER,
+		MSS_SPEAKER_LOW_FREQUENCY, MSS_SPEAKER_BACK_LEFT, MSS_SPEAKER_BACK_RIGHT, MSS_SPEAKER_FRONT_LEFT_OF_CENTER,
+		MSS_SPEAKER_FRONT_RIGHT_OF_CENTER, MSS_SPEAKER_BACK_CENTER };
+	float levels[9] = { };
+    AIL_sample_channel_levels(_sample, sources, dests, levels, numLevels);
 
     if(index < numLevels) {
       return (PN_stdfloat)levels[index];
@@ -451,28 +458,34 @@ set_speaker_levels(PN_stdfloat level1, PN_stdfloat level2, PN_stdfloat level3, P
   audio_debug("MilesAudioSample::set_speaker_levels()");
 
   if(_sample != 0) {
+	MSS_SPEAKER sources[] = { MSS_SPEAKER_FRONT_LEFT, MSS_SPEAKER_FRONT_RIGHT, MSS_SPEAKER_FRONT_CENTER,
+		MSS_SPEAKER_LOW_FREQUENCY, MSS_SPEAKER_BACK_LEFT, MSS_SPEAKER_BACK_RIGHT, MSS_SPEAKER_FRONT_LEFT_OF_CENTER,
+	    MSS_SPEAKER_FRONT_RIGHT_OF_CENTER, MSS_SPEAKER_BACK_CENTER };
+	MSS_SPEAKER dests[] = { MSS_SPEAKER_FRONT_LEFT, MSS_SPEAKER_FRONT_RIGHT, MSS_SPEAKER_FRONT_CENTER,
+		MSS_SPEAKER_LOW_FREQUENCY, MSS_SPEAKER_BACK_LEFT, MSS_SPEAKER_BACK_RIGHT, MSS_SPEAKER_FRONT_LEFT_OF_CENTER,
+		MSS_SPEAKER_FRONT_RIGHT_OF_CENTER, MSS_SPEAKER_BACK_CENTER };
     float levels[9] = {level1, level2, level3, level4, level5, level6, level7, level8, level9};
 
     if((level1 < 0.0) || (level1 > 1.0)) {
       audio_error("No valid levels specified in MilesAudioSample::set_speaker_levels().");
     } else if((level2 < 0.0) || (level2 > 1.0)) {
-      AIL_set_sample_channel_levels(_sample, levels, 1);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 1);
     } else if((level3 < 0.0) || (level3 > 1.0)) {
-      AIL_set_sample_channel_levels(_sample, levels, 2);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 2);
     } else if((level4 < 0.0) || (level4 > 1.0)) {
-      AIL_set_sample_channel_levels(_sample, levels, 3);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 3);
     } else if((level5 < 0.0) || (level5 > 1.0)) {
-      AIL_set_sample_channel_levels(_sample, levels, 4);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 4);
     } else if((level6 < 0.0) || (level6 > 1.0)) {
-      AIL_set_sample_channel_levels(_sample, levels, 5);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 5);
     } else if((level7 < 0.0) || (level7 > 1.0)) {
-      AIL_set_sample_channel_levels(_sample, levels, 6);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 6);
     } else if((level8 < 0.0) || (level8 > 1.0)) {
-      AIL_set_sample_channel_levels(_sample, levels, 7);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 7);
     } else if((level9 < 0.0) || (level9 > 1.0)) {
-      AIL_set_sample_channel_levels(_sample, levels, 8);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 8);
     } else {
-      AIL_set_sample_channel_levels(_sample, levels, 9);
+      AIL_set_sample_channel_levels(_sample, sources, dests, levels, 9);
     }
   } else {
     audio_warning("Warning: MilesAudioSample::set_speaker_levels only works for sounds that are currently playing");
