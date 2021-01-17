@@ -79,7 +79,7 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "GL", "GLES", "GLES2"] + DXVERSIONS + ["TINYDISPLAY", "NVIDIACG", # 3D graphics
   "EGL",                                               # OpenGL (ES) integration
   "EIGEN",                                             # Linear algebra acceleration
-  "OPENAL", "FMODEX", "MILES",                         # Audio playback
+  "OPENAL", "FMODEX",                                  # Audio playback
   "VORBIS", "OPUS", "FFMPEG", "SWSCALE", "SWRESAMPLE", # Audio decoding
   "ODE", "BULLET", "PANDAPHYSICS",                     # Physics
   "SPEEDTREE",                                         # SpeedTree
@@ -696,7 +696,6 @@ if (COMPILER == "MSVC"):
             LibName("FMODEX",   GetThirdpartyDir() + "fmodex/lib/fmodex64_vc.lib")
         else:
             LibName("FMODEX",   GetThirdpartyDir() + "fmodex/lib/fmodex_vc.lib")
-    if (PkgSkip("MILES")==0): LibName("MILES", GetThirdpartyDir() + "miles/lib/mss32.lib")
     if (PkgSkip("VORBIS")==0):
         for lib in ('ogg', 'vorbis', 'vorbisfile'):
             path = GetThirdpartyDir() + "vorbis/lib/lib{0}_static.lib".format(lib)
@@ -2353,7 +2352,6 @@ DTOOL_CONFIG=[
     ("HAVE_OPENAL_FRAMEWORK",          'UNDEF',                  'UNDEF'),
     ("USE_TAU",                        'UNDEF',                  'UNDEF'),
     ("PRC_SAVE_DESCRIPTIONS",          '1',                      '1'),
-    ("HAVE_RAD_MSS",                   'UNDEF',                  'UNDEF')
 #    ("_SECURE_SCL",                    '0',                      'UNDEF'),
 #    ("_SECURE_SCL_THROWS",             '0',                      'UNDEF'),
 ]
@@ -2403,9 +2401,6 @@ def WriteConfigSettings():
         dtool_config["HAVE_CG"] = '1'
         dtool_config["HAVE_CGGL"] = '1'
         dtool_config["HAVE_CGDX9"] = '1'
-
-    if (PkgSkip("MILES")==0):
-        dtool_config["HAVE_RAD_MSS"] = '1'
 
     if GetTarget() not in ("linux", "android"):
         dtool_config["HAVE_PROC_SELF_EXE"] = 'UNDEF'
@@ -4330,13 +4325,6 @@ if PkgSkip("OPENAL") == 0:
     TargetAdd('libp3openal_audio.dll', input='openal_audio_openal_audio_composite1.obj')
     TargetAdd('libp3openal_audio.dll', input=COMMON_PANDA_LIBS)
     TargetAdd('libp3openal_audio.dll', opts=['MODULE', 'ADVAPI', 'WINUSER', 'WINMM', 'WINSHELL', 'WINOLE', 'OPENAL'])
-
-if PkgSkip("MILES") == 0:
-  OPTS=['DIR:panda/src/audiotraits', 'BUILDING:MILES_AUDIO',  'MILES']
-  TargetAdd('miles_audio_miles_audio_composite1.obj', opts=OPTS, input='miles_audio_composite1.cxx')
-  TargetAdd('libp3miles_audio.dll', input='miles_audio_miles_audio_composite1.obj')
-  TargetAdd('libp3miles_audio.dll', input=COMMON_PANDA_LIBS)
-  TargetAdd('libp3miles_audio.dll', opts=['MODULE', 'ADVAPI', 'WINUSER', 'WINMM', 'WINSHELL', 'WINOLE', 'MILES'])
 
 #
 # DIRECTORY: panda/src/downloadertools/
