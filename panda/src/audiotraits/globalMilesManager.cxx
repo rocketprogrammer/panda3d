@@ -217,7 +217,7 @@ force_midi_reset() {
   audio_debug("MilesAudioManager::force_midi_reset");
 
 #ifdef WIN32
-  if ((_midi_driver!=nullptr) && (_midi_driver->deviceid != MIDI_nullptr_DRIVER) && (_midi_driver->hMidiOut != nullptr)) {
+  if ((_midi_driver!=nullptr) && (_midi_driver->deviceid != MIDI_NULL_DRIVER) && (_midi_driver->hMidiOut != nullptr)) {
     audio_debug("MilesAudioManager::calling midiOutReset");
     midiOutReset(_midi_driver->hMidiOut);
   }
