@@ -2,7 +2,9 @@
 
 from direct.distributed import DistributedObject
 from direct.directnotify import DirectNotifyGlobal
+from direct.showbase.MessengerGlobal import messenger
 from . import LargeBlobSenderConsts
+
 
 class DistributedLargeBlobSender(DistributedObject.DistributedObject):
     """DistributedLargeBlobSender: for sending large chunks of data through
@@ -34,7 +36,7 @@ class DistributedLargeBlobSender(DistributedObject.DistributedObject):
             return
 
         if not self.useDisk:
-            self.blob = ''
+            self.blob = b''
 
     def setChunk(self, chunk):
         DistributedLargeBlobSender.notify.debug('setChunk')
@@ -56,7 +58,7 @@ class DistributedLargeBlobSender(DistributedObject.DistributedObject):
         except OSError:
             DistributedLargeBlobSender.notify.error(
                 'could not access %s' % bPath)
-        f = file(filename, 'rb')
+        f = open(filename, 'rb')
         self.blob = f.read()
         f.close()
         os.unlink(filename)
