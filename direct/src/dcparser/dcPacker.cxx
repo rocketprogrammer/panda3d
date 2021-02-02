@@ -19,6 +19,7 @@
 #include "dcSwitchParameter.h"
 #include "dcClass.h"
 
+<<<<<<< HEAD
 using std::istream;
 using std::istringstream;
 using std::ostream;
@@ -26,6 +27,9 @@ using std::ostringstream;
 using std::string;
 
 DCPacker::StackElement *DCPacker::StackElement::_deleted_chain = nullptr;
+=======
+DCPacker::StackElement *DCPacker::StackElement::_deleted_chain = NULL;
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
 int DCPacker::StackElement::_num_ever_allocated = 0;
 
 /**

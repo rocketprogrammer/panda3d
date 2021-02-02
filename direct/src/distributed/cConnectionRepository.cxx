@@ -25,8 +25,16 @@
 #include "pStatTimer.h"
 
 #ifdef HAVE_PYTHON
+<<<<<<< HEAD
 #include "py_panda.h"
 #include "dcClass_ext.h"
+=======
+#ifndef CPPPARSER
+#include "py_panda.h"  
+IMPORT_THIS struct   Dtool_PyTypedObject Dtool_DatagramIterator;
+IMPORT_THIS struct   Dtool_PyTypedObject Dtool_DCClass;
+#endif
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
 #endif
 
 using std::endl;
@@ -38,14 +46,27 @@ const string CConnectionRepository::_overflow_event_name = "CRDatagramOverflow";
 PStatCollector CConnectionRepository::_update_pcollector("App:Show code:readerPollTask:Update");
 #endif  // CPPPARSER
 
+<<<<<<< HEAD
 /**
  *
  */
+=======
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::Constructor
+//       Access: Published
+//  Description: 
+////////////////////////////////////////////////////////////////////
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
 CConnectionRepository::
 CConnectionRepository(bool has_owner_view, bool threaded_net) :
   _lock("CConnectionRepository::_lock"),
 #ifdef HAVE_PYTHON
+<<<<<<< HEAD
   _python_repository(nullptr),
+=======
+  _python_repository(NULL),
+  _python_ai_datagramiterator(NULL),
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
 #endif
 #ifdef HAVE_OPENSSL
   _http_conn(nullptr),
@@ -78,11 +99,26 @@ CConnectionRepository(bool has_owner_view, bool threaded_net) :
   }
 #endif
   _tcp_header_size = tcp_header_size;
+
+#ifdef HAVE_PYTHON
+  PyObject *  PyDitterator = DTool_CreatePyInstance(&_di,Dtool_DatagramIterator,false,false);
+  if(PyDitterator != NULL)
+      _python_ai_datagramiterator = Py_BuildValue("(O)",PyDitterator);
+#endif
+
 }
 
+<<<<<<< HEAD
 /**
  *
  */
+=======
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::Destructor
+//       Access: Published
+//  Description: 
+////////////////////////////////////////////////////////////////////
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
 CConnectionRepository::
 ~CConnectionRepository() {
   disconnect();
@@ -157,7 +193,7 @@ try_connect_net(const URLSpec &url) {
 
   disconnect();
 
-  _net_conn =
+  _net_conn = 
     _qcm.open_TCP_client_connection(url.get_server(), url.get_port(),
                                     game_server_timeout_ms);
 
@@ -278,7 +314,7 @@ check_datagram() {
         _msg_channels.push_back(schan);
       }
       _msg_sender = _di.get_uint64();
-
+      
 #ifdef HAVE_PYTHON
       // For now, we need to stuff this field onto the Python structure, to
       // support legacy code that expects to find it there.
@@ -323,7 +359,7 @@ check_datagram() {
       }
       break;
 #endif  // HAVE_PYTHON
-
+      
     default:
       // Some unknown message; let the caller deal with it.
       return true;
@@ -334,12 +370,28 @@ check_datagram() {
   return false;
 }
 
+<<<<<<< HEAD
 /**
  * Returns true if the connection to the gameserver is established and still
  * good, false if we are not connected.  A false value means either (a) we
  * never successfully connected, (b) we explicitly called disconnect(), or (c)
  * we were connected, but the connection was spontaneously lost.
  */
+=======
+
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::is_connected
+//       Access: Published
+//  Description: Returns true if the connection to the gameserver is
+//               established and still good, false if we are not
+//               connected.  A false value means either (a) we never
+//               successfully connected, (b) we explicitly called
+//               disconnect(), or (c) we were connected, but the
+//               connection was spontaneously lost.
+////////////////////////////////////////////////////////////////////
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
 bool CConnectionRepository::
 is_connected() {
   ReMutexHolder holder(_lock);
@@ -688,7 +740,11 @@ handle_update_field() {
 
   PStatTimer timer(_update_pcollector);
   unsigned int do_id = _di.get_uint32();
+<<<<<<< HEAD
   if (_python_repository != nullptr)
+=======
+  if (_python_repository != (PyObject *)NULL) 
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
   {
     PyObject *doId2do =
       PyObject_GetAttrString(_python_repository, "doId2do");
@@ -737,9 +793,13 @@ handle_update_field() {
       // get into trouble if it tried to delete the object from the doId2do
       // map.
       Py_INCREF(distobj);
+<<<<<<< HEAD
       invoke_extension(dclass).receive_update(distobj, _di);
+=======
+      dclass->receive_update(distobj, _di); 
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
       Py_DECREF(distobj);
-
+      
       if (PyErr_Occurred()) {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
         PyGILState_Release(gstate);
@@ -753,7 +813,7 @@ handle_update_field() {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
   PyGILState_Release(gstate);
 #endif
-  #endif  // HAVE_PYTHON
+  #endif  // HAVE_PYTHON  
   return true;
 }
 
@@ -821,9 +881,13 @@ handle_update_field_owner() {
         // make a copy of the datagram iterator so that we can use the main
         // iterator for the non-owner update
         DatagramIterator _odi(_di);
+<<<<<<< HEAD
         invoke_extension(dclass).receive_update(distobjOV, _odi);
+=======
+        dclass->receive_update(distobjOV, _odi); 
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
         Py_DECREF(distobjOV);
-
+      
         if (PyErr_Occurred()) {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
           PyGILState_Release(gstate);
@@ -862,9 +926,13 @@ handle_update_field_owner() {
         // get into trouble if it tried to delete the object from the doId2do
         // map.
         Py_INCREF(distobj);
+<<<<<<< HEAD
         invoke_extension(dclass).receive_update(distobj, _di);
+=======
+        dclass->receive_update(distobj, _di); 
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
         Py_DECREF(distobj);
-
+      
         if (PyErr_Occurred()) {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
           PyGILState_Release(gstate);
@@ -878,7 +946,7 @@ handle_update_field_owner() {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
   PyGILState_Release(gstate);
 #endif
-#endif  // HAVE_PYTHON
+#endif  // HAVE_PYTHON  
 
   return true;
 }
@@ -888,17 +956,25 @@ handle_update_field_owner() {
  * description on the indicated output stream.
  */
 void CConnectionRepository::
+<<<<<<< HEAD
 describe_message(std::ostream &out, const string &prefix,
                  const Datagram &dg) const {
   DCPacker packer;
 
   packer.set_unpack_data((const char *)dg.get_data(), dg.get_length(), false);
+=======
+describe_message(ostream &out, const string &prefix, 
+                 const Datagram &dg) const {
+  DCPacker packer;
+  
+  packer.set_unpack_data(dg.get_message());
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
   CHANNEL_TYPE do_id;
   int msg_type;
   bool is_update = false;
   string full_prefix = "CR::" + prefix;
 
-  if (!_client_datagram)
+  if (!_client_datagram) 
   {
     unsigned char mcnt = packer.raw_unpack_uint8();
     for( ;mcnt > 0; mcnt--)
@@ -906,8 +982,13 @@ describe_message(std::ostream &out, const string &prefix,
 
     packer.RAW_UNPACK_CHANNEL();  // msg_sender
     msg_type = packer.raw_unpack_uint16();
+<<<<<<< HEAD
     is_update = (msg_type == STATESERVER_OBJECT_SET_FIELD);
 
+=======
+    is_update = (msg_type == STATESERVER_OBJECT_UPDATE_FIELD);
+    
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
   } else {
     msg_type = packer.raw_unpack_uint16();
     is_update = (msg_type == CLIENT_OBJECT_SET_FIELD);
@@ -985,12 +1066,17 @@ describe_message(std::ostream &out, const string &prefix,
         Py_DECREF(dclass_this);
       }
     }
-    #endif  // HAVE_PYTHON
+    #endif  // HAVE_PYTHON  
 
     int field_id = packer.raw_unpack_uint16();
 
+<<<<<<< HEAD
     if (dclass == nullptr) {
       out << full_prefix << "update for unknown object " << do_id
+=======
+    if (dclass == (DCClass *)NULL) {
+      out << full_prefix << "update for unknown object " << do_id 
+>>>>>>> parent of aec80426a3 (Remove (apparently unused) code that is problematic because it references symbols from the generated bindings)
           << ", field " << field_id << "\n";
 
     } else {
@@ -999,7 +1085,7 @@ describe_message(std::ostream &out, const string &prefix,
       DCField *field = dclass->get_field_by_index(field_id);
       if (field == nullptr) {
         out << "unknown field " << field_id << "\n";
-
+        
       } else {
         out << field->get_name();
         packer.begin_unpack(field);
@@ -1010,3 +1096,148 @@ describe_message(std::ostream &out, const string &prefix,
     }
   }
 }
+
+
+
+
+#ifdef HAVE_PYTHON
+#ifdef WANT_NATIVE_NET
+
+bool CConnectionRepository::network_based_reader_and_yielder(PyObject *PycallBackFunction,ClockObject &clock, float returnBy)
+{
+  ReMutexHolder holder(_lock);
+    while(is_connected())
+    {        
+        check_datagram_ai(PycallBackFunction);
+        if(is_connected())
+            _bdc.Flush();
+        float currentTime = clock.get_real_time();
+        float dif_time = returnBy - currentTime;
+        if(dif_time <= 0.001) // to avoi over runs..
+            break;
+        if(is_connected())
+            _bdc.WaitForNetworkReadEvent(dif_time);
+    }
+    return false;
+}
+
+bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction)
+{
+  ReMutexHolder holder(_lock);
+    // these could be static .. not 
+  PyObject *doId2do = NULL; 
+  float startTime =0;
+  float endTime = 0;
+  // this seems weird...here
+  _bdc.Flush();
+  while (_bdc.GetMessage(_dg))
+  { 
+      if (get_verbose()) 
+          describe_message(nout, "RECV", _dg);
+
+      if (_time_warning > 0) 
+        startTime = ClockObject::get_global_clock()->get_real_time();
+
+      // Start breaking apart the datagram.
+      _di.assign(_dg);
+      unsigned char  wc_cnt = _di.get_uint8();
+      _msg_channels.clear();
+      for(unsigned char lp1 = 0; lp1 < wc_cnt; lp1++)
+          _msg_channels.push_back(_di.get_uint64());
+
+      _msg_sender = _di.get_uint64();
+      _msg_type = _di.get_uint16();
+
+      if( _msg_type == STATESERVER_OBJECT_UPDATE_FIELD)
+      {
+          if(doId2do == NULL)
+          {
+              // this is my attemp to take it out of the inner loop  RHH
+              doId2do =PyObject_GetAttrString(_python_repository, "doId2do");
+              nassertr(doId2do != NULL, false);
+          }
+
+          if (!handle_update_field_ai(doId2do)) 
+          {
+              Py_XDECREF(doId2do);
+              if (_time_warning > 0) {
+                endTime = ClockObject::get_global_clock()->get_real_time(); 
+                if ( _time_warning < (endTime - startTime)) {
+                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+                  _dg.dump_hex(nout,2);
+                }
+              }
+              return false; 
+          }
+      }
+      else
+      {
+          PyObject * result = PyEval_CallObject(PycallBackFunction, _python_ai_datagramiterator);
+          if (PyErr_Occurred()) 
+          {        
+              Py_XDECREF(doId2do);
+              if (_time_warning > 0) {
+                endTime = ClockObject::get_global_clock()->get_real_time(); 
+                if ( _time_warning < (endTime - startTime)) {
+                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+                  _dg.dump_hex(nout,2);                
+                }
+              }
+              return true;
+          }
+      }
+
+      if (_time_warning > 0) {
+        endTime = ClockObject::get_global_clock()->get_real_time(); 
+        if ( _time_warning < (endTime - startTime)) {
+          nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << "secs to process\n";
+          _dg.dump_hex(nout,2);   
+        }
+      }
+             
+  }
+
+
+  Py_XDECREF(doId2do);
+  return false;
+}
+
+#endif  // #ifdef WANT_NATIVE_NET
+#endif  // #ifdef HAVE_PYTHON
+
+
+#ifdef HAVE_PYTHON
+#ifdef WANT_NATIVE_NET
+
+
+bool CConnectionRepository::handle_update_field_ai(PyObject *doId2do) 
+{
+  PStatTimer timer(_update_pcollector);
+  unsigned int do_id = _di.get_uint32();
+ 
+  PyObject *doId = PyLong_FromUnsignedLong(do_id);
+  PyObject *distobj = PyDict_GetItem(doId2do, doId);
+  Py_DECREF(doId);
+
+  if (distobj != NULL)
+  {
+      PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
+      nassertr(dclass_obj != NULL, false);
+
+      DCClass *dclass = NULL;
+      DTOOL_Call_ExtractThisPointerForType(dclass_obj, &Dtool_DCClass, (void **) &dclass);
+      if(dclass == NULL)
+          return false;
+
+      Py_INCREF(distobj);
+      dclass->receive_update(distobj, _di); 
+      Py_DECREF(distobj);
+
+      if (PyErr_Occurred()) 
+          return false;
+  }
+  return true;
+}
+
+#endif  // #ifdef WANT_NATIVE_NET
+#endif  // #ifdef HAVE_PYTHON
