@@ -5026,6 +5026,7 @@ if not PkgSkip("DIRECT"):
     IGATEFILES=GetDirectoryContents('direct/src/interval', ["*.h", "*_composite*.cxx"])
     TargetAdd('libp3interval.in', opts=OPTS, input=IGATEFILES)
     TargetAdd('libp3interval.in', opts=['IMOD:panda3d.direct', 'ILIB:libp3interval', 'SRCDIR:direct/src/interval'])
+    PyTargetAdd('p3interval_cInterval_ext.obj', opts=OPTS, input='cInterval_ext.cxx')
 
 #
 # DIRECTORY: direct/src/showbase/
@@ -5089,6 +5090,7 @@ if not PkgSkip("DIRECT"):
     PyTargetAdd('direct.pyd', input='libp3showbase_igate.obj')
     PyTargetAdd('direct.pyd', input='libp3deadrec_igate.obj')
     PyTargetAdd('direct.pyd', input='libp3interval_igate.obj')
+    PyTargetAdd('direct.pyd', input='p3interval_cInterval_ext.obj')
     PyTargetAdd('direct.pyd', input='libp3distributed_igate.obj')
     PyTargetAdd('direct.pyd', input='libp3motiontrail_igate.obj')
 
