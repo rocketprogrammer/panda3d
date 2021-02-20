@@ -3525,6 +3525,17 @@ def bpdbGetEnabled():
 bpdb.setEnabledCallback(bpdbGetEnabled)
 bpdb.setConfigCallback(lambda cfg: ConfigVariableBool('want-bp-%s' % (cfg.lower(),), 0).getValue())
 
+def unicodeUtf8(s):
+    # * -> Unicode UTF-8
+    if type(s) is str:
+        return s
+    else:
+        return str(s, 'utf-8')
+
+def encodedUtf8(s):
+    # * -> 8-bit-encoded UTF-8
+    return unicodeUtf8(s).encode('utf-8').decode()
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
