@@ -1422,8 +1422,9 @@ def CompileCxx(obj,src,opts):
 
 def CompileBison(wobj, wsrc, opts):
     ifile = os.path.basename(wsrc)
-    wdsth = GetOutputDir()+"/include/" + ifile[:-4] + ".h"
-    wdstc = GetOutputDir()+"/tmp/" + ifile + ".cxx"
+    wdsth = GetOutputDir() + "/include/" + ifile[:-4] + ".h"
+    wdsth2 = GetOutputDir() + "/tmp/" + ifile + ".h"
+    wdstc = GetOutputDir() + "/tmp/" + ifile + ".cxx"
     pre = GetValueOption(opts, "BISONPREFIX_")
     bison = GetBison()
     if bison is None:
@@ -1433,6 +1434,7 @@ def CompileBison(wobj, wsrc, opts):
            os.path.isfile(base + '.cxx.prebuilt'):
             CopyFile(wdstc, base + '.cxx.prebuilt')
             CopyFile(wdsth, base + '.h.prebuilt')
+            CopyFile(wdsth2, base + '.h.prebuilt')
         else:
             exit('Could not find bison!')
     else:
