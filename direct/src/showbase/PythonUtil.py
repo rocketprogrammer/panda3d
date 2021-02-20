@@ -22,7 +22,7 @@ __all__ = [
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
     'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
-    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar'
+    'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'ParamObj'
 ]
 
 if __debug__:
@@ -41,6 +41,7 @@ import time
 import bisect
 from HTMLParser import HTMLParser
 import ElementTree as ET
+import unicodedata
 
 __report_indent = 3
 
@@ -2777,6 +2778,25 @@ def recordCreationStack(cls):
     cls.printCreationStackTrace = printCreationStackTrace
     return cls
 
+# like recordCreationStack but stores the stack as a compact stack list-of-strings
+# scales well for memory usage
+def recordCreationStackStr(cls):
+    if not hasattr(cls, '__init__'):
+        raise 'recordCreationStackStr: class \'%s\' must define __init__' % cls.__name__
+    cls.__moved_init__ = cls.__init__
+    def __recordCreationStackStr_init__(self, *args, **kArgs):
+        # store as list of strings to conserve memory
+        self._creationStackTraceStrLst = StackTrace(start=1).compact().split(',')
+        return self.__moved_init__(*args, **kArgs)
+    def getCreationStackTraceCompactStr(self):
+        return string.join(self._creationStackTraceStrLst, ',')
+    def printCreationStackTrace(self):
+        print string.join(self._creationStackTraceStrLst, ',')
+    cls.__init__ = __recordCreationStackStr_init__
+    cls.getCreationStackTraceCompactStr = getCreationStackTraceCompactStr
+    cls.printCreationStackTrace = printCreationStackTrace
+    return cls
+
 def recordFunctorCreationStacks():
     global Functor
     from direct.showbase import DConfig
@@ -3646,6 +3666,24 @@ if __debug__:
     assert s.c[0].text == 'testComment'
     del s
 
+def u2ascii(s):
+    # Unicode -> ASCII
+    if type(s) is types.UnicodeType:
+        return unicodedata.normalize('NFKD', s).encode('ascii', 'backslashreplace')
+    else:
+        return str(s)
+
+def unicodeUtf8(s):
+    # * -> Unicode UTF-8
+    if type(s) is types.UnicodeType:
+        return s
+    else:
+        return unicode(str(s), 'utf-8')
+
+def encodedUtf8(s):
+    # * -> 8-bit-encoded UTF-8
+    return unicodeUtf8(s).encode('utf-8')
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3703,3 +3741,6 @@ builtins.DestructiveScratchPad = DestructiveScratchPad
 builtins.clampScalar = clampScalar
 builtins.isClient = isClient
 builtins.triglerp = triglerp
+builtins.u2ascii = u2ascii
+builtins.unicodeUtf8 = unicodeUtf8
+builtins.encodedUtf8 = encodedUtf8

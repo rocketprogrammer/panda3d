@@ -1,6 +1,7 @@
 """MsgTypes module: contains distributed object message types"""
 
 from direct.showbase.PythonUtil import invertDictLossless
+from DisneyMessageTypes import *
 
 MsgName2Id = {
     # 2 new params: passwd, char bool 0/1 1 = new account
