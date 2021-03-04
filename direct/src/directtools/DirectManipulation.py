@@ -1068,7 +1068,7 @@ class ObjectHandles(NodePath, DirectObject):
         # Load up object handles model and assign it to self
         self.assign(base.loader.loadModel('models/misc/objectHandles'))
         self.setName(name)
-        self.scalingNode = self.getChild(0)
+        self.scalingNode = NodePath(self)
         self.scalingNode.setName('ohScalingNode')
         self.ohScalingFactor = 1.0
         self.directScalingFactor = 1.0
@@ -1370,7 +1370,7 @@ class ObjectHandles(NodePath, DirectObject):
         self.setScalingFactor(1)
 
     def setScalingFactor(self, scaleFactor):
-        self.ohScalingFactor = self.ohScalingFactor * scaleFactor
+        self.ohScalingFactor = scaleFactor
         self.scalingNode.setScale(self.ohScalingFactor * self.directScalingFactor)
 
     def getScalingFactor(self):

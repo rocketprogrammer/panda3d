@@ -5,6 +5,7 @@ from direct.task.TaskManagerGlobal import taskMgr
 from direct.task import Task
 from .LandingPage import LandingPage
 import xml.etree.ElementTree as ET
+from direct.showbase.PythonUtil import encodedUtf8
 
 notify = directNotify.newCategory('WebRequestDispatcher')
 
@@ -13,7 +14,7 @@ class WebRequest(object):
     Pointer to a single web request (maps to an open HTTP socket).
     An instance of this class maps to a single client waiting for a response.
 
-    connection is an instance of libdirect.HttpRequest
+    connection is an instance of libhttp.HttpRequest
     """
     def __init__(self,connection):
         self.connection = connection
@@ -176,7 +177,7 @@ class WebRequestDispatcher(object):
             self.notify.info("%s - %s - %s - 200" % (req.getSourceAddress(), uri, args))
 
         if returnsResponse:
-            result = apply(callable,(),args)
+            result = callable(*(), **args)
             if autoSkin:
                 self._headTag = ET.Element('head')
                 self._bodyTag = ET.Element('body')
@@ -187,7 +188,7 @@ class WebRequestDispatcher(object):
                 req.respond(result)
         else:
             args["replyTo"] = SkinningReplyTo(req, self, uri, autoSkin)
-            apply(callable,(),args)
+            callable(*(), **args)
 
     def poll(self):
         """

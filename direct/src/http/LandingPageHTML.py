@@ -1,6 +1,6 @@
 # -- Text content for the landing page.  You should change these for yours! --
 
-from direct.showbase import ElementTree as ET
+import xml.etree.ElementTree as ET
 
 title = "Landing Page"
 defaultTitle = title
@@ -376,7 +376,7 @@ def getURITable(title,uriList,uriToHandler):
     return output
 
 def getTabs(menu,activeTab):
-    tabList = menu.keys()
+    tabList = list(menu.keys())
     if "Main" in tabList:
         tabList.remove("Main")
     if "Services" in tabList:
@@ -412,7 +412,7 @@ def getTabs(menu,activeTab):
     return s
 
 def getTabTags(menu,activeTab):
-    tabList = menu.keys()
+    tabList = list(menu.keys())
     if "Main" in tabList:
         tabList.remove("Main")
     if "Services" in tabList:
