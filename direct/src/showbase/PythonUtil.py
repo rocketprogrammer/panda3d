@@ -2203,7 +2203,7 @@ def getRepository():
         return simbase.air
 
 exceptionLoggedNotify = None
-if __debug__:
+if __debug__ or isBuiltClient():
     def exceptionLogged(append=True):
         """decorator that outputs the function name and all arguments
         if an exception passes back through the stack frame
