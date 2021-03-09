@@ -1,5 +1,13 @@
 """Contains miscellaneous utility functions and classes."""
 
+def isBuiltClient():
+    try:
+        import niraidata
+        return True
+    except:
+        return True
+
+
 __all__ = [
 
     'indent', 'doc', 'adjust', 'difference', 'intersection', 'union',
@@ -25,7 +33,7 @@ __all__ = [
     'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'ParamObj'
 ]
 
-if __debug__:
+if __debug__ or isBuiltClient():
     __all__ += ['StackTrace', 'traceFunctionCall', 'traceParentCall',
                 'printThisCall', 'stackEntryInfo', 'lineInfo', 'callerInfo',
                 'lineTag', 'profileFunc', 'profiled', 'startProfile',
@@ -180,7 +188,6 @@ class Queue:
     def __len__(self):
         return len(self.__list)
 
-
 def indent(stream, numIndents, str):
     """
     Write str to stream with numIndents in front of it
@@ -188,8 +195,7 @@ def indent(stream, numIndents, str):
     # To match emacs, instead of a tab character we will use 4 spaces
     stream.write('    ' * numIndents + str)
 
-
-if __debug__:
+if __debug__ or isBuiltClient():
     import traceback
     import marshal
 
@@ -607,7 +613,7 @@ class StdoutPassthrough(StdoutCapture):
         self._oldStdout.write(string)
 
 # constant profile defaults
-if __debug__:
+if __debug__ or isNiraiClient:
     from io import StringIO
 
     PyUtilProfileDefaultFilename = 'profiledata'
@@ -1026,7 +1032,7 @@ def solveQuadratic(a, b, c):
         root2 = ((-b) + sqrtD) / twoA
         return [root1, root2]
 
-if __debug__:
+if __debug__ or isNiraiClient():
     def stackEntryInfo(depth=0, baseFileName=1):
         """
         returns the sourcefilename, line number, and function name of
@@ -3693,7 +3699,7 @@ builtins.SerialMaskedGen = SerialMaskedGen
 builtins.ScratchPad = ScratchPad
 builtins.uniqueName = uniqueName
 builtins.serialNum = serialNum
-if __debug__:
+if __debug__ or isBuiltClient():
     builtins.profiled = profiled
     builtins.exceptionLogged = exceptionLogged
 builtins.itype = itype
@@ -3703,7 +3709,7 @@ builtins.clamp = clamp
 builtins.lerp = lerp
 builtins.makeList = makeList
 builtins.makeTuple = makeTuple
-if __debug__:
+if __debug__ or isBuiltClient():
     builtins.printStack = printStack
     builtins.printReverseStack = printReverseStack
     builtins.printVerboseStack = printVerboseStack
@@ -3720,7 +3726,7 @@ builtins.fastRepr = fastRepr
 builtins.nullGen = nullGen
 builtins.flywheel = flywheel
 builtins.loopGen = loopGen
-if __debug__:
+if __debug__ or isBuiltClient():
     builtins.StackTrace = StackTrace
 builtins.report = report
 builtins.pstatcollect = pstatcollect
