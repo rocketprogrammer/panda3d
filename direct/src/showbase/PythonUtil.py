@@ -646,9 +646,7 @@ if __debug__:
             def _profiled(*args, **kArgs):
                 name = '(%s) %s from %s' % (category, f.__name__, f.__module__)
 
-                # showbase might not be loaded yet, so don't use
-                # base.config.  Instead, query the ConfigVariableBool.
-                if (category is None) or ConfigVariableBool('want-profile-%s' % category, 0).getValue():
+                if category is None or ConfigVariableBool('want-profile-%s' % category, False).value:
                     return profileFunc(Functor(f, *args, **kArgs), name, terse)
                 else:
                     return f(*args, **kArgs)
@@ -2005,7 +2003,7 @@ def report(types = [], prefix = '', xform = None, notifyFunc = None, dConfigPara
         return f
 
     try:
-        if not (__dev__ or config.GetBool('force-reports', 0)):
+        if not __dev__ and not ConfigVariableBool('force-reports', False):
             return decorator
 
         # determine whether we should use the decorator
@@ -2021,7 +2019,7 @@ def report(types = [], prefix = '', xform = None, notifyFunc = None, dConfigPara
                 dConfigParams = dConfigParam
 
             dConfigParamList = [param for param in dConfigParams \
-                                if config.GetBool('want-%s-report' % (param,), 0)]
+                                if ConfigVariableBool('want-%s-report' % (param,), False)]
 
             doPrint = bool(dConfigParamList)
 
@@ -2310,12 +2308,12 @@ if __debug__:
     def quickProfile(name="unnamed"):
         import pstats
         def profileDecorator(f):
-            if not config.GetBool("use-profiler", False):
+            if not ConfigVariableBool("use-profiler", False):
                 return f
             def _profiled(*args, **kArgs):
                 # must do this in here because we don't have base/simbase
                 # at the time that PythonUtil is loaded
-                if not config.GetBool("profile-debug", False):
+                if not ConfigVariableBool("profile-debug", False):
                     #dumb timings
                     st=globalClock.getRealTime()
                     f(*args,**kArgs)
