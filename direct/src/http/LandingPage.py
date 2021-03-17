@@ -1,9 +1,10 @@
 import os
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from panda3d.core import VirtualFileSystem, Filename, DSearchPath
-from direct.showbase import ElementTree as ET
+import xml.etree.ElementTree as ET
 from . import LandingPageHTML
-from io import StringIO
+from io import BytesIO
+from direct.showbase.PythonUtil import unicodeUtf8
 
 class LandingPage:
     notify  = directNotify.newCategory("LandingPage")
@@ -58,7 +59,7 @@ class LandingPage:
         headTag.append(ET.Comment(''))
         bodyTag.append(ET.Comment(''))
 
-        fileStr = StringIO()
+        fileStr = BytesIO()
         ET.ElementTree(headTag).write(fileStr, encoding='utf-8')
         headTagStr = unicodeUtf8(fileStr.getvalue())
         # remove the tag closer
@@ -70,19 +71,19 @@ class LandingPage:
         landing = ET.Element('body')
         LandingPageHTML.addBodyHeaderAndContent(landing, titleStr, self.getMenuTags(activeTab))
 
-        fileStr = StringIO()
+        fileStr = BytesIO()
         ET.ElementTree(landing).write(fileStr, encoding='utf-8')
         landingStr = unicodeUtf8(fileStr.getvalue())
         # remove <body>
         landingStr = landingStr[landingStr.index('>')+1:]
         # remove tag closers
-        for i in xrange(3):
+        for i in range(3):
             # </body>
             # contents </div>
             # </center>
             landingStr = landingStr[:landingStr.rindex('<')]
 
-        fileStr = StringIO()
+        fileStr = BytesIO()
         ET.ElementTree(bodyTag).write(fileStr, encoding='utf-8')
         bodyTagStr = unicodeUtf8(fileStr.getvalue())
         # extract <body>
@@ -103,7 +104,7 @@ class LandingPage:
     def getServicesPage(self, uriToHandler):
         output = ""
 
-        uriList = uriToHandler.keys()
+        uriList = list(uriToHandler.keys())
 
         uriList.sort()
 
