@@ -21,17 +21,10 @@
 
 #include "config_display.h"
 
-#include <android/log.h>
-
-#define LOG_TAG "config_androiddisplay.cxx"
-#define LOG_INFO(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOG_ERROR(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
 Configure(config_androiddisplay);
 NotifyCategoryDef(androiddisplay, "display");
 
 ConfigureFn(config_androiddisplay) {
-  LOG_INFO("34: config_androiddisplay.cxx\n");
   init_libandroiddisplay();
 }
 
@@ -44,8 +37,6 @@ ConfigureFn(config_androiddisplay) {
 void
 init_libandroiddisplay() {
   static bool initialized = false;
-  LOG_INFO("45: config_androiddisplay.cxx\n");
-
   if (initialized) {
     return;
   }

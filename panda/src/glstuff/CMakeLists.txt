@@ -1,8 +1,5 @@
-if(ANDROID)
-else()
 if(NOT HAVE_GL)
   return()
-endif()
 endif()
 
 set(P3GLSTUFF_HEADERS

@@ -59,10 +59,6 @@ add_subdirectory(src/vrpn)
 add_subdirectory(src/wgldisplay)
 add_subdirectory(src/windisplay)
 add_subdirectory(src/x11display)
-if (ANDROID AND NOT HAVE_EGL)
-    add_subdirectory(src/androiddisplay)
-endif()
-
 
 # For other components
 # bullet

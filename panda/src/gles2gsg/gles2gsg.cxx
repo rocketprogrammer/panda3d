@@ -17,4 +17,3 @@
 
 #include "gles2gsg.h"
 #include "glstuff_src.cxx"
-

@@ -17,14 +17,6 @@
 
 #include <dlfcn.h>
 
-#include <android/log.h>
-#undef LOG_TAG
-#define LOG_TAG "AndroidGraphicsStateGuardian"
-#define LOG_INFO(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOG_ERROR(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
-
-
 TypeHandle AndroidGraphicsStateGuardian::_type_handle;
 
 /**
@@ -132,17 +124,10 @@ get_properties(FrameBufferProperties &properties,
  * gsg.
  */
 void AndroidGraphicsStateGuardian::
-choose_pixel_format(const FrameBufferProperties &properties, bool need_pbuffer, bool need_pixmap) {
+choose_pixel_format(const FrameBufferProperties &properties,
+                    bool need_pbuffer, bool need_pixmap) {
 
-#if APP
   _egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-#else
-    char* denv;
-    denv= getenv("PANDA_NATIVE_DISPLAY");
-    LOG_INFO(" >>>>> display env %s found <<<<< ", denv);
-    sscanf( denv, "%p", &_egl_display );
-    LOG_INFO(" >>>>> display pointer %p found <<<<< ", _egl_display);
-#endif
   _fbconfig = 0;
   _format = 0;
 

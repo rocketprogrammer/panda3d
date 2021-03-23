@@ -2,9 +2,6 @@ if(NOT HAVE_PYTHON)
   return()
 endif()
 
-INSTALL()
-return()
-
 add_executable(deploy-stub deploy-stub.c)
 
 if(IS_OSX)
