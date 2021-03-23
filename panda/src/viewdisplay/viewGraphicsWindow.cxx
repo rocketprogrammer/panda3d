@@ -6,15 +6,15 @@
  * license.  You should have received a copy of this license along
  * with this source code in a file named "LICENSE."
  *
- * @file androidGraphicsWindow.cxx
+ * @file viewGraphicsWindow.cxx
  * @author rdb
- * @date 20173-01-11 modified for android activity pmp-p
+ * @date 20173-01-11 modified for view activity pmp-p
  */
 
-#include "androidGraphicsWindow.h"
-#include "androidGraphicsStateGuardian.h"
-#include "config_androiddisplay.h"
-#include "androidGraphicsPipe.h"
+#include "viewGraphicsWindow.h"
+#include "viewGraphicsStateGuardian.h"
+#include "config_viewdisplay.h"
+#include "viewGraphicsPipe.h"
 
 #include "graphicsPipe.h"
 #include "keyboardButton.h"
@@ -26,199 +26,30 @@
 #include "nativeWindowHandle.h"
 
 
-#include <android/native_activity.h>
-
-
-// excerpt of native_app_glue
-
-/**
- * Data associated with an ALooper fd that will be returned as the "outData"
- * when that source has data ready.
- */
-struct android_poll_source {
-    // The identifier of this source.  May be LOOPER_ID_MAIN or
-    // LOOPER_ID_INPUT.
-    int32_t id;
-
-    // The android_app this ident is associated with.
-    struct android_app* app;
-
-    // Function to call to perform the standard processing of data from
-    // this source.
-    void (*process)(struct android_app* app, struct android_poll_source* source);
-};
-
-
-struct android_app {
-    // The application can place a pointer to its own state object
-    // here if it likes.
-    void* userData;
-
-    // Fill this in with the function to process main app commands (APP_CMD_*)
-    void (*onAppCmd)(struct android_app* app, int32_t cmd);
-
-    // Fill this in with the function to process input events.  At this point
-    // the event has already been pre-dispatched, and it will be finished upon
-    // return.  Return 1 if you have handled the event, 0 for any default
-    // dispatching.
-    int32_t (*onInputEvent)(struct android_app* app, AInputEvent* event);
-
-    // The ANativeActivity object instance that this app is running in.
-    ANativeActivity* activity;
-    // The ALooper associated with the app's thread.
-    ALooper* looper;
-    // When non-NULL, this is the input queue from which the app will
-    // receive user input events.
-    AInputQueue* inputQueue;
-    // When non-NULL, this is the window surface that the app can draw in.
-    ANativeWindow* window;
-    // Current content rectangle of the window; this is the area where the
-    // window's content should be placed to be seen by the user.
-    ARect contentRect;
-    // Current state of the app's activity.  May be either APP_CMD_START,
-    // APP_CMD_RESUME, APP_CMD_PAUSE, or APP_CMD_STOP; see below.
-    int activityState;
-    // -------------------------------------------------
-    // Below are "private" implementation of the glue code.
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-    int msgread;
-    int msgwrite;
-    pthread_t thread;
-    // This is non-zero when the application's NativeActivity is being
-    // destroyed and waiting for the app thread to complete.
-    int destroyRequested;
-    int running;
-    int destroyed;
-    int redrawNeeded;
-    AInputQueue* pendingInputQueue;
-    ANativeWindow* pendingWindow;
-    ARect pendingContentRect;
-};
-
-enum {
-    /**
-     * Command from main thread: the AInputQueue has changed.  Upon processing
-     * this command, android_app->inputQueue will be updated to the new queue
-     * (or NULL).
-     */
-    APP_CMD_INPUT_CHANGED,
-
-    /**
-     * Command from main thread: a new ANativeWindow is ready for use.  Upon
-     * receiving this command, android_app->window will contain the new window
-     * surface.
-     */
-    APP_CMD_INIT_WINDOW,
-
-    /**
-     * Command from main thread: the existing ANativeWindow needs to be
-     * terminated.  Upon receiving this command, android_app->window still
-     * contains the existing window; after calling android_app_exec_cmd
-     * it will be set to NULL.
-     */
-    APP_CMD_TERM_WINDOW,
-
-    /**
-     * Command from main thread: the current ANativeWindow has been resized.
-     * Please redraw with its new size.
-     */
-    APP_CMD_WINDOW_RESIZED,
-
-    /**
-     * Command from main thread: the system needs that the current ANativeWindow
-     * be redrawn.  You should redraw the window before handing this to
-     * android_app_exec_cmd() in order to avoid transient drawing glitches.
-     */
-    APP_CMD_WINDOW_REDRAW_NEEDED,
-
-    /**
-     * Command from main thread: the content area of the window has changed,
-     * such as from the soft input window being shown or hidden.  You can
-     * find the new content rect in android_app::contentRect.
-     */
-    APP_CMD_CONTENT_RECT_CHANGED,
-
-    /**
-     * Command from main thread: the app's activity window has gained
-     * input focus.
-     */
-    APP_CMD_GAINED_FOCUS,
-
-    /**
-     * Command from main thread: the app's activity window has lost
-     * input focus.
-     */
-    APP_CMD_LOST_FOCUS,
-
-    /**
-     * Command from main thread: the current device configuration has changed.
-     */
-    APP_CMD_CONFIG_CHANGED,
-
-    /**
-     * Command from main thread: the system is running low on memory.
-     * Try to reduce your memory use.
-     */
-    APP_CMD_LOW_MEMORY,
-
-    /**
-     * Command from main thread: the app's activity has been started.
-     */
-    APP_CMD_START,
-
-    /**
-     * Command from main thread: the app's activity has been resumed.
-     */
-    APP_CMD_RESUME,
-
-    /**
-     * Command from main thread: the app should generate a new saved state
-     * for itself, to restore from later if needed.  If you have saved state,
-     * allocate it with malloc and place it in android_app.savedState with
-     * the size in android_app.savedStateSize.  The will be freed for you
-     * later.
-     */
-    APP_CMD_SAVE_STATE,
-
-    /**
-     * Command from main thread: the app's activity has been paused.
-     */
-    APP_CMD_PAUSE,
-
-    /**
-     * Command from main thread: the app's activity has been stopped.
-     */
-    APP_CMD_STOP,
-
-    /**
-     * Command from main thread: the app's activity is being destroyed,
-     * and waiting for the app thread to clean up and exit before proceeding.
-     */
-    APP_CMD_DESTROY,
-};
-
-
-
-#include <android/window.h>
 #include <android/log.h>
+
+
 #include <stdlib.h>
 
-#define LOG_TAG "androidGraphicsWindow.cxx"
-#define LOG_INFO(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOG_ERROR(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOG_TAG "DEBUG:viewGraphicsWindow.cxx"
+#define LOG_I(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOG_E(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-//static EGLNativeWindowType awindow = NULL;
+static EGLNativeWindowType awindow = NULL;
 
-//extern IMPORT_CLASS struct android_app* panda_android_app;
+#if defined(__ANDROID_API__) && __ANDROID_API__ < 20
+    #warning panda_view_app
+#else
+extern IMPORT_CLASS struct view_app* panda_view_app;
+#endif
 
-TypeHandle AndroidGraphicsWindow::_type_handle;
+TypeHandle ViewGraphicsWindow::_type_handle;
 
 /**
  *
  */
-AndroidGraphicsWindow::
-AndroidGraphicsWindow(GraphicsEngine *engine, GraphicsPipe *pipe,
+ViewGraphicsWindow::
+ViewGraphicsWindow(GraphicsEngine *engine, GraphicsPipe *pipe,
                       const std::string &name,
                       const FrameBufferProperties &fb_prop,
                       const WindowProperties &win_prop,
@@ -228,25 +59,53 @@ AndroidGraphicsWindow(GraphicsEngine *engine, GraphicsPipe *pipe,
   GraphicsWindow(engine, pipe, name, fb_prop, win_prop, flags, gsg, host),
   _mouse_button_state(0)
 {
-  AndroidGraphicsPipe *android_pipe;
-  DCAST_INTO_V(android_pipe, _pipe);
+  ViewGraphicsPipe *view_pipe;
+  DCAST_INTO_V(view_pipe, _pipe);
 
-  _egl_display = android_pipe->_egl_display;
+  _egl_display = view_pipe->_egl_display;
   _egl_surface = 0;
 
-  _app = new android_app(); // panda_android_app;
+
+
+#if defined(__ANDROID_API__) && __ANDROID_API__ < 20
+    #warning panda_view_app
+    char* senv;
+    senv= getenv("PANDA_NATIVE_SURFACE");
+    sscanf( senv, "%p", &_egl_surface );
+    LOG_I("new ViewGraphicsWindow(): display pointer %p set", _egl_display);
+    LOG_I("new ViewGraphicsWindow(): surface pointer %p set", _egl_surface);
+
+
+#ifdef OPENGLES_2
+    LOG_I("            ===== GL ES 2.0 ============");
+    LOG_I("GLSL: %s", (char *) glGetString(GL_SHADING_LANGUAGE_VERSION) );
+    printf("GL_SHADING_LANGUAGE_VERSION: %s\n", (char *) glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+#else
+    #ifdef OPENGLES_1
+        LOG_I("        ===== GL ES 1.0 : NO LUI====");
+    #else
+        #error OPENGLES_1/2 must be defined
+    #endif
+#endif
+
+#else
+  _app = panda_view_app;
+#endif
 
   PT(GraphicsWindowInputDevice) device = GraphicsWindowInputDevice::pointer_and_keyboard(this, "keyboard_mouse");
   add_input_device(device);
   _input = device;
+
+    LOG_I("new ViewGraphicsWindow(): input set");
 }
 
 /**
  *
  */
-AndroidGraphicsWindow::
-~AndroidGraphicsWindow() {
-    LOG_ERROR("~AndroidGraphicsWindow() should not destroy_surface");
+ViewGraphicsWindow::
+~ViewGraphicsWindow() {
+    LOG_E("~ViewGraphicsWindow() destroy_surface : should not happen (yet)");
     destroy_surface();
 }
 
@@ -256,7 +115,7 @@ AndroidGraphicsWindow::
  * return true if the frame should be rendered, or false if it should be
  * skipped.
  */
-bool AndroidGraphicsWindow::
+bool ViewGraphicsWindow::
 begin_frame(FrameMode mode, Thread *current_thread) {
   PStatTimer timer(_make_current_pcollector, current_thread);
 
@@ -270,19 +129,19 @@ begin_frame(FrameMode mode, Thread *current_thread) {
     return false;
   }
 
-  AndroidGraphicsStateGuardian *androidgsg;
-  DCAST_INTO_R(androidgsg, _gsg, false);
+  ViewGraphicsStateGuardian *viewgsg;
+  DCAST_INTO_R(viewgsg, _gsg, false);
   {
     if (eglGetCurrentDisplay() == _egl_display &&
         eglGetCurrentSurface(EGL_READ) == _egl_surface &&
         eglGetCurrentSurface(EGL_DRAW) == _egl_surface &&
-        eglGetCurrentContext() == androidgsg->_context) {
+        eglGetCurrentContext() == viewgsg->_context) {
       // No need to make the context current again.  Short-circuit this
       // possibly-expensive call.
     } else {
       // Need to set the context.
-      if (!eglMakeCurrent(_egl_display, _egl_surface, _egl_surface, androidgsg->_context)) {
-        androiddisplay_cat.error() << "Failed to call eglMakeCurrent: "
+      if (!eglMakeCurrent(_egl_display, _egl_surface, _egl_surface, viewgsg->_context)) {
+        viewdisplay_cat.error() << "Failed to call eglMakeCurrent: "
           << get_egl_error_string(eglGetError()) << "\n";
       }
     }
@@ -292,7 +151,7 @@ begin_frame(FrameMode mode, Thread *current_thread) {
   // GSG state if this is the first time it has been used.  (We can't just
   // call reset() when we construct the GSG, because reset() requires having a
   // current context.)
-  androidgsg->reset_if_new();
+  viewgsg->reset_if_new();
 
   if (mode == FM_render) {
     // begin_render_texture();
@@ -308,7 +167,7 @@ begin_frame(FrameMode mode, Thread *current_thread) {
  * completed for a given frame.  It should do whatever finalization is
  * required.
  */
-void AndroidGraphicsWindow::
+void ViewGraphicsWindow::
 end_frame(FrameMode mode, Thread *current_thread) {
   end_frame_spam(mode);
   nassertv(_gsg != nullptr);
@@ -333,7 +192,7 @@ end_frame(FrameMode mode, Thread *current_thread) {
  *
  * This should cause the window to wait for the flip, if necessary.
  */
-void AndroidGraphicsWindow::
+void ViewGraphicsWindow::
 end_flip() {
   if (_gsg != nullptr && _flip_ready) {
 
@@ -357,7 +216,7 @@ end_flip() {
  *
  * This function is called only within the window thread.
  */
-void AndroidGraphicsWindow::
+void ViewGraphicsWindow::
 process_events() {
   GraphicsWindow::process_events();
 
@@ -367,7 +226,7 @@ process_events() {
   // Read all pending events.
   int looper_id;
   int events;
-  struct android_poll_source* source;
+  struct view_poll_source* source;
 
   // Loop until all events are read.
   while ((looper_id = ALooper_pollAll(0, nullptr, &events, (void**)&source)) >= 0) {
@@ -392,8 +251,15 @@ process_events() {
  * ignored.  This is mainly useful for derived classes to implement extensions
  * to this function.
  */
-void AndroidGraphicsWindow::
+void ViewGraphicsWindow::
 set_properties_now(WindowProperties &properties) {
+#if defined(__ANDROID_API__) && __ANDROID_API__ < 20
+    #warning fixme set_properties
+    LOG_E("STUB: ViewGraphicsWindow::set_properties_now(WindowProperties &properties) -> open_window()+gsg");
+    if (open_window())
+        _is_valid = true;
+#else
+
   if (_pipe == nullptr) {
     // If the pipe is null, we're probably closing down.
     GraphicsWindow::set_properties_now(properties);
@@ -405,10 +271,7 @@ set_properties_now(WindowProperties &properties) {
     // The base class has already handled this case.
     return;
   }
-#if defined(__ANDROID_API__) && __ANDROID_API__ < 20
-    #warning fixme set_properties
-#else
-  // There's not really much we can change on Android.
+  // There's not really much we can change on View.
   if (properties.has_fullscreen()) {
     uint32_t add_flags = 0;
     uint32_t del_flags = 0;
@@ -428,7 +291,7 @@ set_properties_now(WindowProperties &properties) {
 /**
  * Closes the window right now.  Called from the window thread.
  */
-void AndroidGraphicsWindow::
+void ViewGraphicsWindow::
 close_window() {
 
 
@@ -456,50 +319,68 @@ close_window() {
  * Opens the window right now.  Called from the window thread.  Returns true
  * if the window is successfully opened, or false if there was a problem.
  */
-bool AndroidGraphicsWindow::
+bool ViewGraphicsWindow::
 open_window() {
+
   // GSG CreationInitialization
-  AndroidGraphicsStateGuardian *androidgsg;
+
+
+  ViewGraphicsStateGuardian *viewgsg;
   if (_gsg == 0) {
     // There is no old gsg.  Create a new one.
-    androidgsg = new AndroidGraphicsStateGuardian(_engine, _pipe, nullptr);
-    androidgsg->choose_pixel_format(_fb_properties, false, false);
-    _gsg = androidgsg;
+    viewgsg = new ViewGraphicsStateGuardian(_engine, _pipe, nullptr);
+    viewgsg->choose_pixel_format(_fb_properties, false, false);
+    _gsg = viewgsg;
   } else {
     // If the old gsg has the wrong pixel format, create a new one that shares
     // with the old gsg.
-    DCAST_INTO_R(androidgsg, _gsg, false);
-    if (!androidgsg->get_fb_properties().subsumes(_fb_properties)) {
-      androidgsg = new AndroidGraphicsStateGuardian(_engine, _pipe, androidgsg);
-      androidgsg->choose_pixel_format(_fb_properties, false, false);
-      _gsg = androidgsg;
+    DCAST_INTO_R(viewgsg, _gsg, false);
+    if (!viewgsg->get_fb_properties().subsumes(_fb_properties)) {
+      viewgsg = new ViewGraphicsStateGuardian(_engine, _pipe, viewgsg);
+      viewgsg->choose_pixel_format(_fb_properties, false, false);
+      _gsg = viewgsg;
     }
   }
 
+
+if (_gsg) {
+    _gsg->set_active(true);
+    if (_gsg->is_active())
+        LOG_I("open_window: GSG active");
+    else
+        LOG_E("open_window: GSG INACTIVE");
+
+} else LOG_E("open_window: missing GSG");
 #if defined(__ANDROID_API__) && __ANDROID_API__ < 20
     char* senv;
     senv= getenv("PANDA_NATIVE_WINDOW");
-    sscanf( senv, "%p", &_app->window );
-    LOG_INFO(" >>>>> window pointer %p found <<<<< ", _app->window);
+    sscanf( senv, "%p", &awindow );
+    LOG_I(" >>>>> window pointer %p found <<<<< ", awindow);
 
     senv= getenv("PANDA_NATIVE_SURFACE");
     sscanf( senv, "%p", &_egl_surface );
-    LOG_INFO(" >>>>> surface pointer %p found <<<<< ", _egl_surface);
+    LOG_I(" >>>>> surface pointer %p found <<<<< ", _egl_surface);
 
     if (_egl_surface == EGL_NO_SURFACE) {
-        androiddisplay_cat.error() << "NO EGL Surface pointer\n";
+        viewdisplay_cat.error() << "NO EGL Surface pointer\n";
         return false;
     }
-    _properties.set_origin(100, -100);
+
     _properties.set_undecorated(true);
+
+  // Wait until View has opened the window.
+    process_events();
+
 #else
+
+
   // Register the callbacks
   assert(_app != nullptr);
   _app->userData = this;
   _app->onAppCmd = handle_command;
   _app->onInputEvent = handle_input_event;
 
-  // Wait until Android has opened the window.
+  // Wait until View has opened the window.
   while (_app->window == nullptr) {
     process_events();
   }
@@ -513,15 +394,18 @@ open_window() {
   _properties.set_origin(0, 0);
   _properties.set_cursor_hidden(true);
   _properties.set_undecorated(true);
-#endif
 
-  if (!androidgsg->get_fb_properties().verify_hardware_software
-      (_fb_properties, androidgsg->get_gl_renderer())) {
+
+
+  if (!viewgsg->get_fb_properties().verify_hardware_software
+      (_fb_properties, viewgsg->get_gl_renderer())) {
     close_window();
     return false;
   }
 
-  _fb_properties = androidgsg->get_fb_properties();
+  _fb_properties = viewgsg->get_fb_properties();
+
+#endif
 
   create_surface();
 
@@ -531,69 +415,84 @@ open_window() {
 /**
  * Terminates the EGL surface.
  */
-void AndroidGraphicsWindow::
+void ViewGraphicsWindow::
 destroy_surface() {
 
 #if defined(__ANDROID_API__) && __ANDROID_API__ < 20
-    #warning fixme
+    LOG_E("fixme viewgsg->destroy_context()");
     _egl_surface = EGL_NO_SURFACE;
 #else
   if (_egl_surface != EGL_NO_SURFACE) {
     if (!eglDestroySurface(_egl_display, _egl_surface)) {
-      androiddisplay_cat.error() << "Failed to destroy surface: "
+      viewdisplay_cat.error() << "Failed to destroy surface: "
         << get_egl_error_string(eglGetError()) << "\n";
     }
     _egl_surface = EGL_NO_SURFACE;
   }
-#endif
 
   // Destroy the current context.
   if (_gsg != nullptr) {
-    AndroidGraphicsStateGuardian *androidgsg;
-    DCAST_INTO_V(androidgsg, _gsg);
-    androidgsg->destroy_context();
+    ViewGraphicsStateGuardian *viewgsg;
+    DCAST_INTO_V(viewgsg, _gsg);
+    viewgsg->destroy_context();
   }
+#endif
 }
 
 /**
  * Creates the EGL surface.
  */
-bool AndroidGraphicsWindow::
+bool ViewGraphicsWindow::
 create_surface() {
+
+    ViewGraphicsStateGuardian *viewgsg;
+    DCAST_INTO_R(viewgsg, _gsg, false);
+
+
+
+
 #if defined(__ANDROID_API__) && __ANDROID_API__ < 20
-    LOG_INFO("362: create_surface");
-    AndroidGraphicsStateGuardian *androidgsg;
-    DCAST_INTO_R(androidgsg, _gsg, false);
+    LOG_I("362: create_surface");
+
 
 /*
-    ANativeWindow_setBuffersGeometry(awindow, 0, 0, androidgsg->_format);
+    ANativeWindow_setBuffersGeometry(awindow, 0, 0, viewgsg->_format);
   // Create the EGL surface.
-  _egl_surface = eglCreateWindowSurface(_egl_display, androidgsg->_fbconfig, awindow, NULL);
+  _egl_surface = eglCreateWindowSurface(_egl_display, viewgsg->_fbconfig, awindow, NULL);
   if (eglGetError() != EGL_SUCCESS) {
-    androiddisplay_cat.error()
+    viewdisplay_cat.error()
       << "Failed to create window surface.\n";
     return false;
   }
 */
     char* senv;
-    EGLContext context = EGL_NO_CONTEXT;
+    //EGLContext context = EGL_NO_CONTEXT;
     senv= getenv("PANDA_NATIVE_CONTEXT");
-    sscanf( senv, "%p", &context );
-    LOG_INFO(" >>>>> context pointer %p found <<<<< ", context);
+    sscanf( senv, "%p", &viewgsg->_context );
+    LOG_I(" >>>>> context pointer %p found <<<<< ", viewgsg->_context);
 
-    androidgsg->_context = context;
 
-    // Switch to our newly created context.
-    if (!eglMakeCurrent(_egl_display, _egl_surface, _egl_surface, androidgsg->_context)) {
-        androiddisplay_cat.error() << "Failed to call eglMakeCurrent: " << get_egl_error_string(eglGetError()) << "\n";
-    }
+    //viewgsg->_context = context ;
+    //viewgsg->_needs_reset = true ;
+
+  // Switch to our newly created context.
+  if (!eglMakeCurrent(_egl_display, _egl_surface, _egl_surface, viewgsg->_context)) {
+    viewdisplay_cat.error() << "Failed to call eglMakeCurrent: "
+      << get_egl_error_string(eglGetError()) << "\n";
+  }
+
+  // Query the size of the surface.  EGLint width, height;
+  // eglQuerySurface(_egl_display, _egl_surface, EGL_WIDTH, &width);
+  // eglQuerySurface(_egl_display, _egl_surface, EGL_HEIGHT, &height);
+
+  if (viewgsg->is_valid())
+    LOG_I("create_surface gsg ok");
+
 
 #else
-  AndroidGraphicsStateGuardian *androidgsg;
-  DCAST_INTO_R(androidgsg, _gsg, false);
 
   // Reconfigure the window buffers to match that of our framebuffer config.
-  ANativeWindow_setBuffersGeometry(_app->window, 0, 0, androidgsg->_format);
+  ANativeWindow_setBuffersGeometry(_app->window, 0, 0, viewgsg->_format);
 
   // Set any window flags
   uint32_t add_flags = 0;
@@ -606,23 +505,23 @@ create_surface() {
   ANativeActivity_setWindowFlags(_app->activity, add_flags, del_flags);
 
   // Create the EGL surface.
-  _egl_surface = eglCreateWindowSurface(_egl_display, androidgsg->_fbconfig, _app->window, nullptr);
+  _egl_surface = eglCreateWindowSurface(_egl_display, viewgsg->_fbconfig, _app->window, nullptr);
   if (eglGetError() != EGL_SUCCESS) {
-    androiddisplay_cat.error()
+    viewdisplay_cat.error()
       << "Failed to create window surface.\n";
     return false;
   }
 
   // Create a context.
-  if (androidgsg->_context == EGL_NO_CONTEXT) {
-    if (!androidgsg->create_context()) {
+  if (viewgsg->_context == EGL_NO_CONTEXT) {
+    if (!viewgsg->create_context()) {
       return false;
     }
   }
 
   // Switch to our newly created context.
-  if (!eglMakeCurrent(_egl_display, _egl_surface, _egl_surface, androidgsg->_context)) {
-    androiddisplay_cat.error() << "Failed to call eglMakeCurrent: "
+  if (!eglMakeCurrent(_egl_display, _egl_surface, _egl_surface, viewgsg->_context)) {
+    viewdisplay_cat.error() << "Failed to call eglMakeCurrent: "
       << get_egl_error_string(eglGetError()) << "\n";
   }
 
@@ -630,8 +529,8 @@ create_surface() {
   // eglQuerySurface(_egl_display, _egl_surface, EGL_WIDTH, &width);
   // eglQuerySurface(_egl_display, _egl_surface, EGL_HEIGHT, &height);
 
-  androidgsg->reset_if_new();
-  if (!androidgsg->is_valid()) {
+  viewgsg->reset_if_new();
+  if (!viewgsg->is_valid()) {
     close_window();
     return false;
   }
@@ -640,22 +539,24 @@ create_surface() {
 }
 
 /**
- * Android app sends a command from the main thread.
+ * View app sends a command from the main thread.
  */
-void AndroidGraphicsWindow::
-handle_command(struct android_app *app, int32_t command) {
-/* PMPP
-  AndroidGraphicsWindow *window = (AndroidGraphicsWindow *)app->userData;
+void ViewGraphicsWindow::
+handle_command(struct view_app *app, int32_t command) {
+#if defined(__ANDROID_API__) && __ANDROID_API__ < 20
+  ViewGraphicsWindow *window = nullptr;
+#else
+  ViewGraphicsWindow *window = (ViewGraphicsWindow *)app->userData;
+#endif
   if (window != nullptr) {
     window->ns_handle_command(command);
   }
-*/
 }
 
 /**
- * Android app sends a command from the main thread.
+ * View app sends a command from the main thread.
  */
-void AndroidGraphicsWindow::
+void ViewGraphicsWindow::
 ns_handle_command(int32_t command) {
   WindowProperties properties;
 #if defined(__ANDROID_API__) && __ANDROID_API__ < 20
@@ -718,12 +619,12 @@ ns_handle_command(int32_t command) {
 /**
  * Processes an input event.  Returns 1 if the event was handled, 0 otherwise.
  */
-int32_t AndroidGraphicsWindow::
-handle_input_event(struct android_app* app, AInputEvent *event) {
+int32_t ViewGraphicsWindow::
+handle_input_event(struct view_app* app, AInputEvent *event) {
 #if defined(__ANDROID_API__) && __ANDROID_API__ < 20
     #warning fixme
 #else
-  AndroidGraphicsWindow* window = (AndroidGraphicsWindow*) app->userData;
+  ViewGraphicsWindow* window = (ViewGraphicsWindow*) app->userData;
   int32_t event_type = AInputEvent_getType(event);
   switch (event_type) {
   case AINPUT_EVENT_TYPE_KEY:
@@ -738,7 +639,7 @@ handle_input_event(struct android_app* app, AInputEvent *event) {
 /**
  * Processes a key event.
  */
-int32_t AndroidGraphicsWindow::
+int32_t ViewGraphicsWindow::
 handle_key_event(const AInputEvent *event) {
   /*
   int32_t meta = AKeyEvent_getMetaState(event);
@@ -768,7 +669,7 @@ handle_key_event(const AInputEvent *event) {
   ButtonHandle button = map_button(keycode);
 
   if (button == ButtonHandle::none()) {
-    androiddisplay_cat.warning() << "Unknown keycode: " << keycode << "\n";
+    viewdisplay_cat.warning() << "Unknown keycode: " << keycode << "\n";
     return 0;
   }
 
@@ -791,7 +692,7 @@ handle_key_event(const AInputEvent *event) {
 /**
  * Processes a motion event.
  */
-int32_t AndroidGraphicsWindow::
+int32_t ViewGraphicsWindow::
 handle_motion_event(const AInputEvent *event) {
 
 #if defined(__ANDROID_API__) && __ANDROID_API__ < 20
@@ -838,10 +739,10 @@ handle_motion_event(const AInputEvent *event) {
 }
 
 /**
- * Given an Android keycode, returns an appropriate ButtonHandle object, or
+ * Given an View keycode, returns an appropriate ButtonHandle object, or
  * ButtonHandle::none() if a matching ButtonHandle does not exist.
  */
-ButtonHandle AndroidGraphicsWindow::
+ButtonHandle ViewGraphicsWindow::
 map_button(int32_t keycode) {
   switch (keycode) {
     case AKEYCODE_SOFT_LEFT:

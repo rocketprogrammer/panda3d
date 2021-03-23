@@ -6,15 +6,16 @@
  * license.  You should have received a copy of this license along
  * with this source code in a file named "LICENSE."
  *
- * @file gles2gsg.cxx
+ * @file androidGraphicsStateGuardian.I
  * @author rdb
- * @date 2009-06-14
+ * @date 2013-01-11
  */
 
-// This is the actual .cxx file to include if you want to pick up any or all
-// of the header files in this directory as compiled to use the "true" GLES2
-// library.
-
-#include "gles2gsg.h"
-#include "glstuff_src.cxx"
-
+/**
+ * Gets the FrameBufferProperties for all windows and buffers that use this
+ * GSG.
+ */
+INLINE const FrameBufferProperties &ViewGraphicsStateGuardian::
+get_fb_properties() const {
+  return _fbprops;
+}

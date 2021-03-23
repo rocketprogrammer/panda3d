@@ -78,6 +78,9 @@ release_all_shader_buffers() {
  */
 INLINE void GraphicsStateGuardian::
 set_active(bool active) {
+#if __ANDROID__
+    _is_valid = true;
+#endif
   _active = active;
 }
 

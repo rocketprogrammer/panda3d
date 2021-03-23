@@ -6,36 +6,35 @@
  * license.  You should have received a copy of this license along
  * with this source code in a file named "LICENSE."
  *
- * @file androidGraphicsStateGuardian.cxx
+ * @file viewGraphicsStateGuardian.cxx
  * @author rdb
  * @date 2013-01-11
  */
 
-#include "androidGraphicsStateGuardian.h"
-#include "config_androiddisplay.h"
+#include "viewGraphicsStateGuardian.h"
+#include "config_viewdisplay.h"
 #include "lightReMutexHolder.h"
 
 #include <dlfcn.h>
 
 #include <android/log.h>
 #undef LOG_TAG
-#define LOG_TAG "AndroidGraphicsStateGuardian"
-#define LOG_INFO(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOG_ERROR(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOG_TAG "ViewGraphicsStateGuardian"
+#define LOG_I(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOG_E(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 
-
-TypeHandle AndroidGraphicsStateGuardian::_type_handle;
+TypeHandle ViewGraphicsStateGuardian::_type_handle;
 
 /**
  *
  */
-AndroidGraphicsStateGuardian::
-AndroidGraphicsStateGuardian(GraphicsEngine *engine, GraphicsPipe *pipe,
-       AndroidGraphicsStateGuardian *share_with) :
+ViewGraphicsStateGuardian::
+ViewGraphicsStateGuardian(GraphicsEngine *engine, GraphicsPipe *pipe, ViewGraphicsStateGuardian *share_with) :
 #ifdef OPENGLES_2
   GLES2GraphicsStateGuardian(engine, pipe)
 #else
+  #error GLES1 dropped
   GLESGraphicsStateGuardian(engine, pipe)
 #endif
 {
@@ -54,11 +53,11 @@ AndroidGraphicsStateGuardian(GraphicsEngine *engine, GraphicsPipe *pipe,
 /**
  *
  */
-AndroidGraphicsStateGuardian::
-~AndroidGraphicsStateGuardian() {
+ViewGraphicsStateGuardian::
+~ViewGraphicsStateGuardian() {
   if (_context != (EGLContext)nullptr) {
     if (!eglDestroyContext(_egl_display, _context)) {
-      androiddisplay_cat.error() << "Failed to destroy EGL context: "
+      viewdisplay_cat.error() << "Failed to destroy EGL context: "
         << get_egl_error_string(eglGetError()) << "\n";
     }
     _context = (EGLContext)nullptr;
@@ -68,7 +67,7 @@ AndroidGraphicsStateGuardian::
 /**
  * Gets the FrameBufferProperties to match the indicated config.
  */
-void AndroidGraphicsStateGuardian::
+void ViewGraphicsStateGuardian::
 get_properties(FrameBufferProperties &properties,
       bool &pbuffer_supported, bool &pixmap_supported,
                         bool &slow, EGLConfig config) {
@@ -91,7 +90,7 @@ get_properties(FrameBufferProperties &properties,
   eglGetConfigAttrib(_egl_display, config, EGL_CONFIG_CAVEAT, &caveat);
   int err = eglGetError();
   if (err != EGL_SUCCESS) {
-    androiddisplay_cat.error() << "Failed to get EGL config attrib: "
+    viewdisplay_cat.error() << "Failed to get EGL config attrib: "
       << get_egl_error_string(err) << "\n";
   }
 
@@ -131,7 +130,7 @@ get_properties(FrameBufferProperties &properties,
  * Selects a visual or fbconfig for all the windows and buffers that use this
  * gsg.
  */
-void AndroidGraphicsStateGuardian::
+void ViewGraphicsStateGuardian::
 choose_pixel_format(const FrameBufferProperties &properties, bool need_pbuffer, bool need_pixmap) {
 
 #if APP
@@ -139,9 +138,9 @@ choose_pixel_format(const FrameBufferProperties &properties, bool need_pbuffer, 
 #else
     char* denv;
     denv= getenv("PANDA_NATIVE_DISPLAY");
-    LOG_INFO(" >>>>> display env %s found <<<<< ", denv);
+    LOG_I(" >>>>> display env %s found <<<<< ", denv);
     sscanf( denv, "%p", &_egl_display );
-    LOG_INFO(" >>>>> display pointer %p found <<<<< ", _egl_display);
+    LOG_I(" >>>>> display pointer %p found <<<<< ", _egl_display);
 #endif
   _fbconfig = 0;
   _format = 0;
@@ -161,7 +160,7 @@ choose_pixel_format(const FrameBufferProperties &properties, bool need_pbuffer, 
   // memory to allocate.
   int num_configs = 0, returned_configs;
   if (!eglChooseConfig(_egl_display, attrib_list, nullptr, num_configs, &returned_configs) || returned_configs <= 0) {
-    androiddisplay_cat.error() << "eglChooseConfig failed: "
+    viewdisplay_cat.error() << "eglChooseConfig failed: "
       << get_egl_error_string(eglGetError()) << "\n";
     return;
   }
@@ -170,7 +169,7 @@ choose_pixel_format(const FrameBufferProperties &properties, bool need_pbuffer, 
   EGLConfig *configs = new EGLConfig[num_configs];
 
   if (!eglChooseConfig(_egl_display, attrib_list, configs, num_configs, &returned_configs) || returned_configs <= 0) {
-    androiddisplay_cat.error() << "eglChooseConfig failed: "
+    viewdisplay_cat.error() << "eglChooseConfig failed: "
       << get_egl_error_string(eglGetError()) << "\n";
     delete[] configs;
     return;
@@ -191,7 +190,7 @@ choose_pixel_format(const FrameBufferProperties &properties, bool need_pbuffer, 
     const char *pbuffertext = pbuffer_supported ? " (pbuffer)" : "";
     const char *pixmaptext = pixmap_supported ? " (pixmap)" : "";
     const char *slowtext = slow ? " (slow)" : "";
-    androiddisplay_cat.debug()
+    viewdisplay_cat.debug()
       << i << ": " << fbprops << pbuffertext << pixmaptext << slowtext << "\n";
     int quality = fbprops.get_quality(properties);
     if ((quality > 0)&&(slow)) quality -= 10000000;
@@ -211,19 +210,19 @@ choose_pixel_format(const FrameBufferProperties &properties, bool need_pbuffer, 
   }
 
   if (best_quality > 0) {
-    androiddisplay_cat.debug()
+    viewdisplay_cat.debug()
       << "Chosen config " << best_result << ": " << best_props << "\n";
     _fbconfig = configs[best_result];
     eglGetConfigAttrib(_egl_display, _fbconfig, EGL_NATIVE_VISUAL_ID, &_format);
 
-    androiddisplay_cat.debug()
+    viewdisplay_cat.debug()
       << "Window format: " << _format << "\n";
 
     _fbprops = best_props;
     return;
   }
 
-  androiddisplay_cat.error() <<
+  viewdisplay_cat.error() <<
     "Could not find a usable pixel format.\n";
 
   delete[] configs;
@@ -233,7 +232,7 @@ choose_pixel_format(const FrameBufferProperties &properties, bool need_pbuffer, 
  * Creates the context based on the config previously obtained in
  * choose_pixel_format.
  */
-bool AndroidGraphicsStateGuardian::
+bool ViewGraphicsStateGuardian::
 create_context() {
   if (_context != EGL_NO_CONTEXT) {
     destroy_context();
@@ -252,7 +251,7 @@ create_context() {
     return true;
   }
 
-  androiddisplay_cat.error()
+  viewdisplay_cat.error()
     << "Could not create EGL context!\n"
     << get_egl_error_string(err) << "\n";
   return false;
@@ -261,14 +260,14 @@ create_context() {
 /**
  * Destroys the context previously created by create_context.
  */
-void AndroidGraphicsStateGuardian::
+void ViewGraphicsStateGuardian::
 destroy_context() {
   if (_context == EGL_NO_CONTEXT) {
     return;
   }
 
   if (!eglMakeCurrent(_egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) {
-    androiddisplay_cat.error() << "Failed to call eglMakeCurrent: "
+    viewdisplay_cat.error() << "Failed to call eglMakeCurrent: "
       << get_egl_error_string(eglGetError()) << "\n";
   }
 
@@ -281,19 +280,24 @@ destroy_context() {
 /**
  * Resets all internal state as if the gsg were newly created.
  */
-void AndroidGraphicsStateGuardian::
+void ViewGraphicsStateGuardian::
 reset() {
+#if __ANDROID__
+    #pragma message "GLES2GraphicsStateGuardian::reset();"
+#else
 #ifdef OPENGLES_2
-  GLES2GraphicsStateGuardian::reset();
+      GLES2GraphicsStateGuardian::reset();
+
 #else
   GLESGraphicsStateGuardian::reset();
 #endif
-
+#endif
   // If "PixelFlinger" is present, assume software.
-  if (_gl_renderer.find("PixelFlinger") != std::string::npos) {
+/*  if (_gl_renderer.find("PixelFlinger") != std::string::npos) {
     _fbprops.set_force_software(1);
     _fbprops.set_force_hardware(0);
-  } else {
+  } else
+*/{
     _fbprops.set_force_hardware(1);
     _fbprops.set_force_software(0);
   }
@@ -303,7 +307,7 @@ reset() {
  * Returns true if the runtime GLX version number is at least the indicated
  * value, false otherwise.
  */
-bool AndroidGraphicsStateGuardian::
+bool ViewGraphicsStateGuardian::
 egl_is_at_least_version(int major_version, int minor_version) const {
   if (_egl_version_major < major_version) {
     return false;
@@ -317,46 +321,46 @@ egl_is_at_least_version(int major_version, int minor_version) const {
 /**
  * Calls glFlush().
  */
-void AndroidGraphicsStateGuardian::
+void ViewGraphicsStateGuardian::
 gl_flush() const {
 #ifdef OPENGLES_2
   GLES2GraphicsStateGuardian::gl_flush();
 #else
-  GLESGraphicsStateGuardian::gl_flush();
+  //GLESGraphicsStateGuardian::gl_flush();
 #endif
 }
 
 /**
  * Returns the result of glGetError().
  */
-GLenum AndroidGraphicsStateGuardian::
+GLenum ViewGraphicsStateGuardian::
 gl_get_error() const {
 #ifdef OPENGLES_2
   return GLES2GraphicsStateGuardian::gl_get_error();
 #else
-  return GLESGraphicsStateGuardian::gl_get_error();
+  //return GLESGraphicsStateGuardian::gl_get_error();
 #endif
 }
 
 /**
  * Queries the runtime version of OpenGL in use.
  */
-void AndroidGraphicsStateGuardian::
+void ViewGraphicsStateGuardian::
 query_gl_version() {
 #ifdef OPENGLES_2
   GLES2GraphicsStateGuardian::query_gl_version();
 #else
-  GLESGraphicsStateGuardian::query_gl_version();
+  //GLESGraphicsStateGuardian::query_gl_version();
 #endif
 
   // Calling eglInitialize on an already-initialized display will just provide
   // us the version numbers.
   if (!eglInitialize(_egl_display, &_egl_version_major, &_egl_version_minor)) {
-    androiddisplay_cat.error() << "Failed to get EGL version number: "
+    viewdisplay_cat.error() << "Failed to get EGL version number: "
       << get_egl_error_string(eglGetError()) << "\n";
   }
 
-  // We output to glesgsg_cat instead of androiddisplay_cat, since this is
+  // We output to glesgsg_cat instead of viewdisplay_cat, since this is
   // where the GL version has been output, and it's nice to see the two of
   // these together.
 #ifdef OPENGLES_2
@@ -376,7 +380,7 @@ query_gl_version() {
  * further extensions strings may be appropriate to that interface, in
  * addition to the GL extension strings return by glGetString().
  */
-void AndroidGraphicsStateGuardian::
+void ViewGraphicsStateGuardian::
 get_extra_extensions() {
   save_extensions(eglQueryString(_egl_display, EGL_EXTENSIONS));
 }
@@ -387,7 +391,7 @@ get_extra_extensions() {
  * extension is defined in the OpenGL runtime prior to calling this; it is an
  * error to call this for a function that is not defined.
  */
-void *AndroidGraphicsStateGuardian::
+void *ViewGraphicsStateGuardian::
 do_get_extension_func(const char *name) {
   return (void *)eglGetProcAddress(name);
 }

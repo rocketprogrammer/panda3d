@@ -1,3 +1,11 @@
+if(ANDROID)
+  set(PANDAGL_PIPE_TYPE "viewGraphicsPipe")
+  set(PANDAGL_LINK_TARGETS p3glstuff)
+  list(APPEND PANDAGL_LINK_TARGETS p3viewdisplay_gles2)
+    return()
+endif()
+
+
 if(NOT HAVE_GL)
   return()
 endif()
@@ -16,7 +24,6 @@ elseif(HAVE_COCOA)
   list(APPEND PANDAGL_LINK_TARGETS p3cocoadisplay)
   set(PANDAGL_PIPE_TYPE "CocoaGraphicsPipe")
   set(PANDAGL_PIPE_INCLUDE "cocoaGraphicsPipe.h")
-
 else()
   message("") # Add extra line before error
   message(SEND_ERROR

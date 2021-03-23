@@ -40,6 +40,5 @@ init_libgles2gsg() {
     return;
   }
   initialized = true;
-
   GLES2init_classes();
 }

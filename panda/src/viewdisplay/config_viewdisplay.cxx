@@ -6,15 +6,15 @@
  * license.  You should have received a copy of this license along
  * with this source code in a file named "LICENSE."
  *
- * @file config_androiddisplay.cxx
+ * @file config_viewdisplay.cxx
  * @author rdb
  * @date 2013-01-11
  */
 
-#include "config_androiddisplay.h"
-#include "androidGraphicsPipe.h"
-#include "androidGraphicsWindow.h"
-#include "androidGraphicsStateGuardian.h"
+#include "config_viewdisplay.h"
+#include "viewGraphicsPipe.h"
+#include "viewGraphicsWindow.h"
+//#include "viewGraphicsStateGuardian.h"
 #include "graphicsPipeSelection.h"
 #include "dconfig.h"
 #include "pandaSystem.h"
@@ -23,16 +23,16 @@
 
 #include <android/log.h>
 
-#define LOG_TAG "config_androiddisplay.cxx"
-#define LOG_INFO(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOG_ERROR(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOG_TAG "config_viewdisplay.cxx"
+#define LOG_I(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define LOG_E(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-Configure(config_androiddisplay);
-NotifyCategoryDef(androiddisplay, "display");
+Configure(config_viewdisplay);
+NotifyCategoryDef(viewdisplay, "display");
 
-ConfigureFn(config_androiddisplay) {
-  LOG_INFO("34: config_androiddisplay.cxx\n");
-  init_libandroiddisplay();
+ConfigureFn(config_viewdisplay) {
+  LOG_I("34: config_viewdisplay.cxx\n");
+  init_libviewdisplay();
 }
 
 /**
@@ -42,9 +42,9 @@ ConfigureFn(config_androiddisplay) {
  * special cases exist.
  */
 void
-init_libandroiddisplay() {
+init_libviewdisplay() {
   static bool initialized = false;
-  LOG_INFO("45: config_androiddisplay.cxx\n");
+  LOG_I("47: config_viewdisplay.cxx\n");
 
   if (initialized) {
     return;
@@ -54,19 +54,20 @@ init_libandroiddisplay() {
   init_libdisplay();
   display_cat.get_safe_ptr();
 
-  AndroidGraphicsPipe::init_type();
-  AndroidGraphicsWindow::init_type();
-  AndroidGraphicsStateGuardian::init_type();
+  ViewGraphicsPipe::init_type();
+  ViewGraphicsWindow::init_type();
+  GraphicsStateGuardian::init_type();
 
   GraphicsPipeSelection *selection = GraphicsPipeSelection::get_global_ptr();
-  selection->add_pipe_type(AndroidGraphicsPipe::get_class_type(),
-                           AndroidGraphicsPipe::pipe_constructor);
+  selection->add_pipe_type(ViewGraphicsPipe::get_class_type(),
+                           ViewGraphicsPipe::pipe_constructor);
 
   PandaSystem *ps = PandaSystem::get_global_ptr();
 #ifdef OPENGLES_2
-  ps->set_system_tag("OpenGL ES 2", "window_system", "Android");
+  ps->set_system_tag("OpenGL ES 2", "window_system", "View");
 #else
-  ps->set_system_tag("OpenGL ES", "window_system", "Android");
+  #error GLES1 dropped
+  ps->set_system_tag("OpenGL ES", "window_system", "View");
 #endif
 }
 

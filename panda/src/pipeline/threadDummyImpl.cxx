@@ -25,6 +25,13 @@
 #include <windows.h>
 #endif
 
+#ifdef ANDROID
+#include "config_express.h"
+#include <jni.h>
+
+static JavaVM *java_vm = nullptr;
+#endif
+
 /**
  *
  */

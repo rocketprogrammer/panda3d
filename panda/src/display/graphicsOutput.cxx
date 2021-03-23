@@ -410,6 +410,10 @@ set_active(bool active) {
  */
 bool GraphicsOutput::
 is_active() const {
+#if __ANDROID__
+    #pragma message "GraphicsOutput::is_active() false/true ?"
+    return true;
+#endif
   if (!is_valid()) {
     return false;
   }

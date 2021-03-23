@@ -124,3 +124,13 @@ yield() {
 INLINE void ThreadDummyImpl::
 consider_yield() {
 }
+
+#ifdef ANDROID
+/**
+ * Returns the JNIEnv object for the current thread.
+ */
+INLINE JNIEnv *ThreadDummyImpl::
+get_jni_env() const {
+  return nullptr;
+}
+#endif
