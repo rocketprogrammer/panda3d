@@ -168,5 +168,3 @@ class DirectButton(DirectFrame):
             self.guiItem.setSound(DGG.ENTER + self.guiId, rolloverSound)
         else:
             self.guiItem.clearSound(DGG.ENTER + self.guiId)
-
-

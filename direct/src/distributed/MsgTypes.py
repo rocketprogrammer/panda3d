@@ -1,6 +1,7 @@
 """MsgTypes module: contains distributed object message types"""
 
 from direct.showbase.PythonUtil import invertDictLossless
+from .DisneyMessageTypes import *
 
 MsgName2Id = {
     # 2 new params: passwd, char bool 0/1 1 = new account
@@ -217,3 +218,7 @@ CLIENT_LOGIN_2_GREEN = 1       # Disney's GoReg subscription token, not used.
 CLIENT_LOGIN_2_PLAY_TOKEN = 2  # VR Studio PlayToken.
 CLIENT_LOGIN_2_BLUE = 3        # The international GoReg token.
 CLIENT_LOGIN_3_DISL_TOKEN = 4  # SSL encoded blob from DISL system.
+
+# ExtAgent messages.
+CLIENTAGENT_EXTAGENT_MESSAGE = 1205
+CLIENTAGENT_EXTAGENT_RESPONSE = 1206
