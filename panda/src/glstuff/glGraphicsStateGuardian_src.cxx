@@ -93,6 +93,11 @@ PStatCollector CLP(GraphicsStateGuardian)::_fbo_bind_pcollector("Draw:Bind FBO")
 PStatCollector CLP(GraphicsStateGuardian)::_check_error_pcollector("Draw:Check errors");
 PStatCollector CLP(GraphicsStateGuardian)::_check_residency_pcollector("*:PStats:Check residency");
 
+#if defined(HAVE_CG) && !defined(OPENGLES)
+AtomicAdjust::Integer CLP(GraphicsStateGuardian)::_num_gsgs_with_cg_contexts = 0;
+pvector<CGcontext> CLP(GraphicsStateGuardian)::_destroyed_cg_contexts;
+#endif
+
 // The following noop functions are assigned to the corresponding glext
 // function pointers in the class, in case the functions are not defined by
 // the GL, just so it will always be safe to call the extension functions.
@@ -530,7 +535,7 @@ CLP(GraphicsStateGuardian)(GraphicsEngine *engine, GraphicsPipe *pipe) :
   _shader_point_size = false;
 #endif
 
-#ifdef HAVE_CG
+#if defined(HAVE_CG) && !defined(OPENGLES)
   _cg_context = 0;
 #endif
 
@@ -1350,11 +1355,34 @@ reset() {
   _supports_packed_dabc = false;
   _supports_packed_ufloat = false;
 #else
-  _supports_packed_dabc = is_at_least_gl_version(3, 2) ||
+  _supports_packed_dabc = (is_at_least_gl_version(3, 2) ||
                           has_extension("GL_ARB_vertex_array_bgra") ||
-                          has_extension("GL_EXT_vertex_array_bgra");
+                          has_extension("GL_EXT_vertex_array_bgra")) && gl_support_vertex_array_bgra;
+
   _supports_packed_ufloat = is_at_least_gl_version(4, 4) ||
                             has_extension("GL_ARB_vertex_type_10f_11f_11f_rev");
+
+  if (_supports_packed_dabc) {
+    int number = 0;
+    if (_gl_renderer.compare(0, 14, "AMD Radeon RX ") == 0) {
+      number = atoi(_gl_renderer.c_str() + 14);
+    }
+    else if (_gl_renderer.compare(0, 10, "Radeon RX ") == 0) {
+      number = atoi(_gl_renderer.c_str() + 10);
+    }
+
+    // This is buggy for RDNA cards.  Verified on 5700 XT, reportedly also
+    // occurs on the entire 5*00 and 6*00 line.
+    if (number >= 5000 && number < 8000) {
+      _supports_packed_dabc = false;
+
+      if (GLCAT.is_debug()) {
+        GLCAT.debug()
+          << "Detected AMD Radeon RX " << number
+          << ", disabling use of GL_BGRA vertex attributes\n";
+      }
+    }
+  }
 #endif
 
 #ifdef OPENGLES
@@ -7350,7 +7378,10 @@ framebuffer_copy_to_ram(Texture *tex, int view, int z,
   switch (format) {
   case Texture::F_depth_stencil:
     if (_current_properties->get_float_depth()) {
+      //NB. In the future we may need a T_float_32_unsigned_int_24_8 format, but
+      // for now we'll just try to grab the depth component.
       component_type = Texture::T_float;
+      format = Texture::F_depth_component32;
     } else {
       component_type = Texture::T_unsigned_int_24_8;
     }
@@ -7386,21 +7417,66 @@ framebuffer_copy_to_ram(Texture *tex, int view, int z,
       }
     } else if (_current_properties->get_float_color()) {
       if (_current_properties->get_alpha_bits()) {
-        format = Texture::F_rgba32;
+        if (_current_properties->get_red_bits() == 16 &&
+            _current_properties->get_green_bits() == 16 &&
+            _current_properties->get_blue_bits() == 16 &&
+            _current_properties->get_alpha_bits() == 16) {
+          format = Texture::F_rgba16;
+        } else {
+          format = Texture::F_rgba32;
+        }
       } else if (_current_properties->get_blue_bits()) {
-        format = Texture::F_rgb32;
+        if (_current_properties->get_red_bits() == 11 &&
+            _current_properties->get_green_bits() == 11 &&
+            _current_properties->get_blue_bits() == 10) {
+          format = Texture::F_r11_g11_b10;
+        } else if (_current_properties->get_red_bits() == 16 &&
+                   _current_properties->get_green_bits() == 16 &&
+                   _current_properties->get_blue_bits() == 16) {
+          format = Texture::F_rgb16;
+        } else {
+          format = Texture::F_rgb32;
+        }
       } else if (_current_properties->get_green_bits()) {
-        format = Texture::F_rg32;
+        if (_current_properties->get_red_bits() == 16 &&
+            _current_properties->get_green_bits() == 16) {
+          format = Texture::F_rg16;
+        } else {
+          format = Texture::F_rg32;
+        }
       } else {
-        format = Texture::F_r32;
+        if (_current_properties->get_red_bits() == 16) {
+          format = Texture::F_r16;
+        } else {
+          format = Texture::F_r32;
+        }
+      }
+    } else if (_current_properties->get_alpha_bits()) {
+      if (_current_properties->get_red_bits() == 10 &&
+          _current_properties->get_green_bits() == 10 &&
+          _current_properties->get_blue_bits() == 10 &&
+          _current_properties->get_alpha_bits() == 2) {
+        format = Texture::F_rgb10_a2;
+      } else {
+        format = Texture::F_rgba;
+      }
+    } else if (_current_properties->get_blue_bits()) {
+      format = Texture::F_rgb;
+    } else if (_current_properties->get_green_bits()) {
+      if (_current_properties->get_red_bits() == 16 &&
+          _current_properties->get_green_bits() == 16) {
+        format = Texture::F_rg16;
+      } else {
+        format = Texture::F_rg;
       }
     } else {
-      if (_current_properties->get_alpha_bits()) {
-        format = Texture::F_rgba;
+      if (_current_properties->get_color_bits() == 16) {
+        format = Texture::F_r16;
       } else {
-        format = Texture::F_rgb;
+        format = Texture::F_red;
       }
     }
+
     if (_current_properties->get_float_color()) {
       component_type = Texture::T_float;
     } else if (_current_properties->get_color_bits() <= 24
@@ -7453,6 +7529,7 @@ framebuffer_copy_to_ram(Texture *tex, int view, int z,
     external_format = GL_RGBA;
   }
 
+#ifndef NDEBUG
   if (GLCAT.is_spam()) {
     GLCAT.spam()
       << "glReadPixels(" << xo << ", " << yo << ", " << w << ", " << h << ", ";
@@ -7496,9 +7573,71 @@ framebuffer_copy_to_ram(Texture *tex, int view, int z,
     case GL_FLOAT:
       GLCAT.spam(false) << "GL_FLOAT";
       break;
+    case GL_UNSIGNED_SHORT_4_4_4_4:
+      GLCAT.spam(false) << "GL_UNSIGNED_SHORT_4_4_4_4";
+      break;
+    case GL_UNSIGNED_SHORT_5_5_5_1:
+      GLCAT.spam(false) << "GL_UNSIGNED_SHORT_5_5_5_1";
+      break;
+    case GL_UNSIGNED_SHORT_5_6_5:
+      GLCAT.spam(false) << "GL_UNSIGNED_SHORT_5_6_5";
+      break;
 #ifndef OPENGLES_1
     case GL_INT:
       GLCAT.spam(false) << "GL_INT";
+      break;
+    case GL_BYTE:
+      GLCAT.spam(false) << "GL_BYTE";
+      break;
+    case GL_SHORT:
+      GLCAT.spam(false) << "GL_SHORT";
+      break;
+    case GL_UNSIGNED_INT:
+      GLCAT.spam(false) << "GL_UNSIGNED_INT";
+      break;
+    case GL_HALF_FLOAT:
+      GLCAT.spam(false) << "GL_HALF_FLOAT";
+      break;
+#endif
+#ifndef OPENGLES
+    case GL_UNSIGNED_BYTE_3_3_2:
+      GLCAT.spam(false) << "GL_UNSIGNED_BYTE_3_3_2";
+      break;
+    case GL_UNSIGNED_BYTE_2_3_3_REV:
+      GLCAT.spam(false) << "GL_UNSIGNED_BYTE_2_3_3_REV";
+      break;
+    case GL_UNSIGNED_SHORT_5_6_5_REV:
+      GLCAT.spam(false) << "GL_UNSIGNED_SHORT_5_6_5_REV";
+      break;
+    case GL_UNSIGNED_SHORT_4_4_4_4_REV:
+      GLCAT.spam(false) << "GL_UNSIGNED_SHORT_4_4_4_4_REV";
+      break;
+    case GL_UNSIGNED_SHORT_1_5_5_5_REV:
+      GLCAT.spam(false) << "GL_UNSIGNED_SHORT_1_5_5_5_REV";
+      break;
+    case GL_UNSIGNED_INT_8_8_8_8:
+      GLCAT.spam(false) << "GL_UNSIGNED_INT_8_8_8_8";
+      break;
+    case GL_UNSIGNED_INT_8_8_8_8_REV:
+      GLCAT.spam(false) << "GL_UNSIGNED_INT_8_8_8_8_REV";
+      break;
+    case GL_UNSIGNED_INT_10_10_10_2:
+      GLCAT.spam(false) << "GL_UNSIGNED_INT_10_10_10_2";
+      break;
+    case GL_UNSIGNED_INT_2_10_10_10_REV:
+      GLCAT.spam(false) << "GL_UNSIGNED_INT_2_10_10_10_REV";
+      break;
+    case GL_UNSIGNED_INT_24_8:
+      GLCAT.spam(false) << "GL_UNSIGNED_INT_24_8";
+      break;
+    case GL_UNSIGNED_INT_10F_11F_11F_REV:
+      GLCAT.spam(false) << "GL_UNSIGNED_INT_10F_11F_11F_REV";
+      break;
+    case GL_UNSIGNED_INT_5_9_9_9_REV:
+      GLCAT.spam(false) << "GL_UNSIGNED_INT_5_9_9_9_REV";
+      break;
+    case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
+      GLCAT.spam(false) << "GL_FLOAT_32_UNSIGNED_INT_24_8_REV";
       break;
 #endif
     default:
@@ -7508,6 +7647,7 @@ framebuffer_copy_to_ram(Texture *tex, int view, int z,
     GLCAT.spam(false)
       << ")" << endl;
   }
+#endif  // NDEBUG
 
   unsigned char *image_ptr = tex->modify_ram_image();
   size_t image_size = tex->get_ram_image_size();
@@ -11784,12 +11924,47 @@ set_state_and_transform(const RenderState *target,
 void CLP(GraphicsStateGuardian)::
 free_pointers() {
 #if defined(HAVE_CG) && !defined(OPENGLES)
-  if (_cg_context != 0) {
-    cgDestroyContext(_cg_context);
-    _cg_context = 0;
+  if (_cg_context) {
+    _destroyed_cg_contexts.push_back(_cg_context);
+    _cg_context = nullptr;
+
+    // Don't destroy the Cg context until the last GSG that uses Cg has been
+    // destroyed.  This works around a Cg bug, see #1117.
+    if (!AtomicAdjust::dec(_num_gsgs_with_cg_contexts)) {
+      for (CGcontext context : _destroyed_cg_contexts) {
+        cgDestroyContext(context);
+      }
+      _destroyed_cg_contexts.clear();
+    }
   }
 #endif
 }
+
+/**
+ * Returns a Cg context for this GSG.
+ */
+#if defined(HAVE_CG) && !defined(OPENGLES)
+CGcontext CLP(GraphicsStateGuardian)::
+get_cg_context() {
+  CGcontext context = _cg_context;
+  if (context == nullptr) {
+    context = cgCreateContext();
+
+#if CG_VERSION_NUM >= 3100
+    // This just sounds like a good thing to do.
+    cgGLSetContextGLSLVersion(context, cgGLDetectGLSLVersion());
+    if (_shader_caps._active_vprofile == CG_PROFILE_GLSLV) {
+      cgGLSetContextOptimalOptions(context, CG_PROFILE_GLSLC);
+    }
+#endif
+
+    AtomicAdjust::inc(_num_gsgs_with_cg_contexts);
+    _cg_context = context;
+  }
+
+  return context;
+}
+#endif
 
 /**
  * This is called by set_state_and_transform() when the texture state has
