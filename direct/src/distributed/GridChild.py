@@ -78,6 +78,7 @@ class GridChild:
             self._gridParent.delete()
         self._gridParent = gridParent
 
+
     def __setGridInterest(self, grid, zoneId):
         assert not self.cr.noNewInterests()
         if self.cr.noNewInterests():
