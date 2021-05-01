@@ -5,13 +5,12 @@ from direct.showbase.MessengerGlobal import messenger
 from direct.showbase.PythonUtil import safeRepr, itype
 from . import DistributedObject
 
-
 class CRCache:
     notify = DirectNotifyGlobal.directNotify.newCategory("CRCache")
 
     def __init__(self, maxCacheItems=10):
         self.maxCacheItems = maxCacheItems
-        self.storedCacheItems = maxCacheItems
+        self.storedMaxCache = maxCacheItems
         self.dict = {}
         self.fifo = []
 

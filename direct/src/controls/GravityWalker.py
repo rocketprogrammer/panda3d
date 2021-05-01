@@ -213,8 +213,11 @@ class GravityWalker(DirectObject.DirectObject):
         self.__gravity = gravity
         self.lifter.setGravity(self.__gravity)
 
-    def getGravity(self, gravity):
+    def getGravity(self):
         return self.__gravity
+
+    def setVelocity(self, velocity):
+        self.lifter.setVelocity(velocity)
 
     def initializeCollisions(self, collisionTraverser, avatarNodePath,
             avatarRadius = 1.4, floorOffset = 1.0, reach = 1.0):

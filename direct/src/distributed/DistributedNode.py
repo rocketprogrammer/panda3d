@@ -1,9 +1,9 @@
 """DistributedNode module: contains the DistributedNode class"""
 
 from panda3d.core import NodePath
-from . import GridParent
+from direct.showbase.ShowBaseGlobal import *
+from direct.task import Task
 from . import DistributedObject
-
 
 class DistributedNode(DistributedObject.DistributedObject, NodePath):
     """Distributed Node class:"""
@@ -13,12 +13,7 @@ class DistributedNode(DistributedObject.DistributedObject, NodePath):
             self.DistributedNode_initialized = 1
             self.gotStringParentToken = 0
             DistributedObject.DistributedObject.__init__(self, cr)
-            if not self.this:
-                NodePath.__init__(self, "DistributedNode")
-
-            # initialize gridParent
-            self.gridParent = None
-
+            
     def disable(self):
         if self.activeState != DistributedObject.ESDisabled:
             if not self.isEmpty():
@@ -30,34 +25,11 @@ class DistributedNode(DistributedObject.DistributedObject, NodePath):
             self.DistributedNode_deleted = 1
             if not self.isEmpty():
                 self.removeNode()
-            if self.gridParent:
-                self.gridParent.delete()
             DistributedObject.DistributedObject.delete(self)
 
     def generate(self):
         DistributedObject.DistributedObject.generate(self)
         self.gotStringParentToken = 0
-
-    def setLocation(self, parentId, zoneId, teleport=0):
-        # Redefine DistributedObject setLocation, so that when
-        # location is set to the ocean grid, we can update our parenting
-        # under gridParent
-        DistributedObject.DistributedObject.setLocation(self, parentId, zoneId)
-        parentObj = self.cr.doId2do.get(parentId)
-        if parentObj:
-            # Make sure you in a zone that is in the grid before making a GridParent
-            if (parentObj.isGridParent() and (zoneId >= parentObj.startingZone)):
-                if not self.gridParent:
-                    self.gridParent = GridParent.GridParent(self)
-                self.gridParent.setGridParent(parentObj, zoneId, teleport)
-            else:
-                if self.gridParent:
-                    self.gridParent.delete()
-                    self.gridParent = None
-        else:
-            if self.gridParent:
-                self.gridParent.delete()
-                self.gridParent = None
 
     def __cmp__(self, other):
         # DistributedNode inherits from NodePath, which inherits a
