@@ -1,19 +1,18 @@
-
 from direct.showbase.DirectObject import DirectObject
-#from direct.directnotify.DirectNotifyGlobal import directNotify
+from direct.directnotify.DirectNotifyGlobal import directNotify
+
 
 class DistributedObjectBase(DirectObject):
     """
     The Distributed Object class is the base class for all network based
     (i.e. distributed) objects.  These will usually (always?) have a
-    dclass entry in a *.dc file.
+    dclass entry in a \\*.dc file.
     """
     notify = directNotify.newCategory("DistributedObjectBase")
 
     def __init__(self, cr):
         assert self.notify.debugStateCall(self)
         self.cr = cr
-        self.children = {}
         self.parentId = None
         self.zoneId = None
 
@@ -22,14 +21,13 @@ class DistributedObjectBase(DirectObject):
             """
             print out "doId(parentId, zoneId) className"
             """
-            spaces=' '*(indent+2)
+            spaces = ' ' * (indent + 2)
             try:
-                print "%s%s:"%(
-                    ' '*indent, self.__class__.__name__)
-                print "%sfrom DistributedObject doId:%s, parent:%s, zone:%s"%(
-                    spaces,
-                    self.doId, self.parentId, self.zoneId),
-            except Exception, e: print "%serror printing status"%(spaces,), e
+                print("%s%s:" % (' ' * indent, self.__class__.__name__))
+                print("%sfrom DistributedObject doId:%s, parent:%s, zone:%s" % (
+                    spaces, self.doId, self.parentId, self.zoneId))
+            except Exception as e:
+                print("%serror printing status %s" % (spaces, e))
 
     def getLocation(self):
         try:
@@ -51,7 +49,6 @@ class DistributedObjectBase(DirectObject):
         """
         assert self.notify.debugCall()
         # Inheritors should override
-        pass
 
     def handleChildArriveZone(self, childObj, zoneId):
         """
@@ -62,7 +59,6 @@ class DistributedObjectBase(DirectObject):
         """
         assert self.notify.debugCall()
         # Inheritors should override
-        pass
 
     def handleChildLeave(self, childObj, zoneId):
         """
@@ -71,7 +67,6 @@ class DistributedObjectBase(DirectObject):
         """
         assert self.notify.debugCall()
         # Inheritors should override
-        pass
 
     def handleChildLeaveZone(self, childObj, zoneId):
         """
@@ -81,12 +76,10 @@ class DistributedObjectBase(DirectObject):
         """
         assert self.notify.debugCall()
         # Inheritors should override
-        pass
 
     def handleQueryObjectChildrenLocalDone(self, context):
         assert self.notify.debugCall()
         # Inheritors should override
-        pass
 
     def getParentObj(self):
         if self.parentId is None:
@@ -94,7 +87,13 @@ class DistributedObjectBase(DirectObject):
         return self.cr.doId2do.get(self.parentId)
 
     def hasParentingRules(self):
-        return self.dclass.getFieldByName('setParentingRules') != None
+        return self.dclass.getFieldByName('setParentingRules') is not None
+
+    def delete(self):
+        """
+        Override this to handle cleanup right before this object
+        gets deleted.
+        """
 
     def getAutoInterests(self):
         
@@ -142,4 +141,3 @@ class DistributedObjectBase(DirectObject):
         # Yeah, this is silly, but until we get rid of the whole "isGrid() question"
         # this seems like the most reasonable place to put this.
         return 0
-

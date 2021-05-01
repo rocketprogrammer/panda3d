@@ -1,16 +1,15 @@
-// Filename: cConnectionRepository.h
-// Created by:  drose (17May04)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file cConnectionRepository.h
+ * @author drose
+ * @date 2004-05-17
+ */
 
 #ifndef CCONNECTIONREPOSITORY_H
 #define CCONNECTIONREPOSITORY_H
@@ -43,36 +42,33 @@ class URLSpec;
 class HTTPChannel;
 class SocketStream;
 
-////////////////////////////////////////////////////////////////////
-//       Class : CConnectionRepository
-// Description : This class implements the C++ side of the
-//               ConnectionRepository object.  In particular, it
-//               manages the connection to the server once it has been
-//               opened (but does not open it directly).  It manages
-//               reading and writing datagrams on the connection and
-//               monitoring for unexpected disconnects as well as
-//               handling intentional disconnects.
-//
-//               Certain server messages, like field updates, are
-//               handled entirely within the C++ layer, while server
-//               messages that are not understood by the C++ layer are
-//               returned up to the Python layer for processing.
-////////////////////////////////////////////////////////////////////
-class EXPCL_DIRECT CConnectionRepository {
+/**
+ * This class implements the C++ side of the ConnectionRepository object.  In
+ * particular, it manages the connection to the server once it has been opened
+ * (but does not open it directly).  It manages reading and writing datagrams
+ * on the connection and monitoring for unexpected disconnects as well as
+ * handling intentional disconnects.
+ *
+ * Certain server messages, like field updates, are handled entirely within
+ * the C++ layer, while server messages that are not understood by the C++
+ * layer are returned up to the Python layer for processing.
+ */
+class CConnectionRepository {
 PUBLISHED:
-  CConnectionRepository(bool has_owner_view = false,
-                        bool threaded_net = false);
+  explicit CConnectionRepository(bool has_owner_view = false,
+                                 bool threaded_net = false);
   ~CConnectionRepository();
 
-  // Any methods of this class that acquire _lock (which is most of
-  // them) *must* be tagged BLOCKING, to avoid risk of a race
-  // condition in Python when running in true threaded mode.  The
-  // BLOCKING tag releases the Python GIL during the function call,
-  // and we re-acquire it when needed within these functions to call
-  // out to Python.  If any functions acquire _lock while already
-  // holding the Python GIL, there could be a deadlock between these
-  // functions and the ones that are acquiring the GIL while already
-  // holding _lock.
+/*
+ * Any methods of this class that acquire _lock (which is most of them) *must*
+ * be tagged BLOCKING, to avoid risk of a race condition in Python when
+ * running in true threaded mode.  The BLOCKING tag releases the Python GIL
+ * during the function call, and we re-acquire it when needed within these
+ * functions to call out to Python.  If any functions acquire _lock while
+ * already holding the Python GIL, there could be a deadlock between these
+ * functions and the ones that are acquiring the GIL while already holding
+ * _lock.
+ */
 
   INLINE DCFile &get_dc_file();
 
@@ -87,9 +83,6 @@ PUBLISHED:
   INLINE void set_handle_datagrams_internally(bool handle_datagrams_internally);
   INLINE bool get_handle_datagrams_internally() const;
 
-  INLINE void set_track_clsends(bool track_clsends);
-  INLINE bool get_track_clsends() const;
-
   void set_tcp_header_size(int tcp_header_size);
   INLINE int get_tcp_header_size() const;
 
@@ -103,7 +96,7 @@ PUBLISHED:
 #endif
 #ifdef HAVE_NET
   BLOCKING bool try_connect_net(const URLSpec &url);
-  
+
   INLINE QueuedConnectionManager &get_qcm();
   INLINE ConnectionWriter &get_cw();
   INLINE QueuedConnectionReader &get_qcr();
@@ -120,22 +113,16 @@ PUBLISHED:
 #endif
 
   BLOCKING bool check_datagram();
-#ifdef HAVE_PYTHON
-#ifdef WANT_NATIVE_NET
-  BLOCKING bool check_datagram_ai(PyObject *PycallBackFunction);
-  BLOCKING bool network_based_reader_and_yielder(PyObject *PycallBackFunction,ClockObject &clock, float returnBy);
-#endif
-#endif
-    
+
   BLOCKING INLINE void get_datagram(Datagram &dg);
   BLOCKING INLINE void get_datagram_iterator(DatagramIterator &di);
   BLOCKING INLINE CHANNEL_TYPE get_msg_channel(int offset = 0) const;
   BLOCKING INLINE int          get_msg_channel_count() const;
   BLOCKING INLINE CHANNEL_TYPE get_msg_sender() const;
-//  INLINE unsigned char get_sec_code() const;
+// INLINE unsigned char get_sec_code() const;
   BLOCKING INLINE unsigned int get_msg_type() const;
 
-  INLINE static const string &get_overflow_event_name();
+  INLINE static const std::string &get_overflow_event_name();
 
   BLOCKING bool is_connected();
 
@@ -169,29 +156,19 @@ PUBLISHED:
   INLINE void set_time_warning(float time_warning);
   INLINE float get_time_warning() const;
 
-  INLINE void describe_datagram(const Datagram &dg) const;
-
-  void describe_message(ostream &out, const string &prefix, 
-                        const Datagram &dg) const;
-
 private:
-#ifdef HAVE_PYTHON
-#ifdef WANT_NATIVE_NET
-    bool handle_update_field_ai(PyObject *doId2do);
-#endif
-#endif
-
-
   bool do_check_datagram();
   bool handle_update_field();
   bool handle_update_field_owner();
+
+  void describe_message(std::ostream &out, const std::string &prefix,
+                        const Datagram &dg) const;
 
 private:
   ReMutex _lock;
 
 #ifdef HAVE_PYTHON
   PyObject *_python_repository;
-  PyObject *_python_ai_datagramiterator;
 #endif
 
 #ifdef HAVE_OPENSSL
@@ -215,7 +192,6 @@ private:
   bool _handle_c_updates;
   bool _client_datagram;
   bool _handle_datagrams_internally;
-  bool _track_clsends;
   int _tcp_header_size;
   bool _simulated_disconnect;
   bool _verbose;
@@ -229,11 +205,11 @@ private:
   CHANNEL_TYPE                          _msg_sender;
   unsigned int                          _msg_type;
 
-  static const string _overflow_event_name;
+  static const std::string _overflow_event_name;
 
   bool _want_message_bundling;
   unsigned int _bundling_msgs;
-  typedef std::vector< string > BundledMsgVector;
+  typedef std::vector< std::string > BundledMsgVector;
   BundledMsgVector _bundle_msgs;
 
   static PStatCollector _update_pcollector;

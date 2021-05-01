@@ -1,18 +1,19 @@
-from pandac.PandaModules import *
-from MsgTypes import *
+from panda3d.core import *
+from panda3d.direct import *
 from direct.task import Task
+from direct.task.TaskManagerGlobal import taskMgr
 from direct.directnotify import DirectNotifyGlobal
-import CRCache
 from direct.distributed.CRDataCache import CRDataCache
 from direct.distributed.ConnectionRepository import ConnectionRepository
-from direct.showbase import PythonUtil
-import ParentMgr
-import RelatedObjectMgr
+from direct.showbase.PythonUtil import safeRepr, itype, makeList
+from direct.showbase.MessengerGlobal import messenger
+from .MsgTypes import *
+from . import CRCache
+from . import ParentMgr
+from . import RelatedObjectMgr
+from .ClockDelta import *
 import time
-from ClockDelta import *
-from PyDatagram import PyDatagram
-from PyDatagramIterator import PyDatagramIterator
-import types
+
 
 class ClientRepositoryBase(ConnectionRepository):
     """
@@ -32,7 +33,7 @@ class ClientRepositoryBase(ConnectionRepository):
         ConnectionRepository.__init__(self, connectMethod, base.config, hasOwnerView = True, threadedNet = threadedNet)
         self.dcSuffix = dcSuffix
         if hasattr(self, 'setVerbose'):
-            if self.config.GetBool('verbose-clientrepository'):
+            if ConfigVariableBool('verbose-clientrepository', False):
                 self.setVerbose(1)
 
         self.context=100000
@@ -41,7 +42,7 @@ class ClientRepositoryBase(ConnectionRepository):
         self.deferredGenerates = []
         self.deferredDoIds = {}
         self.lastGenerate = 0
-        self.setDeferInterval(base.config.GetDouble('deferred-generate-interval', 0.2))
+        self.setDeferInterval(ConfigVariableDouble('deferred-generate-interval', 0.2).value)
         self.noDefer = False  # Set this True to temporarily disable deferring.
 
         self.recorder = base.recorder
@@ -68,16 +69,13 @@ class ClientRepositoryBase(ConnectionRepository):
 
         # Keep track of how recently we last sent a heartbeat message.
         # We want to keep these coming at heartbeatInterval seconds.
-        self.heartbeatInterval = base.config.GetDouble('heartbeat-interval', 10)
+        self.heartbeatInterval = ConfigVariableDouble('heartbeat-interval', 10).value
         self.heartbeatStarted = 0
         self.lastHeartbeat = 0
 
         self._delayDeletedDOs = {}
-        
-        self.specialNameNumber = 0
 
-        # Used for debugging sendUpdate calls.
-        self.wantUpdateCalls = False
+        self.specialNameNumber = 0
 
     def setDeferInterval(self, deferInterval):
         """Specifies the minimum amount of time, in seconds, that must
@@ -106,7 +104,7 @@ class ClientRepositoryBase(ConnectionRepository):
         ## self.send(datagram)
         ## # Make sure the message gets there.
         ## self.flush()
-        
+
     def specialName(self, label):
         name = ("SpecialName %s %s" % (self.specialNameNumber, label))
         self.specialNameNumber += 1
@@ -159,7 +157,7 @@ class ClientRepositoryBase(ConnectionRepository):
         # Look up the dclass
         assert parentId == self.GameGlobalsId or parentId in self.doId2do
         dclass = self.dclassesByNumber[classId]
-        assert(self.notify.debug("performing generate for %s %s" % (dclass.getName(), doId)))
+        assert self.notify.debug("performing generate for %s %s" % (dclass.getName(), doId))
         dclass.startGenerate()
         # Create a new distributed object, and put it in the dictionary
         distObj = self.generateWithRequiredOtherFields(dclass, doId, di, parentId, zoneId)
@@ -179,7 +177,7 @@ class ClientRepositoryBase(ConnectionRepository):
         "generate" messages when they are replayed().
         """
 
-        if msgType == CLIENT_CREATE_OBJECT_REQUIRED_OTHER:
+        if msgType == CLIENT_ENTER_OBJECT_REQUIRED_OTHER:
             # It's a generate message.
             doId = extra
             if doId in self.deferredDoIds:
@@ -193,7 +191,7 @@ class ClientRepositoryBase(ConnectionRepository):
                 for dg, di in updates:
                     # non-DC updates that need to be played back in-order are
                     # stored as (msgType, (dg, di))
-                    if type(di) is types.TupleType:
+                    if isinstance(di, tuple):
                         msgType = dg
                         dg, di = di
                         self.replayDeferredGenerate(msgType, (dg, di))
@@ -208,7 +206,7 @@ class ClientRepositoryBase(ConnectionRepository):
     def doDeferredGenerate(self, task):
         """ This is the task that generates an object on the deferred
         queue. """
-        
+
         now = globalClock.getFrameTime()
         while self.deferredGenerates:
             if now - self.lastGenerate < self.deferInterval:
@@ -224,7 +222,7 @@ class ClientRepositoryBase(ConnectionRepository):
         return Task.done
 
     def generateWithRequiredFields(self, dclass, doId, di, parentId, zoneId):
-        if self.doId2do.has_key(doId):
+        if doId in self.doId2do:
             # ...it is in our dictionary.
             # Just update it.
             distObj = self.doId2do[doId]
@@ -252,7 +250,7 @@ class ClientRepositoryBase(ConnectionRepository):
             # ...it is not in the dictionary or the cache.
             # Construct a new one
             classDef = dclass.getClassDef()
-            if classDef == None:
+            if classDef is None:
                 self.notify.error("Could not create an undefined %s object." % (dclass.getName()))
             distObj = classDef(self)
             distObj.dclass = dclass
@@ -267,12 +265,12 @@ class ClientRepositoryBase(ConnectionRepository):
             distObj.setLocation(parentId, zoneId)
             distObj.updateRequiredFields(dclass, di)
             # updateRequiredFields calls announceGenerate
-            print "New DO:%s, dclass:%s"%(doId, dclass.getName())
+            self.notify.debug("New DO:%s, dclass:%s" % (doId, dclass.getName()))
         return distObj
 
     def generateWithRequiredOtherFields(self, dclass, doId, di,
                                         parentId = None, zoneId = None):
-        if self.doId2do.has_key(doId):
+        if doId in self.doId2do:
             # ...it is in our dictionary.
             # Just update it.
             distObj = self.doId2do[doId]
@@ -300,7 +298,7 @@ class ClientRepositoryBase(ConnectionRepository):
             # ...it is not in the dictionary or the cache.
             # Construct a new one
             classDef = dclass.getClassDef()
-            if classDef == None:
+            if classDef is None:
                 self.notify.error("Could not create an undefined %s object." % (dclass.getName()))
             distObj = classDef(self)
             distObj.dclass = dclass
@@ -318,7 +316,7 @@ class ClientRepositoryBase(ConnectionRepository):
         return distObj
 
     def generateWithRequiredOtherFieldsOwner(self, dclass, doId, di):
-        if self.doId2ownerView.has_key(doId):
+        if doId in self.doId2ownerView:
             # ...it is in our dictionary.
             # Just update it.
             self.notify.error('duplicate owner generate for %s (%s)' % (
@@ -343,7 +341,7 @@ class ClientRepositoryBase(ConnectionRepository):
             # ...it is not in the dictionary or the cache.
             # Construct a new one
             classDef = dclass.getOwnerClassDef()
-            if classDef == None:
+            if classDef is None:
                 self.notify.error("Could not create an undefined %s object. Have you created an owner view?" % (dclass.getName()))
             distObj = classDef(self)
             distObj.dclass = dclass
@@ -362,7 +360,7 @@ class ClientRepositoryBase(ConnectionRepository):
     def disableDoId(self, doId, ownerView=False):
         table, cache = self.getTables(ownerView)
         # Make sure the object exists
-        if table.has_key(doId):
+        if doId in table:
             # Look up the object
             distObj = table[doId]
             # remove the object from the dictionary
@@ -381,15 +379,15 @@ class ClientRepositoryBase(ConnectionRepository):
                     # make sure we're not leaking
                     distObj.detectLeaks()
 
-        elif self.deferredDoIds.has_key(doId):
+        elif doId in self.deferredDoIds:
             # The object had been deferred.  Great; we don't even have
             # to generate it now.
             del self.deferredDoIds[doId]
-            i = self.deferredGenerates.index((CLIENT_CREATE_OBJECT_REQUIRED_OTHER, doId))
+            i = self.deferredGenerates.index((CLIENT_ENTER_OBJECT_REQUIRED_OTHER, doId))
             del self.deferredGenerates[i]
             if len(self.deferredGenerates) == 0:
                 taskMgr.remove('deferredGenerate')
-            
+
         else:
             self._logFailedDisable(doId, ownerView)
 
@@ -425,7 +423,7 @@ class ClientRepositoryBase(ConnectionRepository):
         doId = di.getUint32()
 
         ovUpdated = self.__doUpdateOwner(doId, di)
-        
+
         if doId in self.deferredDoIds:
             # This object hasn't really been generated yet.  Sit on
             # the update.
@@ -439,8 +437,8 @@ class ClientRepositoryBase(ConnectionRepository):
         else:
             # This object has been fully generated.  It's OK to update.
             self.__doUpdate(doId, di, ovUpdated)
-            
-            
+
+
     def __doUpdate(self, doId, di, ovUpdated):
         # Find the DO
         do = self.doId2do.get(doId)
@@ -448,27 +446,27 @@ class ClientRepositoryBase(ConnectionRepository):
             # Let the dclass finish the job
             do.dclass.receiveUpdate(do, di)
         elif not ovUpdated:
-            # this next bit is looking for avatar handles so that if you get an update 
-            # for an avatar that isn't in your doId2do table but there is a 
-            # avatar handle for that object then it's messages will be forwarded to that 
+            # this next bit is looking for avatar handles so that if you get an update
+            # for an avatar that isn't in your doId2do table but there is a
+            # avatar handle for that object then it's messages will be forwarded to that
             # object. We are currently using that for whisper echoing
             # if you need a more general perpose system consider registering proxy objects on
             # a dict and adding the avatar handles to that dict when they are created
             # then change/remove the old method. I didn't do that because I couldn't think
             # of a use for it. -JML
-            try :
+            try:
                 handle = self.identifyAvatar(doId)
                 if handle:
                     dclass = self.dclassesByName[handle.dclassName]
                     dclass.receiveUpdate(handle, di)
-                    
+
                 else:
                     self.notify.warning(
                         "Asked to update non-existent DistObj " + str(doId))
             except:
                 self.notify.warning(
                         "Asked to update non-existent DistObj " + str(doId) + "and failed to find it")
- 
+
     def __doUpdateOwner(self, doId, di):
         ovObj = self.doId2ownerView.get(doId)
         if ovObj:
@@ -481,7 +479,7 @@ class ClientRepositoryBase(ConnectionRepository):
     def handleGoGetLost(self, di):
         # The server told us it's about to drop the connection on us.
         # Get ready!
-        if (di.getRemainingSize() > 0):
+        if di.getRemainingSize() > 0:
             self.bootedIndex = di.getUint16()
             self.bootedText = di.getString()
 
@@ -492,14 +490,14 @@ class ClientRepositoryBase(ConnectionRepository):
             self.bootedText = None
             self.notify.warning(
                 "Server is booting us out with no explanation.")
-        
+
         # disconnect now, don't wait for send/recv to fail
         self.stopReaderPollTask()
         self.lostConnection()
 
     def handleServerHeartbeat(self, di):
         # Got a heartbeat message from the server.
-        if base.config.GetBool('server-heartbeat-info', 1):
+        if ConfigVariableBool('server-heartbeat-info', True):
             self.notify.info("Server heartbeat.")
 
     def handleSystemMessage(self, di):
@@ -507,7 +505,7 @@ class ClientRepositoryBase(ConnectionRepository):
         message = di.getString()
         self.notify.info('Message from server: %s' % (message))
         return message
-        
+
     def handleSystemMessageAknowledge(self, di):
         # Got a system message from the server.
         message = di.getString()
@@ -583,7 +581,7 @@ class ClientRepositoryBase(ConnectionRepository):
         return worldNP
 
     def isLive(self):
-        if base.config.GetBool('force-live', 0):
+        if ConfigVariableBool('force-live', False):
             return True
         return not (__dev__ or launcher.isTestServer())
 
@@ -605,8 +603,8 @@ class ClientRepositoryBase(ConnectionRepository):
         del self._delayDeletedDOs[key]
 
     def printDelayDeletes(self):
-        print 'DelayDeletes:'
-        print '============='
-        for obj in self._delayDeletedDOs.itervalues():
-            print '%s\t%s (%s)\tdelayDeletes=%s' % (
-                obj.doId, safeRepr(obj), itype(obj), obj.getDelayDeleteNames())
+        print('DelayDeletes:')
+        print('=============')
+        for obj in self._delayDeletedDOs.values():
+            print('%s\t%s (%s)\tdelayDeletes=%s' % (
+                obj.doId, safeRepr(obj), itype(obj), obj.getDelayDeleteNames()))

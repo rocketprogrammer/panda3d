@@ -1,6 +1,7 @@
 
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.distributed.DistributedObjectBase import DistributedObjectBase
+from direct.showbase.MessengerGlobal import messenger
 
 #from PyDatagram import PyDatagram
 #from PyDatagramIterator import PyDatagramIterator
@@ -23,9 +24,7 @@ class DistributedObjectOV(DistributedObjectBase):
 
     def __init__(self, cr):
         assert self.notify.debugStateCall(self)
-        try:
-            self.DistributedObjectOV_initialized
-        except:
+        if not hasattr(self, 'DistributedObjectOV_initialized'):
             self.DistributedObjectOV_initialized = 1
             DistributedObjectBase.__init__(self, cr)
 
@@ -40,22 +39,24 @@ class DistributedObjectOV(DistributedObjectBase):
             print out "doId(parentId, zoneId) className"
                 and conditionally show generated, disabled
             """
-            spaces=' '*(indent+2)
+            spaces = ' ' * (indent + 2)
             try:
-                print "%s%s:"%(
-                    ' '*indent, self.__class__.__name__)
-                print "%sfrom DistributedObjectOV doId:%s, parent:%s, zone:%s"%(
-                    spaces,
-                    self.doId, self.parentId, self.zoneId),
-                flags=[]
+                print("%s%s:" % (' ' * indent, self.__class__.__name__))
+
+                flags = []
                 if self.activeState == ESGenerated:
                     flags.append("generated")
                 if self.activeState < ESGenerating:
                     flags.append("disabled")
-                if len(flags):
-                    print "(%s)"%(" ".join(flags),),
-                print
-            except Exception, e: print "%serror printing status"%(spaces,), e
+
+                flagStr = ""
+                if len(flags) > 0:
+                    flagStr = " (%s)" % (" ".join(flags))
+
+                print("%sfrom DistributedObjectOV doId:%s, parent:%s, zone:%s%s" % (
+                    spaces, self.doId, self.parentId, self.zoneId, flagStr))
+            except Exception as e:
+                print("%serror printing status %s" % (spaces, e))
 
 
     def getDelayDeleteCount(self):
@@ -101,7 +102,7 @@ class DistributedObjectOV(DistributedObjectBase):
         Returns true if the object has been disabled and/or deleted,
         or if it is brand new and hasn't yet been generated.
         """
-        return (self.activeState < ESGenerating)
+        return self.activeState < ESGenerating
 
     def isGenerated(self):
         """
@@ -109,16 +110,14 @@ class DistributedObjectOV(DistributedObjectBase):
         and not yet disabled.
         """
         assert self.notify.debugStateCall(self)
-        return (self.activeState == ESGenerated)
+        return self.activeState == ESGenerated
 
     def delete(self):
         """
         Inheritors should redefine this to take appropriate action on delete
         """
         assert self.notify.debug('delete(): %s' % (self.doId))
-        try:
-            self.DistributedObjectOV_deleted
-        except:
+        if not hasattr(self, 'DistributedObjectOV_deleted'):
             self.DistributedObjectOV_deleted = 1
             self.cr = None
             self.dclass = None
@@ -169,7 +168,7 @@ class DistributedObjectOV(DistributedObjectBase):
         # but before we update the non-required fields.
         self.announceGenerate()
         self.postGenerateMessage()
-        
+
         dclass.receiveUpdateOther(self, di)
 
     def getCacheable(self):
@@ -184,7 +183,7 @@ class DistributedObjectOV(DistributedObjectBase):
             self.notify.warning("sendUpdate failed, because self.cr is not set")
 
     def taskName(self, taskString):
-        return ('%s-%s-OV' % (taskString, self.getDoId()))
+        return '%s-%s-OV' % (taskString, self.getDoId())
 
     def uniqueName(self, idString):
-        return ('%s-%s-OV' % (idString, self.getDoId()))
+        return '%s-%s-OV' % (idString, self.getDoId())

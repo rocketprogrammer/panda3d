@@ -1,6 +1,7 @@
-
-from pandac.PandaModules import *
+from panda3d.core import *
+from panda3d.direct import *
 from direct.interval.IntervalGlobal import *
+from direct.directnotify.DirectNotifyGlobal import directNotify
 
 from direct.distributed.DistributedNode import DistributedNode
 from direct.task import Task
@@ -13,7 +14,7 @@ if __debug__:
     from direct.directtools.DirectGeometry import *
     from direct.showbase.PythonUtil import randFloat
 
-from CartesianGridBase import CartesianGridBase
+from .CartesianGridBase import CartesianGridBase
 
 # increase this number if you want to visualize the grid lines
 # above water level
@@ -23,7 +24,7 @@ class DistributedCartesianGrid(DistributedNode, CartesianGridBase, StagedObject)
     notify = directNotify.newCategory("DistributedCartesianGrid")
     notify.setDebug(0)
     
-    VisualizeGrid = config.GetBool("visualize-cartesian-grid", 0)
+    VisualizeGrid = ConfigVariableBool("visualize-cartesian-grid", False)
 
     def __init__(self, cr):
         # Let the derived classes instantiate the NodePath
@@ -108,7 +109,7 @@ class DistributedCartesianGrid(DistributedNode, CartesianGridBase, StagedObject)
 
             # Load up grid parts to initialize grid object
             # Polygon used to mark grid plane
-            # self.gridBack = loader.loadModel('models/misc/gridBack')
+            # self.gridBack = base.loader.loadModel('models/misc/gridBack')
             # self.gridBack.reparentTo(self)
             # self.gridBack.setColor(0.2, 0.2, 0.2, 0.5)
 
@@ -191,7 +192,7 @@ class DistributedCartesianGrid(DistributedNode, CartesianGridBase, StagedObject)
             dx = self.cellWidth * self.gridSize * .5
             for i in range(self.gridSize):
                 for j in range(self.gridSize):
-                    marker = loader.loadModel("models/misc/smiley")
+                    marker = base.loader.loadModel("models/misc/smiley")
                     marker.reparentTo(self.markerParent)
                     marker.setPos(i * self.cellWidth - dx,
                                   j * self.cellWidth - dx,

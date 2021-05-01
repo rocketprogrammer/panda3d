@@ -1,12 +1,13 @@
 """ClientRepository module: contains the ClientRepository class"""
 
-from ClientRepositoryBase import ClientRepositoryBase
+from .ClientRepositoryBase import ClientRepositoryBase
 from direct.directnotify import DirectNotifyGlobal
-from MsgTypesCMU import *
-from PyDatagram import PyDatagram
-from PyDatagramIterator import PyDatagramIterator
-from pandac.PandaModules import UniqueIdAllocator
-import types
+from direct.showbase.MessengerGlobal import messenger
+from .MsgTypesCMU import *
+from .PyDatagram import PyDatagram
+from .PyDatagramIterator import PyDatagramIterator
+from panda3d.core import UniqueIdAllocator, Notify
+
 
 class ClientRepository(ClientRepositoryBase):
     """
@@ -23,7 +24,7 @@ class ClientRepository(ClientRepositoryBase):
     GameGlobalsId = 0
 
     doNotDeallocateChannel = True
-    
+
     def __init__(self, dcFileNames = None, dcSuffix = '', connectMethod = None,
                  threadedNet = None):
         ClientRepositoryBase.__init__(self, dcFileNames = dcFileNames, dcSuffix = dcSuffix, connectMethod = connectMethod, threadedNet = threadedNet)
@@ -68,7 +69,7 @@ class ClientRepository(ClientRepositoryBase):
         zone = di.getUint32()
         for obj in self.doId2do.values():
             if obj.zoneId == zone:
-                if (self.isLocalId(obj.doId)):
+                if self.isLocalId(obj.doId):
                     self.resendGenerate(obj)
 
     def resendGenerate(self, obj):
@@ -114,12 +115,12 @@ class ClientRepository(ClientRepositoryBase):
             # repeat-generate, synthesized for the benefit of someone
             # else who just entered the zone.  Accept the new updates,
             # but don't make a formal generate.
-            assert(self.notify.debug("performing generate-update for %s %s" % (dclass.getName(), doId)))
+            assert self.notify.debug("performing generate-update for %s %s" % (dclass.getName(), doId))
             dclass.receiveUpdateBroadcastRequired(distObj, di)
             dclass.receiveUpdateOther(distObj, di)
             return
 
-        assert(self.notify.debug("performing generate for %s %s" % (dclass.getName(), doId)))
+        assert self.notify.debug("performing generate for %s %s" % (dclass.getName(), doId))
         dclass.startGenerate()
         # Create a new distributed object, and put it in the dictionary
         distObj = self.generateWithRequiredOtherFields(dclass, doId, di, 0, zoneId)
@@ -168,7 +169,7 @@ class ClientRepository(ClientRepositoryBase):
         on the network or previously passed through
         createDistributedObject.)  In either case, the new
         DistributedObject is returned from this method.
-        
+
         This method will issue the appropriate network commands to
         make this object appear on all of the other clients.
 
@@ -195,12 +196,12 @@ class ClientRepository(ClientRepositoryBase):
             doId = self.allocateDoId()
         elif reserveDoId:
             self.reserveDoId(doId)
-            
+
         dclass = self.dclassesByName.get(className)
         if not dclass:
             self.notify.error("Unknown distributed class: %s" % (distObj.__class__))
         classDef = dclass.getClassDef()
-        if classDef == None:
+        if classDef is None:
             self.notify.error("Could not create an undefined %s object." % (
                 dclass.getName()))
 
@@ -288,14 +289,14 @@ class ClientRepository(ClientRepositoryBase):
     def isLocalId(self, doId):
         """ Returns true if this doId is one that we're the owner of,
         false otherwise. """
-        
-        return ((doId >= self.doIdBase) and (doId < self.doIdLast))
+
+        return doId >= self.doIdBase and doId < self.doIdLast
 
     def haveCreateAuthority(self):
         """ Returns true if this client has been assigned a range of
         doId's it may use to create objects, false otherwise. """
-        
-        return (self.doIdLast > self.doIdBase)
+
+        return self.doIdLast > self.doIdBase
 
     def getAvatarIdFromSender(self):
         """ Returns the doIdBase of the client that originally sent
@@ -305,8 +306,8 @@ class ClientRepository(ClientRepositoryBase):
 
     def handleDatagram(self, di):
         if self.notify.getDebug():
-            print "ClientRepository received datagram:"
-            di.getDatagram().dumpHex(ostream)
+            print("ClientRepository received datagram:")
+            di.getDatagram().dumpHex(Notify.out())
 
         msgType = self.getMsgType()
         self.currentSenderId = None
@@ -372,7 +373,7 @@ class ClientRepository(ClientRepositoryBase):
         This is not a distributed message and does not delete the
         object on the server or on any other client.
         """
-        if self.doId2do.has_key(doId):
+        if doId in self.doId2do:
             # If it is in the dictionary, remove it.
             obj = self.doId2do[doId]
             # Remove it from the dictionary
@@ -418,7 +419,7 @@ class ClientRepository(ClientRepositoryBase):
         # Reformat the packed datagram to change the message type and
         # add the target id.
         dgi.getUint16()
-        
+
         dg = PyDatagram()
         dg.addUint16(CLIENT_OBJECT_UPDATE_FIELD_TARGETED_CMU)
         dg.addUint32(channelId & 0xffffffff)

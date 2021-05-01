@@ -1,10 +1,7 @@
-
-from pandac.PandaModules import *
-
 from direct.task import Task
-from DistributedNodeAI import DistributedNodeAI
-from CartesianGridBase import CartesianGridBase
-from GridChild import GridChild
+from .DistributedNodeAI import DistributedNodeAI
+from .CartesianGridBase import CartesianGridBase
+from .GridChild import GridChild
 
 class DistributedCartesianGridAI(DistributedNodeAI, CartesianGridBase):
     notify = directNotify.newCategory("DistributedCartesianGridAI")

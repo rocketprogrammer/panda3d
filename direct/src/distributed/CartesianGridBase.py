@@ -1,5 +1,5 @@
-from pandac.PandaModules import Vec3, NodePath
-from GridChild import GridChild
+from panda3d.core import Vec3, NodePath
+from .GridChild import GridChild
 
 class CartesianGridBase:
     # Utility functions that are useful to both AI and client CartesianGrid code
@@ -11,7 +11,7 @@ class CartesianGridBase:
         self.cellWidth = cellWidth
         self.style = style
         self.center = gridSize * cellWidth / 2.0
-        
+
         self.__managedChildren = set()
         self.__managementTask = None
         self.__period = period
@@ -41,12 +41,12 @@ class CartesianGridBase:
 
     def getCellWidth(self):
         return self.cellWidth
-    
+
     def setCellWidth(self, width):
         self.cellWidth = width
 
     def isValidZone(self, zoneId):
-        
+
         if self.style == "Cartesian":
             return self.isGridZone(zoneId)
         elif self.style == "CartesianStated":
@@ -58,7 +58,7 @@ class CartesianGridBase:
 
     def isGridZone(self, zoneId):
         return self.startingZone <= zoneId < (self.startingZone + self.gridSize * self.gridSize)
-        
+
     def getZoneFromXYZ(self, pos, wantRowAndCol=False):
         # NOTE: pos should be relative to our own grid origin
         # Convert a 3d position to a zone
@@ -69,8 +69,8 @@ class CartesianGridBase:
         # Compute which zone we are in
         zoneId = int(self.startingZone + ((row * self.gridSize) + col))
 
-        if (wantRowAndCol):
-            return (zoneId,col,row)
+        if wantRowAndCol:
+            return (zoneId, col, row)
         else:
             return zoneId
 
@@ -96,7 +96,7 @@ class CartesianGridBase:
         xMax = abs(spherePos[0])+sphereRadius
         yMax = abs(spherePos[1])+sphereRadius
         sphereRadius = Vec3(xMax,yMax,0).length()
-        
+
         # sphereRadius = max(sphereRadius, gridRadius*cellWidth)
         return max(2 * (sphereRadius // cellWidth), 1)
 
@@ -151,9 +151,9 @@ class CartesianGridBase:
             else:
                 # in a middle column, only look at top and bottom rows
                 possibleRows = []
-                if (topOffset == radius):
+                if topOffset == radius:
                     possibleRows.append(0)
-                if (bottomOffset == radius):
+                if bottomOffset == radius:
                     possibleRows.append(bottomOffset + topOffset)
             #print "on column %s and looking at rows %s"%(currCol,possibleRows)
             for currRow in possibleRows:
@@ -190,7 +190,7 @@ class CartesianGridBase:
             return zoneId
         else:
             assert self.notify.warning("Placing object on grid in non-grid zone(%s): %s" % (zoneId, child))
-        return 0            
+        return 0
 
     def handleChildArrive(self, child, zoneId):
         assert isinstance(child, GridChild), "Must be a GridChild to be setLocation()ed here"
@@ -229,7 +229,7 @@ class CartesianGridBase:
         self.__managedChildren.discard(child)
         if not self.__managedChildren:
             self.stopManagementTask()
-    
+
     def startManagementTask(self):
         self.stopManagementTask()
         if self.__period:
@@ -245,9 +245,9 @@ class CartesianGridBase:
 
         # Want to be clever?
         # map(__manageChild, self.__managedChildren)
-        #  or 
+        #  or
         # [self.__manageChild(child) for child in self.__managedChildren]
-        
+
         for child in self.__managedChildren:
             self.__manageChild(child)
         return task._return
@@ -326,7 +326,7 @@ class CartesianGridBase:
                 else:
                     self.notify.warning(
                         "%s handleChildCellChange %s: not a valid zone (%s) for pos %s" %(
-                        self.doId, child.doId, newZoneId, child.getPos(currGrid)))                     
+                        self.doId, child.doId, newZoneId, child.getPos(currGrid)))
 
     def stopManagementTask(self):
         if self.__managementTask:

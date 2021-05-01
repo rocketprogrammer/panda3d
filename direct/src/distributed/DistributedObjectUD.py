@@ -2,8 +2,8 @@
 
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.distributed.DistributedObjectBase import DistributedObjectBase
+from direct.showbase.MessengerGlobal import messenger
 from direct.showbase import PythonUtil
-from pandac.PandaModules import *
 #from PyDatagram import PyDatagram
 #from PyDatagramIterator import PyDatagramIterator
 
@@ -12,9 +12,7 @@ class DistributedObjectUD(DistributedObjectBase):
     QuietZone = 1
 
     def __init__(self, air):
-        try:
-            self.DistributedObjectUD_initialized
-        except:
+        if not hasattr(self, 'DistributedObjectUD_initialized'):
             self.DistributedObjectUD_initialized = 1
             DistributedObjectBase.__init__(self, air)
 
@@ -54,24 +52,26 @@ class DistributedObjectUD(DistributedObjectBase):
         def status(self, indent=0):
             """
             print out doId(parentId, zoneId) className
-                and conditionally show generated, disabled, neverDisable,
-                or cachable
+                and conditionally show generated or deleted
             """
             spaces = ' ' * (indent + 2)
             try:
-                print "%s%s:" % (' ' * indent, self.__class__.__name__)
-                print ("%sfrom "
-                       "DistributedObject doId:%s, parent:%s, zone:%s" %
-                       (spaces, self.doId, self.parentId, self.zoneId)),
+                print("%s%s:" % (' ' * indent, self.__class__.__name__))
+
                 flags = []
                 if self.__generated:
                     flags.append("generated")
-                if self.air == None:
+                if self.air is None:
                     flags.append("deleted")
-                if len(flags):
-                    print "(%s)" % (" ".join(flags),),
-                print
-            except Exception, e: print "%serror printing status" % (spaces,), e
+
+                flagStr = ""
+                if len(flags) > 0:
+                    flagStr = " (%s)" % (" ".join(flags))
+
+                print("%sfrom DistributedObject doId:%s, parent:%s, zone:%s%s" % (
+                    spaces, self.doId, self.parentId, self.zoneId, flagStr))
+            except Exception as e:
+                print("%serror printing status %s" % (spaces, e))
 
     def getDeleteEvent(self):
         # this is sent just before we get deleted
@@ -100,24 +100,23 @@ class DistributedObjectUD(DistributedObjectBase):
                 # self.doId may not exist.  The __dict__ syntax works around that.
                 assert self.notify.debug('delete(): %s' % (self.__dict__.get("doId")))
 
-                if not self._DOUD_requestedDelete:
-                    # this logs every delete that was not requested by us.
-                    # TODO: this currently prints warnings for deletes of objects
-                    # that we did not create. We need to add a 'locally created'
-                    # flag to every object to filter these out.
-                    """
-                    DistributedObjectUD.notify.warning(
-                        'delete() called but requestDelete never called for %s: %s'
-                        % (self.__dict__.get('doId'), self.__class__.__name__))
-                        """
-                    """
-                    # print a stack trace so we can detect whether this is the
-                    # result of a network msg.
-                    # this is slow.
-                    from direct.showbase.PythonUtil import StackTrace
-                    DistributedObjectUD.notify.warning(
-                        'stack trace: %s' % StackTrace())
-                        """
+                #if not self._DOUD_requestedDelete:
+                #    # this logs every delete that was not requested by us.
+                #    # TODO: this currently prints warnings for deletes of objects
+                #    # that we did not create. We need to add a 'locally created'
+                #    # flag to every object to filter these out.
+                #
+                #    DistributedObjectUD.notify.warning(
+                #        'delete() called but requestDelete never called for %s: %s'
+                #        % (self.__dict__.get('doId'), self.__class__.__name__))
+                #
+                #    # print a stack trace so we can detect whether this is the
+                #    # result of a network msg.
+                #    # this is slow.
+                #    from direct.showbase.PythonUtil import StackTrace
+                #    DistributedObjectUD.notify.warning(
+                #        'stack trace: %s' % StackTrace())
+
                 self._DOUD_requestedDelete = False
 
                 # Clean up all the pending barriers.
@@ -140,7 +139,7 @@ class DistributedObjectUD(DistributedObjectBase):
         Returns true if the object has been deleted,
         or if it is brand new and hasnt yet been generated.
         """
-        return self.air == None
+        return self.air is None
 
     def isGenerated(self):
         """
@@ -213,7 +212,7 @@ class DistributedObjectUD(DistributedObjectBase):
         # but before we update the non-required fields.
         self.announceGenerate()
         self.postGenerateMessage()
-        
+
         dclass.receiveUpdateOther(self, di)
 
     def updateAllRequiredOtherFields(self, dclass, di):
@@ -222,7 +221,7 @@ class DistributedObjectUD(DistributedObjectBase):
         # but before we update the non-required fields.
         self.announceGenerate()
         self.postGenerateMessage()
-        
+
         dclass.receiveUpdateOther(self, di)
 
     def sendSetZone(self, zoneId):
@@ -233,7 +232,7 @@ class DistributedObjectUD(DistributedObjectBase):
         # arguments are newZoneId, oldZoneId
         # includes the quiet zone.
         return 'DOChangeZone-%s' % self.doId
-    
+
     def getLogicalZoneChangeEvent(self):
         # this event is generated whenever this object changes to a
         # non-quiet-zone zone.
@@ -267,16 +266,16 @@ class DistributedObjectUD(DistributedObjectBase):
             self.air.sendUpdate(self, fieldName, args)
 
     def GetPuppetConnectionChannel(self, doId):
-        return doId + (1L << 32)
+        return doId + (1001 << 32)
 
     def GetAccountConnectionChannel(self, doId):
-        return doId + (3L << 32)
+        return doId + (1003 << 32)
 
     def GetAccountIDFromChannelCode(self, channel):
         return channel >> 32
 
     def GetAvatarIDFromChannelCode(self, channel):
-        return channel & 0xffffffffL
+        return channel & 0xffffffff
 
     def sendUpdateToAvatarId(self, avId, fieldName, args):
         assert self.notify.debugStateCall(self)
@@ -324,7 +323,7 @@ class DistributedObjectUD(DistributedObjectBase):
         self.generate()
         self.announceGenerate()
         self.postGenerateMessage()
-        
+
     def generateOtpObject(self, parentId, zoneId, optionalFields=[], doId=None):
         assert self.notify.debugStateCall(self)
         # have we already allocated a doId?
@@ -406,10 +405,10 @@ class DistributedObjectUD(DistributedObjectBase):
         self._DOUD_requestedDelete = True
 
     def taskName(self, taskString):
-        return ("%s-%s" % (taskString, self.doId))
+        return "%s-%s" % (taskString, self.doId)
 
     def uniqueName(self, idString):
-        return ("%s-%s" % (idString, self.doId))
+        return "%s-%s" % (idString, self.doId)
 
     def validate(self, avId, bool, msg):
         if not bool:
@@ -472,7 +471,7 @@ class DistributedObjectUD(DistributedObjectBase):
         avId = self.air.getAvatarIdFromSender()
         assert self.notify.debug('setBarrierReady(%s, %s)' % (context, avId))
         barrier = self.__barriers.get(context)
-        if barrier == None:
+        if barrier is None:
             # This may be None if a client was slow and missed an
             # earlier timeout.  Too bad.
             return

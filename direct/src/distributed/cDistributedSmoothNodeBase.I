@@ -56,7 +56,7 @@ only_changed(int flags, int compare) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmStop
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmStop() {
@@ -69,7 +69,7 @@ d_setSmStop() {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmH
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmH(float h) {
@@ -83,7 +83,7 @@ d_setSmH(float h) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmZ
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmZ(float z) {
@@ -97,7 +97,7 @@ d_setSmZ(float z) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmXY
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmXY(float x, float y) {
@@ -112,7 +112,7 @@ d_setSmXY(float x, float y) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmXZ
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmXZ(float x, float z) {
@@ -127,7 +127,7 @@ d_setSmXZ(float x, float z) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmPos
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmPos(float x, float y, float z) {
@@ -143,7 +143,7 @@ d_setSmPos(float x, float y, float z) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmHpr
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmHpr(float h, float p, float r) {
@@ -159,7 +159,7 @@ d_setSmHpr(float h, float p, float r) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmXYH
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmXYH(float x, float y, float h) {
@@ -175,7 +175,7 @@ d_setSmXYH(float x, float y, float h) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmXYZH
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmXYZH(float x, float y, float z, float h) {
@@ -192,7 +192,7 @@ d_setSmXYZH(float x, float y, float z, float h) {
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::d_setSmPosHpr
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
 d_setSmPosHpr(float x, float y, float z, float h, float p, float r) {
@@ -212,10 +212,10 @@ d_setSmPosHpr(float x, float y, float z, float h, float p, float r) {
 //     Function: CDistributedSmoothNodeBase::d_setSmPosHprE
 //                 send out pos, hpr, and location info (zoneId)
 //       Access: Private
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 INLINE void CDistributedSmoothNodeBase::
-d_setSmPosHprE(float x, float y, float z, float h, float p, float r, PN_uint64 e) {
+d_setSmPosHprE(float x, float y, float z, float h, float p, float r, uint64_t e) {
   //cout << "d_setSmPosHprE: " << x << ", " << y << ", " << z << ", " << h << ", " << p << ", " << r << e << endl;
   DCPacker packer;
   begin_send_update(packer, "setSmPosHprE");
