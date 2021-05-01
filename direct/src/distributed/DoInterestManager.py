@@ -11,10 +11,8 @@ from panda3d.core import *
 from .MsgTypes import *
 from direct.showbase.PythonUtil import *
 from direct.showbase import DirectObject
-from direct.showbase.MessengerGlobal import messenger
 from .PyDatagram import PyDatagram
 from direct.directnotify.DirectNotifyGlobal import directNotify
-import types
 from direct.showbase.PythonUtil import report
 
 class InterestState:
@@ -62,6 +60,8 @@ class InterestHandle:
     """This class helps to ensure that valid handles get passed in to DoInterestManager funcs"""
     def __init__(self, id):
         self._id = id
+    def __hash__(self):
+        return self._id
     def asInt(self):
         return self._id
     def __eq__(self, other):
@@ -129,8 +129,43 @@ class DoInterestManager(DirectObject.DirectObject):
         else:
             self._allInterestsCompleteCallbacks.append(callback)
 
+    def removeAllInterestsCompleteCallback(self, callback):
+        if callback in self._allInterestsCompleteCallbacks:
+            self._allInterestsCompleteCallbacks.remove(callback)
+            pass
+        pass
+
     def getAllInterestsCompleteEvent(self):
         return 'allInterestsComplete-%s' % DoInterestManager._SerialNum
+
+    def cleanupWaitAllInterestsComplete(self):
+        if self._completeDelayedCallback is not None:
+            self._completeDelayedCallback.destroy()
+            self._completeDelayedCallback = None
+
+    def queueAllInterestsCompleteEvent(self, frames=5):
+        # wait for N frames, if no new interests, send out all-done event
+        # calling this is OK even if there are no pending interest completes
+        def checkMoreInterests():
+            # if there are new interests, cancel this delayed callback, another
+            # will automatically be scheduled when all interests complete
+            # print 'checkMoreInterests(',self._completeEventCount.num,'):',globalClock.getFrameCount()
+            return self._completeEventCount.num > 0
+        def sendEvent():
+            messenger.send(self.getAllInterestsCompleteEvent())
+            callbacks = self._allInterestsCompleteCallbacks[:]
+            self._allInterestsCompleteCallbacks = []
+            for callback in callbacks:
+                callback()
+                pass
+        self.cleanupWaitAllInterestsComplete()
+        self._completeDelayedCallback = FrameDelayedCall(
+            'waitForAllInterestCompletes',
+            callback=sendEvent,
+            frames=frames,
+            cancelFunc=checkMoreInterests)
+        checkMoreInterests = None
+        sendEvent = None
 
     def resetInterestStateForConnectionLoss(self):
         DoInterestManager._interests.clear()
@@ -149,6 +184,19 @@ class DoInterestManager(DirectObject.DirectObject):
         iState = DoInterestManager._interests.get(handle.asInt())
         if iState:
             iState.setDesc(desc)
+
+    def getInterestLocations(self, handle):
+        if self.isValidInterestHandle(handle):
+            iState = DoInterestManager._interests.get(handle.asInt())
+            if isinstance(iState.zoneIdList, list):
+                locations = [(iState.parentId,zoneId) for zoneId in iState.zoneIdList]
+            else:
+                locations = [(iState.parentId,iState.zoneIdList)]
+        else:
+            locations = []
+            pass
+        assert locations
+        return locations
 
     def addInterest(self, parentId, zoneIdList, description, event=None):
         """
@@ -173,8 +221,6 @@ class DoInterestManager(DirectObject.DirectObject):
                     DoInterestManager.notify.error(
                         'addInterest: no setParentingRules defined in the DC for object %s (%s)'
                         '' % (parentId, parent.__class__.__name__))
-
-
 
         if event:
             contextId = self._getNextContextId()
@@ -375,9 +421,9 @@ class DoInterestManager(DirectObject.DirectObject):
             return
         autoInterests = obj.getAutoInterests()
         obj._autoInterestHandle = None
-        if len(autoInterests) == 0:
+        if not len(autoInterests):
             return
-        obj._autoInterestHandle = self.addAutoInterest(obj.doId, autoInterests, '%s-autoInterest' % obj.__class__.__name__)
+        obj._autoInterestHandle = self.addAutoInterest(obj.doId, autoInterests, '%s - (auto)' % obj.__class__.__name__)
     def closeAutoInterests(self, obj):
         if not hasattr(obj, '_autoInterestHandle'):
             # must be multiple inheritance
@@ -485,7 +531,6 @@ class DoInterestManager(DirectObject.DirectObject):
                          action=None):
         """
         Part of the new otp-server code.
-
         handle is a client-side created number that refers to
                 a set of interests.  The same handle number doesn't
                 necessarily have any relationship to the same handle
@@ -504,23 +549,18 @@ class DoInterestManager(DirectObject.DirectObject):
                 'trying to set interest to invalid parent: %s' % parentId)
         datagram = PyDatagram()
         # Add message type
+        datagram.addUint16(97) # CLIENT_ADD_INTEREST
+        datagram.addUint16(handle)
+        datagram.addUint32(contextId)
+        datagram.addUint32(parentId)
         if isinstance(zoneIdList, list):
             vzl = list(zoneIdList)
             vzl.sort()
             uniqueElements(vzl)
-            datagram.addUint16(CLIENT_ADD_INTEREST_MULTIPLE)
-            datagram.addUint32(contextId)
-            datagram.addUint16(handle)
-            datagram.addUint32(parentId)
-            datagram.addUint16(len(vzl))
             for zone in vzl:
                 datagram.addUint32(zone)
         else:
-            datagram.addUint16(CLIENT_ADD_INTEREST)
-            datagram.addUint32(contextId)
-            datagram.addUint16(handle)
-            datagram.addUint32(parentId)
-            datagram.addUint32(zoneIdList)
+           datagram.addUint32(zoneIdList)
         self.send(datagram)
 
     def _sendRemoveInterest(self, handle, contextId):
@@ -534,9 +574,10 @@ class DoInterestManager(DirectObject.DirectObject):
         assert handle in DoInterestManager._interests
         datagram = PyDatagram()
         # Add message type
-        datagram.addUint16(CLIENT_REMOVE_INTEREST)
-        datagram.addUint32(contextId)
+        datagram.addUint16(99) # CLIENT_REMOVE_INTEREST
         datagram.addUint16(handle)
+        if contextId != 0:
+            datagram.addUint32(contextId)
         self.send(datagram)
         if __debug__:
             state = DoInterestManager._interests[handle]
@@ -555,40 +596,13 @@ class DoInterestManager(DirectObject.DirectObject):
         datagram.addUint16((1<<15) + handle)
         self.send(datagram)
 
-    def cleanupWaitAllInterestsComplete(self):
-        if self._completeDelayedCallback is not None:
-            self._completeDelayedCallback.destroy()
-            self._completeDelayedCallback = None
-
-    def queueAllInterestsCompleteEvent(self, frames=5):
-        # wait for N frames, if no new interests, send out all-done event
-        # calling this is OK even if there are no pending interest completes
-        def checkMoreInterests():
-            # if there are new interests, cancel this delayed callback, another
-            # will automatically be scheduled when all interests complete
-            # print 'checkMoreInterests(',self._completeEventCount.num,'):',globalClock.getFrameCount()
-            return self._completeEventCount.num > 0
-        def sendEvent():
-            messenger.send(self.getAllInterestsCompleteEvent())
-            for callback in self._allInterestsCompleteCallbacks:
-                callback()
-            self._allInterestsCompleteCallbacks = []
-        self.cleanupWaitAllInterestsComplete()
-        self._completeDelayedCallback = FrameDelayedCall(
-            'waitForAllInterestCompletes',
-            callback=sendEvent,
-            frames=frames,
-            cancelFunc=checkMoreInterests)
-        checkMoreInterests = None
-        sendEvent = None
-
     def handleInterestDoneMessage(self, di):
         """
         This handles the interest done messages and may dispatch an event
         """
         assert DoInterestManager.notify.debugCall()
-        contextId = di.getUint32()
         handle = di.getUint16()
+        contextId = di.getUint32()
         if handle >= 32000:
             # This is a server-sent interest.
             return
