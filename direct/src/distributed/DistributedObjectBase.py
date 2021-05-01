@@ -119,8 +119,8 @@ class DistributedObjectBase(DirectObject):
                         from pandac.PandaModules import DCPacker
                         p = DCPacker()
                         p.setUnpackData(field.getDefaultValue())
-                        len = p.rawUnpackUint16()/4
-                        for i in xrange(len):
+                        length = p.rawUnpackUint16() // 4
+                        for i in range(length):
                             zone = int(p.rawUnpackUint32())
                             autoInterests.add(zone)
                     autoInterests.update(autoInterests)
