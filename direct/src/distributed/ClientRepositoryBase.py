@@ -1,18 +1,16 @@
 from panda3d.core import *
 from panda3d.direct import *
+from .MsgTypes import *
 from direct.task import Task
-from direct.task.TaskManagerGlobal import taskMgr
 from direct.directnotify import DirectNotifyGlobal
+from . import CRCache
 from direct.distributed.CRDataCache import CRDataCache
 from direct.distributed.ConnectionRepository import ConnectionRepository
-from direct.showbase.PythonUtil import safeRepr, itype, makeList
-from direct.showbase.MessengerGlobal import messenger
-from .MsgTypes import *
-from . import CRCache
+from direct.showbase import PythonUtil
 from . import ParentMgr
 from . import RelatedObjectMgr
-from .ClockDelta import *
 import time
+from .ClockDelta import *
 
 
 class ClientRepositoryBase(ConnectionRepository):
@@ -33,7 +31,7 @@ class ClientRepositoryBase(ConnectionRepository):
         ConnectionRepository.__init__(self, connectMethod, base.config, hasOwnerView = True, threadedNet = threadedNet)
         self.dcSuffix = dcSuffix
         if hasattr(self, 'setVerbose'):
-            if ConfigVariableBool('verbose-clientrepository', False):
+            if self.config.GetBool('verbose-clientrepository'):
                 self.setVerbose(1)
 
         self.context=100000
@@ -42,7 +40,7 @@ class ClientRepositoryBase(ConnectionRepository):
         self.deferredGenerates = []
         self.deferredDoIds = {}
         self.lastGenerate = 0
-        self.setDeferInterval(ConfigVariableDouble('deferred-generate-interval', 0.2).value)
+        self.setDeferInterval(base.config.GetDouble('deferred-generate-interval', 0.2))
         self.noDefer = False  # Set this True to temporarily disable deferring.
 
         self.recorder = base.recorder
@@ -69,7 +67,7 @@ class ClientRepositoryBase(ConnectionRepository):
 
         # Keep track of how recently we last sent a heartbeat message.
         # We want to keep these coming at heartbeatInterval seconds.
-        self.heartbeatInterval = ConfigVariableDouble('heartbeat-interval', 10).value
+        self.heartbeatInterval = base.config.GetDouble('heartbeat-interval', 10)
         self.heartbeatStarted = 0
         self.lastHeartbeat = 0
 
@@ -157,7 +155,7 @@ class ClientRepositoryBase(ConnectionRepository):
         # Look up the dclass
         assert parentId == self.GameGlobalsId or parentId in self.doId2do
         dclass = self.dclassesByNumber[classId]
-        assert self.notify.debug("performing generate for %s %s" % (dclass.getName(), doId))
+        assert(self.notify.debug("performing generate for %s %s" % (dclass.getName(), doId)))
         dclass.startGenerate()
         # Create a new distributed object, and put it in the dictionary
         distObj = self.generateWithRequiredOtherFields(dclass, doId, di, parentId, zoneId)
@@ -191,7 +189,7 @@ class ClientRepositoryBase(ConnectionRepository):
                 for dg, di in updates:
                     # non-DC updates that need to be played back in-order are
                     # stored as (msgType, (dg, di))
-                    if isinstance(di, tuple):
+                    if type(di) is tuple:
                         msgType = dg
                         dg, di = di
                         self.replayDeferredGenerate(msgType, (dg, di))
@@ -250,7 +248,7 @@ class ClientRepositoryBase(ConnectionRepository):
             # ...it is not in the dictionary or the cache.
             # Construct a new one
             classDef = dclass.getClassDef()
-            if classDef is None:
+            if classDef == None:
                 self.notify.error("Could not create an undefined %s object." % (dclass.getName()))
             distObj = classDef(self)
             distObj.dclass = dclass
@@ -265,7 +263,7 @@ class ClientRepositoryBase(ConnectionRepository):
             distObj.setLocation(parentId, zoneId)
             distObj.updateRequiredFields(dclass, di)
             # updateRequiredFields calls announceGenerate
-            self.notify.debug("New DO:%s, dclass:%s" % (doId, dclass.getName()))
+            print("New DO:%s, dclass:%s" % (doId, dclass.getName()))
         return distObj
 
     def generateWithRequiredOtherFields(self, dclass, doId, di,
@@ -298,7 +296,7 @@ class ClientRepositoryBase(ConnectionRepository):
             # ...it is not in the dictionary or the cache.
             # Construct a new one
             classDef = dclass.getClassDef()
-            if classDef is None:
+            if classDef == None:
                 self.notify.error("Could not create an undefined %s object." % (dclass.getName()))
             distObj = classDef(self)
             distObj.dclass = dclass
@@ -341,7 +339,7 @@ class ClientRepositoryBase(ConnectionRepository):
             # ...it is not in the dictionary or the cache.
             # Construct a new one
             classDef = dclass.getOwnerClassDef()
-            if classDef is None:
+            if classDef == None:
                 self.notify.error("Could not create an undefined %s object. Have you created an owner view?" % (dclass.getName()))
             distObj = classDef(self)
             distObj.dclass = dclass
@@ -454,7 +452,7 @@ class ClientRepositoryBase(ConnectionRepository):
             # a dict and adding the avatar handles to that dict when they are created
             # then change/remove the old method. I didn't do that because I couldn't think
             # of a use for it. -JML
-            try:
+            try :
                 handle = self.identifyAvatar(doId)
                 if handle:
                     dclass = self.dclassesByName[handle.dclassName]
@@ -479,7 +477,7 @@ class ClientRepositoryBase(ConnectionRepository):
     def handleGoGetLost(self, di):
         # The server told us it's about to drop the connection on us.
         # Get ready!
-        if di.getRemainingSize() > 0:
+        if (di.getRemainingSize() > 0):
             self.bootedIndex = di.getUint16()
             self.bootedText = di.getString()
 
@@ -497,7 +495,7 @@ class ClientRepositoryBase(ConnectionRepository):
 
     def handleServerHeartbeat(self, di):
         # Got a heartbeat message from the server.
-        if ConfigVariableBool('server-heartbeat-info', True):
+        if base.config.GetBool('server-heartbeat-info', 1):
             self.notify.info("Server heartbeat.")
 
     def handleSystemMessage(self, di):
@@ -581,7 +579,7 @@ class ClientRepositoryBase(ConnectionRepository):
         return worldNP
 
     def isLive(self):
-        if ConfigVariableBool('force-live', False):
+        if base.config.GetBool('force-live', 0):
             return True
         return not (__dev__ or launcher.isTestServer())
 

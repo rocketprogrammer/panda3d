@@ -1,7 +1,7 @@
 # ClockDelta provides the ability to use clock synchronization for
 # distributed objects
 
-from panda3d.core import ClockObject, ConfigVariableBool
+from panda3d.core import ClockObject
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase import DirectObject
 import math
@@ -78,7 +78,7 @@ class ClockDelta(DirectObject.DirectObject):
         # representing infinite uncertainty, if we have never received
         # a time measurement.
 
-        if self.uncertainty is None:
+        if self.uncertainty == None:
             return None
 
         now = self.globalClock.getRealTime()
@@ -190,7 +190,7 @@ class ClockDelta(DirectObject.DirectObject):
         the new measurement was used, false if it was discarded.
         """
         oldUncertainty = self.getUncertainty()
-        if oldUncertainty is not None:
+        if oldUncertainty != None:
             self.notify.info(
                 'previous delta at %.3f s, +/- %.3f s.' %
                 (self.delta, oldUncertainty))
@@ -241,14 +241,14 @@ class ClockDelta(DirectObject.DirectObject):
         minutes of the current local time given in now, or
         getRealTime() if now is not specified.
         """
-        if now is None:
+        if now == None:
             now = self.globalClock.getRealTime()
 
         # Are we in non-real-time mode (i.e. filming a movie)?  If you
         # set movie-network-time 1, then we'll circumvent this logic
         # and always return now.
         if self.globalClock.getMode() == ClockObject.MNonRealTime and \
-           ConfigVariableBool('movie-network-time', False):
+           base.config.GetBool('movie-network-time', False):
             return now
 
         # First, determine what network time we have for 'now'.

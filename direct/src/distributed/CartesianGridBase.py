@@ -69,8 +69,8 @@ class CartesianGridBase:
         # Compute which zone we are in
         zoneId = int(self.startingZone + ((row * self.gridSize) + col))
 
-        if wantRowAndCol:
-            return (zoneId, col, row)
+        if (wantRowAndCol):
+            return (zoneId,col,row)
         else:
             return zoneId
 
@@ -151,9 +151,9 @@ class CartesianGridBase:
             else:
                 # in a middle column, only look at top and bottom rows
                 possibleRows = []
-                if topOffset == radius:
+                if (topOffset == radius):
                     possibleRows.append(0)
-                if bottomOffset == radius:
+                if (bottomOffset == radius):
                     possibleRows.append(bottomOffset + topOffset)
             #print "on column %s and looking at rows %s"%(currCol,possibleRows)
             for currRow in possibleRows:
@@ -181,7 +181,6 @@ class CartesianGridBase:
         This attaches the child to the grid with a grid cell node in-between.
         The relative transform between the child and grid is maintained.
         """
-        assert isinstance(child, GridChild), "Must be a GridChild to do this"
         assert not child.getParent() or child.getParent() == NodePath(self), "Parent must be grid or None"
         child.reparentTo(self) # go ahead and put us here
         zoneId = self.getZoneFromXYZ(child.getPos())

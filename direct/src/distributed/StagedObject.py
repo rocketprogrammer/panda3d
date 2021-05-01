@@ -61,3 +61,4 @@ class StagedObject:
 
     def isOffStage(self):
         return self.__state == StagedObject.OFF
+

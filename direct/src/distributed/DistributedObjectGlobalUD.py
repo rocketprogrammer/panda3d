@@ -1,4 +1,5 @@
-from panda3d.core import ConfigVariableInt
+
+
 from .DistributedObjectUD import DistributedObjectUD
 from direct.directnotify.DirectNotifyGlobal import directNotify
 
@@ -24,8 +25,7 @@ class DistributedObjectGlobalUD(DistributedObjectUD):
         DistributedObjectUD.delete(self)
 
     def execCommand(self, command, mwMgrId, avId, zoneId):
-        length = ConfigVariableInt("ai-debug-length", 300)
-        text = str(self.__execMessage(command))[:length.value]
+        text = str(self.__execMessage(command))[:config.GetInt("ai-debug-length",300)]
         self.notify.info(text)
 
     def __execMessage(self, message):

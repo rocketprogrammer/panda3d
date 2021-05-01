@@ -2,12 +2,8 @@
 
 from .ClockDelta import *
 from direct.task import Task
-from direct.task.TaskManagerGlobal import taskMgr
-from direct.showbase.PythonUtil import randFloat
+from direct.showbase.PythonUtil import randFloat, Enum
 from panda3d.direct import CDistributedSmoothNodeBase
-
-from enum import IntEnum
-
 
 class DummyTaskClass:
     def setDelay(self, blah):
@@ -18,11 +14,7 @@ DummyTask = DummyTaskClass()
 class DistributedSmoothNodeBase:
     """common base class for DistributedSmoothNode and DistributedSmoothNodeAI
     """
-
-    class BroadcastTypes(IntEnum):
-        FULL = 0
-        XYH = 1
-        XY = 2
+    BroadcastTypes = Enum('FULL, XYH, XY')
 
     def __init__(self):
         self.__broadcastPeriod = None
@@ -75,13 +67,13 @@ class DistributedSmoothNodeBase:
         self.d_broadcastPosHpr = None
 
     def posHprBroadcastStarted(self):
-        return self.d_broadcastPosHpr is not None
+        return self.d_broadcastPosHpr != None
 
     def wantSmoothPosBroadcastTask(self):
         return True
 
     def startPosHprBroadcast(self, period=.2, stagger=0, type=None):
-        if self.cnode is None:
+        if self.cnode == None:
             self.initializeCnode()
 
         BT = DistributedSmoothNodeBase.BroadcastTypes

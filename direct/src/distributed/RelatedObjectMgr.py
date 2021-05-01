@@ -2,9 +2,7 @@
 
 # from direct.showbase.ShowBaseGlobal import *
 from direct.showbase import DirectObject
-from direct.task.TaskManagerGlobal import taskMgr
 from direct.directnotify import DirectNotifyGlobal
-
 
 class RelatedObjectMgr(DirectObject.DirectObject):
     """
@@ -106,7 +104,7 @@ class RelatedObjectMgr(DirectObject.DirectObject):
         doIdList = doIdList[:]
 
         doLaterName = None
-        if timeout is not None:
+        if timeout != None:
             doLaterName = "RelatedObject-%s" % (RelatedObjectMgr.doLaterSequence)
             assert self.notify.debug("doLaterName = %s" % (doLaterName))
 
@@ -117,7 +115,7 @@ class RelatedObjectMgr(DirectObject.DirectObject):
 
         for doId in doIdsPending:
             pendingList = self.pendingObjects.get(doId)
-            if pendingList is None:
+            if pendingList == None:
                 pendingList = []
                 self.pendingObjects[doId] = pendingList
                 self.__listenFor(doId)
@@ -173,6 +171,7 @@ class RelatedObjectMgr(DirectObject.DirectObject):
         assert self.notify.debug("timeout expired for %s (remaining: %s)" % (doIdList, doIdsPending))
 
         self.__removePending(tuple, doIdsPending)
+
         if timeoutCallback:
             timeoutCallback(doIdList)
         else:
@@ -249,9 +248,10 @@ class RelatedObjectMgr(DirectObject.DirectObject):
             if doId:
                 object = self.cr.doId2do.get(doId)
                 objects.append(object)
-                if object is None:
+                if object == None:
                     doIdsPending.append(doId)
             else:
                 objects.append(None)
 
         return objects, doIdsPending
+

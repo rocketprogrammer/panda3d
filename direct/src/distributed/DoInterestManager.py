@@ -675,8 +675,7 @@ if __debug__:
                 if failed:
                     self.stream.write("failures=%d" % failed)
                 if errored:
-                    if failed:
-                        self.stream.write(", ")
+                    if failed: self.stream.write(", ")
                     self.stream.write("errors=%d" % errored)
                 self.stream.writeln(")")
             else:

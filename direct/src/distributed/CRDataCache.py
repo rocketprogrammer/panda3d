@@ -114,3 +114,4 @@ if __debug__:
     dc._stopMemLeakCheck()
     dc.destroy()
     del dc
+

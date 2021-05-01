@@ -4,11 +4,6 @@ from direct.fsm.FSM import FSM
 from direct.interval.IntervalGlobal import *
 from direct.distributed.DistributedObject import DistributedObject
 
-
-_camera_id = ConfigVariableInt('camera-id', -1)
-_aware_of_cameras = ConfigVariableInt('aware-of-cameras', 0)
-
-
 class Fixture(NodePath, FSM):
     def __init__(self, id, parent, pos, hpr, fov):
         NodePath.__init__(self, 'cam-%s' % id)
@@ -17,7 +12,7 @@ class Fixture(NodePath, FSM):
         self.lens = PerspectiveLens()
         self.lens.setFov(base.camLens.getFov())
 
-        model = base.loader.loadModel('models/misc/camera', okMissing = True)
+        model = loader.loadModel('models/misc/camera', okMissing = True)
         model.reparentTo(self)
 
         self.reparentTo(parent)
@@ -65,13 +60,15 @@ class Fixture(NodePath, FSM):
 
     def setRecordingInProgress(self, inProgress):
         self.recordingInProgress = inProgress
-        if self.recordingInProgress and _camera_id.value >= 0:
+        if self.recordingInProgress and \
+           base.config.GetInt('camera-id', -1) >= 0:
             self.hide()
         else:
             self.show()
 
     def show(self):
-        if _aware_of_cameras and not self.recordingInProgress:
+        if base.config.GetBool('aware-of-cameras',0) and \
+           not self.recordingInProgress:
             NodePath.show(self)
 
     def getScaleIval(self):
@@ -102,7 +99,7 @@ class Fixture(NodePath, FSM):
 
     def enterStandby(self):
         self.show()
-        if self.id == _camera_id.value:
+        if self.id == base.config.GetInt('camera-id', -1):
             self.setColorScale(3,0,0,1)
             self.getScaleIval().loop()
         else:
@@ -119,7 +116,7 @@ class Fixture(NodePath, FSM):
             self.scaleIval.finish()
 
     def enterRecording(self):
-        if _camera_id.value == self.id:
+        if base.config.GetInt('camera-id', -1) == self.id:
             self.demand('Using')
         else:
             self.show()
@@ -132,8 +129,8 @@ class Fixture(NodePath, FSM):
 
     def enterUsing(self, args = []):
         localAvatar.b_setGameState('Camera')
-        base.camera.setPosHpr(0,0,0,0,0,0)
-        base.camera.reparentTo(self)
+        camera.setPosHpr(0,0,0,0,0,0)
+        camera.reparentTo(self)
         self.hide()
 
         base.cam.node().setLens(self.lens)
@@ -180,7 +177,7 @@ class DistributedCamera(DistributedObject):
         DistributedObject.__init__(self, cr)
         self.parent = None
         self.fixtures = {}
-        self.cameraId = _camera_id.value
+        self.cameraId = base.config.GetInt('camera-id',0)
 
     def __getitem__(self, index):
         return self.fixtures.get(index)

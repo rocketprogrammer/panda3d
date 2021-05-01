@@ -1,7 +1,6 @@
 #from otp.ai.AIBaseGlobal import *
 from direct.directnotify import DirectNotifyGlobal
 from direct.showbase.DirectObject import DirectObject
-from direct.showbase.MessengerGlobal import messenger
 from .ConnectionRepository import *
 from panda3d.core import ConfigVariableDouble, ConfigVariableInt, ConfigVariableBool
 
@@ -255,8 +254,7 @@ class AsyncRequest(DirectObject):
                         print("\n\nself.avatarId =", self.avatarId)
                     print("\nself.neededObjects =", self.neededObjects)
                     print("\ntimed out after %s seconds.\n\n"%(task.delayTime,))
-                    import pdb
-                    pdb.set_trace()
+                    import pdb; pdb.set_trace()
             self.delete()
             return Task.done
 

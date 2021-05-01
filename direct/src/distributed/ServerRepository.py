@@ -4,14 +4,10 @@ from panda3d.core import *
 from panda3d.direct import *
 from direct.distributed.MsgTypesCMU import *
 from direct.task import Task
-from direct.task.TaskManagerGlobal import taskMgr
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.PyDatagram import PyDatagram
 
 import inspect
-
-
-_server_doid_range = ConfigVariableInt('server-doid-range', 1000000)
 
 
 class ServerRepository:
@@ -88,7 +84,7 @@ class ServerRepository:
                  threadedNet = None):
         if threadedNet is None:
             # Default value.
-            threadedNet = ConfigVariableBool('threaded-net', False).value
+            threadedNet = config.GetBool('threaded-net', False)
 
         # Set up networking interfaces.
         numThreads = 0
@@ -137,7 +133,7 @@ class ServerRepository:
 
         # The number of doId's to assign to each client.  Must remain
         # constant during server lifetime.
-        self.doIdRange = _server_doid_range.value
+        self.doIdRange = base.config.GetInt('server-doid-range', 1000000)
 
         # An allocator object that assigns the next doIdBase to each
         # client.
@@ -221,7 +217,7 @@ class ServerRepository:
         self.hashVal = 0
 
         dcImports = {}
-        if dcFileNames is None:
+        if dcFileNames == None:
             readResult = dcFile.readAll()
             if not readResult:
                 self.notify.error("Could not read dc file.")
@@ -273,11 +269,11 @@ class ServerRepository:
             classDef = dcImports.get(className)
 
             # Also try it without the dcSuffix.
-            if classDef is None:
+            if classDef == None:
                 className = dclass.getName()
                 classDef = dcImports.get(className)
 
-            if classDef is None:
+            if classDef == None:
                 self.notify.debug("No class definition for %s." % (className))
             else:
                 if inspect.ismodule(classDef):
@@ -462,7 +458,7 @@ class ServerRepository:
             return
 
         dcfield = object.dclass.getFieldByIndex(fieldId)
-        if dcfield is None:
+        if dcfield == None:
             self.notify.warning(
                 "Ignoring update for field %s on object %s from client %s; no such field for class %s." % (
                 fieldId, doId, client.doIdBase, object.dclass.getName()))

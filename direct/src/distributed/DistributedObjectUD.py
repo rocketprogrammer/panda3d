@@ -2,7 +2,6 @@
 
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.distributed.DistributedObjectBase import DistributedObjectBase
-from direct.showbase.MessengerGlobal import messenger
 from direct.showbase import PythonUtil
 #from PyDatagram import PyDatagram
 #from PyDatagramIterator import PyDatagramIterator
@@ -12,7 +11,9 @@ class DistributedObjectUD(DistributedObjectBase):
     QuietZone = 1
 
     def __init__(self, air):
-        if not hasattr(self, 'DistributedObjectUD_initialized'):
+        try:
+            self.DistributedObjectUD_initialized
+        except:
             self.DistributedObjectUD_initialized = 1
             DistributedObjectBase.__init__(self, air)
 
@@ -61,11 +62,11 @@ class DistributedObjectUD(DistributedObjectBase):
                 flags = []
                 if self.__generated:
                     flags.append("generated")
-                if self.air is None:
+                if self.air == None:
                     flags.append("deleted")
 
                 flagStr = ""
-                if len(flags) > 0:
+                if len(flags):
                     flagStr = " (%s)" % (" ".join(flags))
 
                 print("%sfrom DistributedObject doId:%s, parent:%s, zone:%s%s" % (
@@ -100,23 +101,24 @@ class DistributedObjectUD(DistributedObjectBase):
                 # self.doId may not exist.  The __dict__ syntax works around that.
                 assert self.notify.debug('delete(): %s' % (self.__dict__.get("doId")))
 
-                #if not self._DOUD_requestedDelete:
-                #    # this logs every delete that was not requested by us.
-                #    # TODO: this currently prints warnings for deletes of objects
-                #    # that we did not create. We need to add a 'locally created'
-                #    # flag to every object to filter these out.
-                #
-                #    DistributedObjectUD.notify.warning(
-                #        'delete() called but requestDelete never called for %s: %s'
-                #        % (self.__dict__.get('doId'), self.__class__.__name__))
-                #
-                #    # print a stack trace so we can detect whether this is the
-                #    # result of a network msg.
-                #    # this is slow.
-                #    from direct.showbase.PythonUtil import StackTrace
-                #    DistributedObjectUD.notify.warning(
-                #        'stack trace: %s' % StackTrace())
-
+                if not self._DOUD_requestedDelete:
+                    # this logs every delete that was not requested by us.
+                    # TODO: this currently prints warnings for deletes of objects
+                    # that we did not create. We need to add a 'locally created'
+                    # flag to every object to filter these out.
+                    """
+                    DistributedObjectUD.notify.warning(
+                        'delete() called but requestDelete never called for %s: %s'
+                        % (self.__dict__.get('doId'), self.__class__.__name__))
+                        """
+                    """
+                    # print a stack trace so we can detect whether this is the
+                    # result of a network msg.
+                    # this is slow.
+                    from direct.showbase.PythonUtil import StackTrace
+                    DistributedObjectUD.notify.warning(
+                        'stack trace: %s' % StackTrace())
+                        """
                 self._DOUD_requestedDelete = False
 
                 # Clean up all the pending barriers.
@@ -139,7 +141,7 @@ class DistributedObjectUD(DistributedObjectBase):
         Returns true if the object has been deleted,
         or if it is brand new and hasnt yet been generated.
         """
-        return self.air is None
+        return self.air == None
 
     def isGenerated(self):
         """
@@ -405,10 +407,10 @@ class DistributedObjectUD(DistributedObjectBase):
         self._DOUD_requestedDelete = True
 
     def taskName(self, taskString):
-        return "%s-%s" % (taskString, self.doId)
+        return ("%s-%s" % (taskString, self.doId))
 
     def uniqueName(self, idString):
-        return "%s-%s" % (idString, self.doId)
+        return ("%s-%s" % (idString, self.doId))
 
     def validate(self, avId, bool, msg):
         if not bool:
@@ -471,7 +473,7 @@ class DistributedObjectUD(DistributedObjectBase):
         avId = self.air.getAvatarIdFromSender()
         assert self.notify.debug('setBarrierReady(%s, %s)' % (context, avId))
         barrier = self.__barriers.get(context)
-        if barrier is None:
+        if barrier == None:
             # This may be None if a client was slow and missed an
             # earlier timeout.  Too bad.
             return

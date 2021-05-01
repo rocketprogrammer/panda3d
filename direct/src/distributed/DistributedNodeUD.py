@@ -3,28 +3,30 @@ from .DistributedObjectUD import DistributedObjectUD
 class DistributedNodeUD(DistributedObjectUD):
     def __init__(self, air, name=None):
         # Be careful not to create multiple NodePath objects
-        if not hasattr(self, 'DistributedNodeUD_initialized'):
+        try:
+            self.DistributedNodeUD_initialized
+        except:
             self.DistributedNodeUD_initialized = 1
             DistributedObjectUD.__init__(self, air)
             if name is None:
                 name = self.__class__.__name__
 
     def b_setParent(self, parentToken):
-        if isinstance(parentToken, str):
+        if type(parentToken) == str:
             self.setParentStr(parentToken)
         else:
             self.setParent(parentToken)
         self.d_setParent(parentToken)
 
     def d_setParent(self, parentToken):
-        if isinstance(parentToken, str):
+        if type(parentToken) == type(''):
             self.sendUpdate("setParentStr", [parentToken])
         else:
             self.sendUpdate("setParent", [parentToken])
 
     def setParentStr(self, parentToken):
         self.notify.debugCall()
-        if len(parentToken) > 0:
+        if len(parentTokenStr) > 0:
             self.do_setParent(parentToken)
 
     def setParent(self, parentToken):
