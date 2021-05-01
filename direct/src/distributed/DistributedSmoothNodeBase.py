@@ -1,28 +1,19 @@
 """DistributedSmoothNodeBase module: contains the DistributedSmoothNodeBase class"""
 
-from .ClockDelta import *
+from ClockDelta import *
 from direct.task import Task
-from direct.task.TaskManagerGlobal import taskMgr
-from direct.showbase.PythonUtil import randFloat
-from panda3d.direct import CDistributedSmoothNodeBase
-
-from enum import IntEnum
-
+from direct.showbase.PythonUtil import randFloat, Enum
 
 class DummyTaskClass:
     def setDelay(self, blah):
         pass
 
 DummyTask = DummyTaskClass()
-
+    
 class DistributedSmoothNodeBase:
     """common base class for DistributedSmoothNode and DistributedSmoothNodeAI
     """
-
-    class BroadcastTypes(IntEnum):
-        FULL = 0
-        XYH = 1
-        XY = 2
+    BroadcastTypes = Enum('FULL, XYH, XY')
 
     def __init__(self):
         self.__broadcastPeriod = None
@@ -31,13 +22,13 @@ class DistributedSmoothNodeBase:
     def preGenerate(self):
         self.cnode = CDistributedSmoothNodeBase()
         pass
-
+        
     def generate(self):
         if not self.cnode:
             # We may have been disabled and are now being brought back to life
             self.cnode = CDistributedSmoothNodeBase()
             pass
-
+        
         self.cnode.setClockDelta(globalClockDelta)
         self.d_broadcastPosHpr = None
 
@@ -75,15 +66,15 @@ class DistributedSmoothNodeBase:
         self.d_broadcastPosHpr = None
 
     def posHprBroadcastStarted(self):
-        return self.d_broadcastPosHpr is not None
+        return self.d_broadcastPosHpr != None
 
     def wantSmoothPosBroadcastTask(self):
         return True
 
     def startPosHprBroadcast(self, period=.2, stagger=0, type=None):
-        if self.cnode is None:
+        if self.cnode == None:
             self.initializeCnode()
-
+        
         BT = DistributedSmoothNodeBase.BroadcastTypes
         if type is None:
             type = BT.FULL
@@ -97,7 +88,7 @@ class DistributedSmoothNodeBase:
             }
         # this comment is here so it will show up in a grep for 'def d_broadcastPosHpr'
         self.d_broadcastPosHpr = broadcastFuncs[self.broadcastType]
-
+        
         # Set stagger to non-zero to randomly delay the initial task execution
         # over 'period' seconds, to spread out task processing over time
         # when a large number of SmoothNodes are created simultaneously.
@@ -131,8 +122,9 @@ class DistributedSmoothNodeBase:
 
     def sendCurrentPosition(self):
         # broadcasts the current telemetry and embedded data stored in cnode
-
+        
         # if we're not currently broadcasting, make sure things are set up
         if self.d_broadcastPosHpr is None:
             self.cnode.initialize(self, self.dclass, self.doId)
         self.cnode.sendEverything()
+

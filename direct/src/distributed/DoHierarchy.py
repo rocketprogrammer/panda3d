@@ -8,13 +8,13 @@ class Node:
 
     def __repr__(self):
         return str(self)
-
+    
     def __str__(self):
         return '<%s>' % (self.doId,)
 
     def __lt__(self, other):
         return self.doId < other.doId
-
+    
     def __getitem__(self, zone):
         return self.children.get(zone)
 
@@ -24,11 +24,11 @@ class Node:
 
     def prettyStr(self, indent = 0, depth = 0):
         padding = ' '*indent
-        out = '%s%d (%s)\n' % (padding, self.doId, go(self.doId))
+        out = '%s%d (%s)\n' % (padding, self.doId, `go(self.doId)`)
         depth -= 1
         if depth:
             for zone, nodes in sorted(self.children.items()):
-                out += '  %s[%d]       <%s>\n' % (padding, zone, go(self.doId))
+                out += '  %s[%d]       <%s>\n' % (padding, zone, `go(self.doId)`)
                 for node in sorted(nodes):
                     out += node.prettyStr(indent+4, depth)
                     pass
@@ -42,7 +42,8 @@ class Node:
         else:
             return self.children.get(zone)
         pass
-
+    
+    
 class DoHierarchy:
     """
     This table has been a source of memory leaks, with DoIds getting left in the table indefinitely.
@@ -56,7 +57,7 @@ class DoHierarchy:
         self._allDoIds = set()
 
     def isEmpty(self):
-        assert (len(self._table) == 0) == (len(self._allDoIds) == 0)
+        assert ((len(self._table) == 0) == (len(self._allDoIds) == 0))
         return len(self._table) == 0 and len(self._allDoIds) == 0
 
     def __len__(self):
@@ -69,14 +70,15 @@ class DoHierarchy:
 
     def getDoIds(self, getDo, parentId, zoneId=None, classType=None):
         """
-        Args:
-            parentId: any distributed object id.
-            zoneId: a uint32, defaults to None (all zones).  Try zone 2 if
-                you're not sure which zone to use (0 is a bad/null zone and
-                1 has had reserved use in the past as a no messages zone, while
-                2 has traditionally been a global, uber, misc stuff zone).
-            dclassType: a distributed class type filter, defaults to None
-                (no filter).
+        Moved from DoCollectionManager
+        ==============================
+        parentId is any distributed object id.
+        zoneId is a uint32, defaults to None (all zones).  Try zone 2 if
+            you're not sure which zone to use (0 is a bad/null zone and
+            1 has had reserved use in the past as a no messages zone, while
+            2 has traditionally been a global, uber, misc stuff zone).
+        dclassType is a distributed class type filter, defaults
+            to None (no filter).
 
         If dclassName is None then all objects in the zone are returned;
         otherwise the list is filtered to only include objects of that type.
@@ -120,7 +122,7 @@ class DoHierarchy:
                 'deleteObjectLocation(%s %s) not in _allDoIds; duplicate delete()? or invalid previous location on a new object?' % (
                 do.__class__.__name__, do.doId))
         # jbutler: temp hack to get by the assert, this will be fixed soon
-        if doId not in self._allDoIds:
+        if (doId not in self._allDoIds):
             return
         parentZoneDict = self._table.get(parentId)
         if parentZoneDict is not None:
@@ -148,6 +150,7 @@ class DoHierarchy:
     def genTree(self):
         """
         Returns a list of top level nodes and a dictionary of doIds to nodes.
+
         The nodes contain links each doId's children nodes.
         """
         topnodes = {}
@@ -177,6 +180,7 @@ class DoHierarchy:
             pass
 
         return topnodes.values(),nodes
+    
 
     def printTree(self, doId = None, depth = 0):
         topnodes, nodes =  self.genTree()
@@ -193,9 +197,9 @@ class DoHierarchy:
             pass
 
         for node in nodes:
-            print(node.prettyStr(depth = depth))
+            print node.prettyStr(depth = depth)
             pass
         pass
-
+    
     def getChildren(self, doId):
         topnodes, nodes =  self.genTree()

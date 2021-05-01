@@ -1,15 +1,16 @@
-/**
- * PANDA 3D SOFTWARE
- * Copyright (c) Carnegie Mellon University.  All rights reserved.
- *
- * All use of this software is subject to the terms of the revised BSD
- * license.  You should have received a copy of this license along
- * with this source code in a file named "LICENSE."
- *
- * @file cConnectionRepository.cxx
- * @author drose
- * @date 2004-05-17
- */
+// Filename: cConnectionRepository.cxx
+// Created by:  drose (17May04)
+//
+////////////////////////////////////////////////////////////////////
+//
+// PANDA 3D SOFTWARE
+// Copyright (c) Carnegie Mellon University.  All rights reserved.
+//
+// All use of this software is subject to the terms of the revised BSD
+// license.  You should have received a copy of this license along
+// with this source code in a file named "LICENSE."
+//
+////////////////////////////////////////////////////////////////////
 
 #include "cConnectionRepository.h"
 #include "dcmsgtypes.h"
@@ -23,14 +24,15 @@
 #include "datagramIterator.h"
 #include "throw_event.h"
 #include "pStatTimer.h"
+#include "stringStream.h"
 
 #ifdef HAVE_PYTHON
-#include "py_panda.h"
-#include "dcClass_ext.h"
+#ifndef CPPPARSER
+#include "py_panda.h"  
+IMPORT_THIS struct   Dtool_PyTypedObject Dtool_DatagramIterator;
+IMPORT_THIS struct   Dtool_PyTypedObject Dtool_DCClass;
 #endif
-
-using std::endl;
-using std::string;
+#endif
 
 const string CConnectionRepository::_overflow_event_name = "CRDatagramOverflow";
 
@@ -38,17 +40,20 @@ const string CConnectionRepository::_overflow_event_name = "CRDatagramOverflow";
 PStatCollector CConnectionRepository::_update_pcollector("App:Show code:readerPollTask:Update");
 #endif  // CPPPARSER
 
-/**
- *
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::Constructor
+//       Access: Published
+//  Description: 
+////////////////////////////////////////////////////////////////////
 CConnectionRepository::
 CConnectionRepository(bool has_owner_view, bool threaded_net) :
   _lock("CConnectionRepository::_lock"),
 #ifdef HAVE_PYTHON
-  _python_repository(nullptr),
+  _python_repository(NULL),
+  _python_ai_datagramiterator(NULL),
 #endif
 #ifdef HAVE_OPENSSL
-  _http_conn(nullptr),
+  _http_conn(NULL),
 #endif
 #ifdef HAVE_NET
   _cw(&_qcm, threaded_net ? 1 : 0),
@@ -60,10 +65,11 @@ CConnectionRepository(bool has_owner_view, bool threaded_net) :
 #endif
   _client_datagram(true),
   _handle_datagrams_internally(handle_datagrams_internally),
+  _track_clsends(false),
   _simulated_disconnect(false),
   _verbose(distributed_cat.is_spam()),
   _time_warning(0.0),
-// _msg_channels(),
+//  _msg_channels(),
   _msg_sender(0),
   _msg_type(0),
   _has_owner_view(has_owner_view),
@@ -78,28 +84,40 @@ CConnectionRepository(bool has_owner_view, bool threaded_net) :
   }
 #endif
   _tcp_header_size = tcp_header_size;
+
+#ifdef HAVE_PYTHON
+  PyObject *  PyDitterator = DTool_CreatePyInstance(&_di,Dtool_DatagramIterator,false,false);
+  if(PyDitterator != NULL)
+      _python_ai_datagramiterator = Py_BuildValue("(O)",PyDitterator);
+#endif
+
 }
 
-/**
- *
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::Destructor
+//       Access: Published
+//  Description: 
+////////////////////////////////////////////////////////////////////
 CConnectionRepository::
 ~CConnectionRepository() {
   disconnect();
 }
 
-/**
- * Sets the header size of TCP packets.  At the present, legal values for this
- * are 0, 2, or 4; this specifies the number of bytes to use encode the
- * datagram length at the start of each TCP datagram.  Sender and receiver
- * must independently agree on this.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::set_tcp_header_size
+//       Access: Public
+//  Description: Sets the header size of TCP packets.  At the present,
+//               legal values for this are 0, 2, or 4; this specifies
+//               the number of bytes to use encode the datagram length
+//               at the start of each TCP datagram.  Sender and
+//               receiver must independently agree on this.
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 set_tcp_header_size(int tcp_header_size) {
   _tcp_header_size = tcp_header_size;
 
 #ifdef HAVE_OPENSSL
-  if (_http_conn != nullptr) {
+  if (_http_conn != (SocketStream *)NULL) {
     _http_conn->set_tcp_header_size(tcp_header_size);
   }
 #endif
@@ -111,11 +129,14 @@ set_tcp_header_size(int tcp_header_size) {
 }
 
 #ifdef HAVE_OPENSSL
-/**
- * Once a connection has been established via the HTTP interface, gets the
- * connection and uses it.  The supplied HTTPChannel object must have a
- * connection available via get_connection().
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::set_connection_http
+//       Access: Published
+//  Description: Once a connection has been established via the HTTP
+//               interface, gets the connection and uses it.  The
+//               supplied HTTPChannel object must have a connection
+//               available via get_connection().
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 set_connection_http(HTTPChannel *channel) {
   ReMutexHolder holder(_lock);
@@ -133,10 +154,13 @@ set_connection_http(HTTPChannel *channel) {
 #endif  // HAVE_OPENSSL
 
 #ifdef HAVE_OPENSSL
-/**
- * Returns the SocketStream that internally represents the already-established
- * HTTP connection.  Returns NULL if there is no current HTTP connection.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::get_stream
+//       Access: Published
+//  Description: Returns the SocketStream that internally represents
+//               the already-established HTTP connection.  Returns
+//               NULL if there is no current HTTP connection.
+////////////////////////////////////////////////////////////////////
 SocketStream *CConnectionRepository::
 get_stream() {
   ReMutexHolder holder(_lock);
@@ -147,21 +171,24 @@ get_stream() {
 
 
 #ifdef HAVE_NET
-/**
- * Uses Panda's "net" library to try to connect to the server and port named
- * in the indicated URL.  Returns true if successful, false otherwise.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::try_connect_net
+//       Access: Published
+//  Description: Uses Panda's "net" library to try to connect to the
+//               server and port named in the indicated URL.  Returns
+//               true if successful, false otherwise.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 try_connect_net(const URLSpec &url) {
   ReMutexHolder holder(_lock);
 
   disconnect();
 
-  _net_conn =
+  _net_conn = 
     _qcm.open_TCP_client_connection(url.get_server(), url.get_port(),
                                     game_server_timeout_ms);
 
-  if (_net_conn != nullptr) {
+  if (_net_conn != (Connection *)NULL) {
     _net_conn->set_no_delay(true);
     _qcr.add_connection(_net_conn);
     return true;
@@ -172,10 +199,12 @@ try_connect_net(const URLSpec &url) {
 #endif  // HAVE_NET
 
 #ifdef WANT_NATIVE_NET
-/**
- * Connects to the server using Panda's low-level and fast "native net"
- * library.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::connect_native
+//       Access: Published
+//  Description: Connects to the server using Panda's low-level and
+//               fast "native net" library.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 connect_native(const URLSpec &url) {
   ReMutexHolder holder(_lock);
@@ -191,19 +220,23 @@ connect_native(const URLSpec &url) {
 #endif //WANT NATIVE NET
 
 #ifdef SIMULATE_NETWORK_DELAY
-/**
- * Enables a simulated network latency.  All datagrams received from this
- * point on will be held for a random interval of least min_delay seconds, and
- * no more than max_delay seconds, before being visible.  It is as if
- * datagrams suddenly took much longer to arrive.
- *
- * This should *only* be called if the underlying socket is non-blocking.  If
- * you call this on a blocking socket, it will force all datagrams to be held
- * up until the socket closes.
- *
- * This has no effect if the connection method is via the "native net"
- * library.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::start_delay
+//       Access: Published
+//  Description: Enables a simulated network latency.  All datagrams
+//               received from this point on will be held for a random
+//               interval of least min_delay seconds, and no more than
+//               max_delay seconds, before being visible.  It is as if
+//               datagrams suddenly took much longer to arrive.
+//
+//               This should *only* be called if the underlying socket
+//               is non-blocking.  If you call this on a blocking
+//               socket, it will force all datagrams to be held up
+//               until the socket closes.
+//
+//               This has no effect if the connection method is via
+//               the "native net" library.
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 start_delay(double min_delay, double max_delay) {
   ReMutexHolder holder(_lock);
@@ -213,7 +246,7 @@ start_delay(double min_delay, double max_delay) {
     _qcr.start_delay(min_delay, max_delay);
 #endif  // HAVE_NET
 #ifdef HAVE_OPENSSL
-    if (_http_conn != nullptr) {
+    if (_http_conn != (SocketStream *)NULL) {
       _http_conn->start_delay(min_delay, max_delay);
     }
 #endif  // HAVE_OPENSSL
@@ -224,11 +257,13 @@ start_delay(double min_delay, double max_delay) {
 #endif  // SIMULATE_NETWORK_DELAY
 
 #ifdef SIMULATE_NETWORK_DELAY
-/**
- * Disables the simulated network latency started by a previous call to
- * start_delay().  Datagrams will once again be visible as soon as they are
- * received.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::stop_delay
+//       Access: Published
+//  Description: Disables the simulated network latency started by a
+//               previous call to start_delay().  Datagrams will once
+//               again be visible as soon as they are received.
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 stop_delay() {
   ReMutexHolder holder(_lock);
@@ -237,18 +272,22 @@ stop_delay() {
   _qcr.stop_delay();
 #endif  // HAVE_NET
 #ifdef HAVE_OPENSSL
-  if (_http_conn != nullptr) {
+  if (_http_conn != (SocketStream *)NULL) {
     _http_conn->stop_delay();
   }
 #endif  // HAVE_OPENSSL
 }
 #endif  // SIMULATE_NETWORK_DELAY
 
-/**
- * Returns true if a new datagram is available, false otherwise.  If the
- * return value is true, the new datagram may be retrieved via get_datagram(),
- * or preferably, with get_datagram_iterator() and get_msg_type().
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::check_datagram
+//       Access: Published
+//  Description: Returns true if a new datagram is available, false
+//               otherwise.  If the return value is true, the new
+//               datagram may be retrieved via get_datagram(), or
+//               preferably, with get_datagram_iterator() and
+//               get_msg_type().
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 check_datagram() {
   ReMutexHolder holder(_lock);
@@ -278,11 +317,12 @@ check_datagram() {
         _msg_channels.push_back(schan);
       }
       _msg_sender = _di.get_uint64();
-
+      
 #ifdef HAVE_PYTHON
-      // For now, we need to stuff this field onto the Python structure, to
-      // support legacy code that expects to find it there.
-      if (_python_repository != nullptr) {
+      // For now, we need to stuff this field onto the Python
+      // structure, to support legacy code that expects to find it
+      // there.
+      if (_python_repository != (PyObject *)NULL) {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
         PyGILState_STATE gstate;
         gstate = PyGILState_Ensure();
@@ -305,8 +345,8 @@ check_datagram() {
 
     switch (_msg_type) {
 #ifdef HAVE_PYTHON
-    case CLIENT_OBJECT_SET_FIELD:
-    case STATESERVER_OBJECT_SET_FIELD:
+    case CLIENT_OBJECT_UPDATE_FIELD:
+    case STATESERVER_OBJECT_UPDATE_FIELD:
       if (_handle_c_updates) {
         if (_has_owner_view) {
           if (!handle_update_field_owner()) {
@@ -323,7 +363,7 @@ check_datagram() {
       }
       break;
 #endif  // HAVE_PYTHON
-
+      
     default:
       // Some unknown message; let the caller deal with it.
       return true;
@@ -334,12 +374,19 @@ check_datagram() {
   return false;
 }
 
-/**
- * Returns true if the connection to the gameserver is established and still
- * good, false if we are not connected.  A false value means either (a) we
- * never successfully connected, (b) we explicitly called disconnect(), or (c)
- * we were connected, but the connection was spontaneously lost.
- */
+
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::is_connected
+//       Access: Published
+//  Description: Returns true if the connection to the gameserver is
+//               established and still good, false if we are not
+//               connected.  A false value means either (a) we never
+//               successfully connected, (b) we explicitly called
+//               disconnect(), or (c) we were connected, but the
+//               connection was spontaneously lost.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 is_connected() {
   ReMutexHolder holder(_lock);
@@ -357,7 +404,7 @@ is_connected() {
         _qcm.close_connection(reset_connection);
         if (reset_connection == _net_conn) {
           // Whoops, lost our connection.
-          _net_conn = nullptr;
+          _net_conn = NULL;
           return false;
         }
       }
@@ -374,18 +421,21 @@ is_connected() {
 
     // Connection lost.
     delete _http_conn;
-    _http_conn = nullptr;
+    _http_conn = NULL;
   }
 #endif  // HAVE_OPENSSL
 
   return false;
 }
 
-/**
- * Queues the indicated datagram for sending to the server.  It may not get
- * sent immediately if collect_tcp is in effect; call flush() to guarantee it
- * is sent now.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::send_datagram
+//       Access: Published
+//  Description: Queues the indicated datagram for sending to the
+//               server.  It may not get sent immediately if
+//               collect_tcp is in effect; call flush() to guarantee
+//               it is sent now.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 send_datagram(const Datagram &dg) {
   ReMutexHolder holder(_lock);
@@ -406,21 +456,8 @@ send_datagram(const Datagram &dg) {
   }
 
 #ifdef WANT_NATIVE_NET
-  if (_native) {
-    bool result = _bdc.SendMessage(dg);
-    if (!result && _bdc.IsConnected()) {
-#ifdef HAVE_PYTHON
-      std::ostringstream s;
-      s << endl << "Error sending message: " << endl;
-      dg.dump_hex(s);
-      s << "Message data: " << dg.get_data() << endl;
-
-      string message = s.str();
-      PyErr_SetString(PyExc_ConnectionError, message.c_str());
-#endif
-    }
-    return result;
-  }
+  if(_native)
+    return _bdc.SendMessage(dg);
 #endif
 
 #ifdef HAVE_NET
@@ -447,20 +484,24 @@ send_datagram(const Datagram &dg) {
   return false;
 }
 
-/**
- * Send a set of messages to the state server that will be processed
- * atomically.  For instance, you can do a combined setLocation/setPos and
- * prevent race conditions where clients briefly get the setLocation but not
- * the setPos, because the state server hasn't processed the setPos yet
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::start_message_bundle
+//       Access: Published
+//  Description: Send a set of messages to the state server that will
+//               be processed atomically.  For instance, you can do a
+//               combined setLocation/setPos and prevent race
+//               conditions where clients briefly get the setLocation
+//               but not the setPos, because the state server hasn't
+//               processed the setPos yet
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 start_message_bundle() {
   ReMutexHolder holder(_lock);
 
-  // store up network messages until sendMessageBundle is called all updates
-  // in between must be sent from the same doId (updates must all affect the
-  // same DistributedObject) it is an error to call this again before calling
-  // sendMessageBundle
+  // store up network messages until sendMessageBundle is called
+  // all updates in between must be sent from the same doId (updates
+  // must all affect the same DistributedObject)
+  // it is an error to call this again before calling sendMessageBundle
   if (get_verbose()) {
     nout << "CR::SEND:BUNDLE_START(" << _bundling_msgs << ")" << endl;
   }
@@ -470,9 +511,12 @@ start_message_bundle() {
   ++_bundling_msgs;
 }
 
-/**
- * Send network messages queued up since startMessageBundle was called.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::send_message_bundle
+//       Access: Published
+//  Description: Send network messages queued up since
+//               startMessageBundle was called.
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 send_message_bundle(unsigned int channel, unsigned int sender_channel) {
   ReMutexHolder holder(_lock);
@@ -491,7 +535,7 @@ send_message_bundle(unsigned int channel, unsigned int sender_channel) {
     dg.add_int8(1);
     dg.add_uint64(channel);
     dg.add_uint64(sender_channel);
-    //dg.add_uint16(STATESERVER_BOUNCE_MESSAGE);
+    dg.add_uint16(STATESERVER_BOUNCE_MESSAGE);
     // add each bundled message
     BundledMsgVector::const_iterator bmi;
     for (bmi = _bundle_msgs.begin(); bmi != _bundle_msgs.end(); bmi++) {
@@ -502,9 +546,12 @@ send_message_bundle(unsigned int channel, unsigned int sender_channel) {
   }
 }
 
-/**
- * throw out any msgs that have been queued up for message bundles
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::abandon_message_bundles
+//       Access: Published
+//  Description: throw out any msgs that have been queued up for
+//               message bundles
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 abandon_message_bundles() {
   ReMutexHolder holder(_lock);
@@ -514,9 +561,11 @@ abandon_message_bundles() {
   _bundle_msgs.clear();
 }
 
-/**
- *
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::bundle_msg
+//       Access: Published
+//  Description:
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 bundle_msg(const Datagram &dg) {
   ReMutexHolder holder(_lock);
@@ -525,10 +574,13 @@ bundle_msg(const Datagram &dg) {
   _bundle_msgs.push_back(dg.get_message());
 }
 
-/**
- * Sends the most recently queued data if enough time has elapsed.  This only
- * has meaning if set_collect_tcp() has been set to true.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::consider_flush
+//       Access: Published
+//  Description: Sends the most recently queued data if enough time
+//               has elapsed.  This only has meaning if
+//               set_collect_tcp() has been set to true.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 consider_flush() {
   ReMutexHolder holder(_lock);
@@ -557,10 +609,13 @@ consider_flush() {
   return false;
 }
 
-/**
- * Sends the most recently queued data now.  This only has meaning if
- * set_collect_tcp() has been set to true.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::flush
+//       Access: Published
+//  Description: Sends the most recently queued data now.  This only
+//               has meaning if set_collect_tcp() has been set to
+//               true.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 flush() {
   ReMutexHolder holder(_lock);
@@ -588,9 +643,11 @@ flush() {
   return false;
 }
 
-/**
- * Closes the connection to the server.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::disconnect
+//       Access: Published
+//  Description: Closes the connection to the server.
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 disconnect() {
   ReMutexHolder holder(_lock);
@@ -604,7 +661,7 @@ disconnect() {
   #ifdef HAVE_NET
   if (_net_conn) {
     _qcm.close_connection(_net_conn);
-    _net_conn = nullptr;
+    _net_conn = NULL;
   }
   #endif  // HAVE_NET
 
@@ -612,16 +669,19 @@ disconnect() {
   if (_http_conn) {
     _http_conn->close();
     delete _http_conn;
-    _http_conn = nullptr;
+    _http_conn = NULL;
   }
   #endif  // HAVE_OPENSSL
 
   _simulated_disconnect = false;
 }
 
-/**
- * May be called at application shutdown to ensure all threads are cleaned up.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::shutdown
+//       Access: Published
+//  Description: May be called at application shutdown to ensure all
+//               threads are cleaned up.
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
 shutdown() {
   disconnect();
@@ -632,10 +692,12 @@ shutdown() {
   #endif  // HAVE_NET
 }
 
-/**
- * The private implementation of check_datagram(), this gets one datagram if
- * it is available.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::do_check_datagram
+//       Access: Private
+//  Description: The private implementation of check_datagram(), this
+//               gets one datagram if it is available.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 do_check_datagram() {
   #ifdef WANT_NATIVE_NET
@@ -665,12 +727,16 @@ do_check_datagram() {
   return false;
 }
 
-/**
- * Directly handles an update message on a field.  Python never touches the
- * datagram; it just gets its distributed method called with the appropriate
- * parameters.  Returns true if everything is ok, false if there was an error
- * processing the field's update method.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::handle_update_field
+//       Access: Private
+//  Description: Directly handles an update message on a field.
+//               Python never touches the datagram; it just gets its
+//               distributed method called with the appropriate
+//               parameters.  Returns true if everything is ok, false
+//               if there was an error processing the field's update
+//               method.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 handle_update_field() {
 #ifdef HAVE_PYTHON
@@ -681,11 +747,11 @@ handle_update_field() {
 
   PStatTimer timer(_update_pcollector);
   unsigned int do_id = _di.get_uint32();
-  if (_python_repository != nullptr)
+  if (_python_repository != (PyObject *)NULL) 
   {
     PyObject *doId2do =
       PyObject_GetAttrString(_python_repository, "doId2do");
-    nassertr(doId2do != nullptr, false);
+    nassertr(doId2do != NULL, false);
 
     #ifdef USE_PYTHON_2_2_OR_EARLIER
     PyObject *doId = PyInt_FromLong(do_id);
@@ -696,28 +762,28 @@ handle_update_field() {
     Py_DECREF(doId);
     Py_DECREF(doId2do);
 
-    if (distobj != nullptr) {
+    if (distobj != NULL) {
       PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
-      nassertr(dclass_obj != nullptr, false);
+      nassertr(dclass_obj != NULL, false);
 
 
       PyObject *dclass_this = PyObject_GetAttrString(dclass_obj, "this");
       Py_DECREF(dclass_obj);
-      nassertr(dclass_this != nullptr, false);
+      nassertr(dclass_this != NULL, false);
 
-      DCClass *dclass = (DCClass *)PyLong_AsVoidPtr(dclass_this);
+      DCClass *dclass = (DCClass *)PyInt_AsLong(dclass_this);
       Py_DECREF(dclass_this);
 
-      // If in quiet zone mode, throw update away unless distobj has
-      // 'neverDisable' attribute set to non-zero
+      // If in quiet zone mode, throw update away unless distobj
+      // has 'neverDisable' attribute set to non-zero
       if (_in_quiet_zone) {
         PyObject *neverDisable = PyObject_GetAttrString(distobj, "neverDisable");
-        nassertr(neverDisable != nullptr, false);
+        nassertr(neverDisable != NULL, false);
 
-        unsigned int cNeverDisable = PyLong_AsLong(neverDisable);
+        unsigned int cNeverDisable = PyInt_AsLong(neverDisable);
         if (!cNeverDisable) {
-          // in quiet zone and distobj is disable-able drop update on the
-          // floor
+          // in quiet zone and distobj is disable-able
+          // drop update on the floor
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
           PyGILState_Release(gstate);
 #endif
@@ -725,14 +791,14 @@ handle_update_field() {
         }
       }
 
-      // It's a good idea to ensure the reference count to distobj is raised
-      // while we call the update method--otherwise, the update method might
-      // get into trouble if it tried to delete the object from the doId2do
-      // map.
+      // It's a good idea to ensure the reference count to distobj is
+      // raised while we call the update method--otherwise, the update
+      // method might get into trouble if it tried to delete the
+      // object from the doId2do map.
       Py_INCREF(distobj);
-      invoke_extension(dclass).receive_update(distobj, _di);
+      dclass->receive_update(distobj, _di); 
       Py_DECREF(distobj);
-
+      
       if (PyErr_Occurred()) {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
         PyGILState_Release(gstate);
@@ -746,19 +812,22 @@ handle_update_field() {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
   PyGILState_Release(gstate);
 #endif
-  #endif  // HAVE_PYTHON
+  #endif  // HAVE_PYTHON  
   return true;
 }
 
 
-/**
- * Directly handles an update message on a field.  Supports 'owner' views of
- * objects, separate from 'visible' view, and forwards fields to the
- * appropriate view(s) based on DC flags.  Python never touches the datagram;
- * it just gets its distributed method called with the appropriate parameters.
- * Returns true if everything is ok, false if there was an error processing
- * the field's update method.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::handle_update_field_owner
+//       Access: Private
+//  Description: Directly handles an update message on a field.
+//               Supports 'owner' views of objects, separate from 'visible'
+//               view, and forwards fields to the appropriate view(s) based
+//               on DC flags.  Python never touches the datagram; it just
+//               gets its distributed method called with the appropriate
+//               parameters.  Returns true if everything is ok, false if
+//               there was an error processing the field's update method.
+////////////////////////////////////////////////////////////////////
 bool CConnectionRepository::
 handle_update_field_owner() {
 #ifdef HAVE_PYTHON
@@ -769,14 +838,14 @@ handle_update_field_owner() {
 
   PStatTimer timer(_update_pcollector);
   unsigned int do_id = _di.get_uint32();
-  if (_python_repository != nullptr) {
+  if (_python_repository != (PyObject *)NULL) {
     PyObject *doId2do =
       PyObject_GetAttrString(_python_repository, "doId2do");
-    nassertr(doId2do != nullptr, false);
+    nassertr(doId2do != NULL, false);
 
     PyObject *doId2ownerView =
       PyObject_GetAttrString(_python_repository, "doId2ownerView");
-    nassertr(doId2ownerView != nullptr, false);
+    nassertr(doId2ownerView != NULL, false);
 
     #ifdef USE_PYTHON_2_2_OR_EARLIER
     PyObject *doId = PyInt_FromLong(do_id);
@@ -788,35 +857,34 @@ handle_update_field_owner() {
     PyObject *distobjOV = PyDict_GetItem(doId2ownerView, doId);
     Py_DECREF(doId2ownerView);
 
-    if (distobjOV != nullptr) {
+    if (distobjOV != NULL) {
       PyObject *dclass_obj = PyObject_GetAttrString(distobjOV, "dclass");
-      nassertr(dclass_obj != nullptr, false);
+      nassertr(dclass_obj != NULL, false);
 
       PyObject *dclass_this = PyObject_GetAttrString(dclass_obj, "this");
       Py_DECREF(dclass_obj);
-      nassertr(dclass_this != nullptr, false);
+      nassertr(dclass_this != NULL, false);
 
-      DCClass *dclass = (DCClass *)PyLong_AsVoidPtr(dclass_this);
+      DCClass *dclass = (DCClass *)PyInt_AsLong(dclass_this);
       Py_DECREF(dclass_this);
 
       // check if we should forward this update to the owner view
-      vector_uchar data = _di.get_remaining_bytes();
       DCPacker packer;
-      packer.set_unpack_data((const char *)data.data(), data.size(), false);
+      packer.set_unpack_data(_di.get_remaining_bytes());
       int field_id = packer.raw_unpack_uint16();
       DCField *field = dclass->get_field_by_index(field_id);
       if (field->is_ownrecv()) {
         // It's a good idea to ensure the reference count to distobjOV is
         // raised while we call the update method--otherwise, the update
-        // method might get into trouble if it tried to delete the object from
-        // the doId2do map.
+        // method might get into trouble if it tried to delete the
+        // object from the doId2do map.
         Py_INCREF(distobjOV);
         // make a copy of the datagram iterator so that we can use the main
         // iterator for the non-owner update
         DatagramIterator _odi(_di);
-        invoke_extension(dclass).receive_update(distobjOV, _odi);
+        dclass->receive_update(distobjOV, _odi); 
         Py_DECREF(distobjOV);
-
+      
         if (PyErr_Occurred()) {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
           PyGILState_Release(gstate);
@@ -831,33 +899,31 @@ handle_update_field_owner() {
     Py_DECREF(doId);
     Py_DECREF(doId2do);
 
-    if (distobj != nullptr) {
+    if (distobj != NULL) {
       PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
-      nassertr(dclass_obj != nullptr, false);
+      nassertr(dclass_obj != NULL, false);
 
       PyObject *dclass_this = PyObject_GetAttrString(dclass_obj, "this");
       Py_DECREF(dclass_obj);
-      nassertr(dclass_this != nullptr, false);
+      nassertr(dclass_this != NULL, false);
 
-      DCClass *dclass = (DCClass *)PyLong_AsVoidPtr(dclass_this);
+      DCClass *dclass = (DCClass *)PyInt_AsLong(dclass_this);
       Py_DECREF(dclass_this);
 
       // check if we should forward this update to the owner view
-      vector_uchar data = _di.get_remaining_bytes();
       DCPacker packer;
-      packer.set_unpack_data((const char *)data.data(), data.size(), false);
-
-      //int field_id = packer.raw_unpack_uint16();
-      //DCField *field = dclass->get_field_by_index(field_id);
+      packer.set_unpack_data(_di.get_remaining_bytes());
+      int field_id = packer.raw_unpack_uint16();
+      DCField *field = dclass->get_field_by_index(field_id);
       if (true) {//field->is_broadcast()) {
-        // It's a good idea to ensure the reference count to distobj is raised
-        // while we call the update method--otherwise, the update method might
-        // get into trouble if it tried to delete the object from the doId2do
-        // map.
+        // It's a good idea to ensure the reference count to distobj is
+        // raised while we call the update method--otherwise, the update
+        // method might get into trouble if it tried to delete the
+        // object from the doId2do map.
         Py_INCREF(distobj);
-        invoke_extension(dclass).receive_update(distobj, _di);
+        dclass->receive_update(distobj, _di); 
         Py_DECREF(distobj);
-
+      
         if (PyErr_Occurred()) {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
           PyGILState_Release(gstate);
@@ -871,27 +937,30 @@ handle_update_field_owner() {
 #if defined(HAVE_THREADS) && !defined(SIMPLE_THREADS)
   PyGILState_Release(gstate);
 #endif
-#endif  // HAVE_PYTHON
+#endif  // HAVE_PYTHON  
 
   return true;
 }
 
-/**
- * Unpacks the message and reformats it for user consumption, writing a
- * description on the indicated output stream.
- */
+////////////////////////////////////////////////////////////////////
+//     Function: CConnectionRepository::describe_message
+//       Access: Published
+//  Description: Unpacks the message and reformats it for user
+//               consumption, writing a description on the indicated
+//               output stream.
+////////////////////////////////////////////////////////////////////
 void CConnectionRepository::
-describe_message(std::ostream &out, const string &prefix,
+describe_message(ostream &out, const string &prefix, 
                  const Datagram &dg) const {
   DCPacker packer;
-
-  packer.set_unpack_data((const char *)dg.get_data(), dg.get_length(), false);
+  
+  packer.set_unpack_data(dg.get_message());
   CHANNEL_TYPE do_id;
   int msg_type;
   bool is_update = false;
   string full_prefix = "CR::" + prefix;
 
-  if (!_client_datagram)
+  if (!_client_datagram) 
   {
     unsigned char mcnt = packer.raw_unpack_uint8();
     for( ;mcnt > 0; mcnt--)
@@ -899,30 +968,30 @@ describe_message(std::ostream &out, const string &prefix,
 
     packer.RAW_UNPACK_CHANNEL();  // msg_sender
     msg_type = packer.raw_unpack_uint16();
-    is_update = (msg_type == STATESERVER_OBJECT_SET_FIELD);
-
+    is_update = (msg_type == STATESERVER_OBJECT_UPDATE_FIELD);
+    
   } else {
     msg_type = packer.raw_unpack_uint16();
-    is_update = (msg_type == CLIENT_OBJECT_SET_FIELD);
+    is_update = (msg_type == CLIENT_OBJECT_UPDATE_FIELD);
   }
 
   if (!is_update) {
-    // figure out the name of the message TODO: print out the arguments to the
-    // message
+    // figure out the name of the message
+    // TODO: print out the arguments to the message
     string msgName;
 
     #ifdef HAVE_PYTHON
-    if (_python_repository != nullptr) {
+    if (_python_repository != (PyObject *)NULL) {
       PyObject *msgId = PyLong_FromLong(msg_type);
-      nassertv(msgId != nullptr);
-      PyObject *methodName = PyUnicode_FromString("_getMsgName");
-      nassertv(methodName != nullptr);
+      nassertv(msgId != NULL);
+      PyObject *methodName = PyString_FromString("_getMsgName");
+      nassertv(methodName != NULL);
 
-      PyObject *result =
-        PyObject_CallMethodOneArg(_python_repository, methodName, msgId);
-      nassertv(result != nullptr);
+      PyObject *result = PyObject_CallMethodObjArgs(_python_repository, methodName,
+						    msgId, NULL);
+      nassertv(result != NULL);
 
-      msgName += string(PyUnicode_AsUTF8(result));
+      msgName += string(PyString_AsString(result));
 
       Py_DECREF(methodName);
       Py_DECREF(msgId);
@@ -938,60 +1007,203 @@ describe_message(std::ostream &out, const string &prefix,
     dg.dump_hex(out, 2);
 
   } else {
-    // It's an update message.  Figure out what dclass the object is based on
-    // its doId, so we can decode the rest of the message.
+    // It's an update message.  Figure out what dclass the object is
+    // based on its doId, so we can decode the rest of the message.
     do_id = packer.raw_unpack_uint32();
-    DCClass *dclass = nullptr;
-
-    #ifdef HAVE_PYTHON
-    if (_python_repository != nullptr) {
-      PyObject *doId2do =
-        PyObject_GetAttrString(_python_repository, "doId2do");
-      nassertv(doId2do != nullptr);
-
-      #ifdef USE_PYTHON_2_2_OR_EARLIER
-      PyObject *doId = PyInt_FromLong(do_id);
-      #else
-      PyObject *doId = PyLong_FromUnsignedLong(do_id);
-      #endif
-      PyObject *distobj = PyDict_GetItem(doId2do, doId);
-      Py_DECREF(doId);
-      Py_DECREF(doId2do);
-
-      if (distobj != nullptr) {
-        PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
-        nassertv(dclass_obj != nullptr);
-
-        PyObject *dclass_this = PyObject_GetAttrString(dclass_obj, "this");
-        Py_DECREF(dclass_obj);
-        nassertv(dclass_this != nullptr);
-
-        dclass = (DCClass *)PyLong_AsVoidPtr(dclass_this);
-        Py_DECREF(dclass_this);
-      }
-    }
-    #endif  // HAVE_PYTHON
 
     int field_id = packer.raw_unpack_uint16();
-
-    if (dclass == nullptr) {
-      out << full_prefix << "update for unknown object " << do_id
-          << ", field " << field_id << "\n";
-
+    DCField *field = DCField::get_field_from_number(field_id);
+    if (field == (DCField *)NULL) {
+      out << "unknown field " << field_id << "\n";
     } else {
+      DCClass *dclass = field->get_class();
       out << full_prefix <<
         ":" << dclass->get_name() << "(" << do_id << ").";
-      DCField *field = dclass->get_field_by_index(field_id);
-      if (field == nullptr) {
-        out << "unknown field " << field_id << "\n";
-
-      } else {
-        out << field->get_name();
-        packer.begin_unpack(field);
-        packer.unpack_and_format(out);
-        packer.end_unpack();
-        out << "\n";
-      }
+      out << field->get_name();
+      packer.begin_unpack(field);
+      packer.unpack_and_format(out);
+      packer.end_unpack();
+      out << "\n";
     }
   }
 }
+
+
+
+
+#ifdef HAVE_PYTHON
+#ifdef WANT_NATIVE_NET
+
+bool CConnectionRepository::network_based_reader_and_yielder(PyObject *PycallBackFunction,ClockObject &clock, float returnBy)
+{
+  ReMutexHolder holder(_lock);
+    while(is_connected())
+    {        
+        check_datagram_ai(PycallBackFunction);
+        if(is_connected())
+            _bdc.Flush();
+        float currentTime = clock.get_real_time();
+        float dif_time = returnBy - currentTime;
+        if(dif_time <= 0.001) // to avoi over runs..
+            break;
+        if(is_connected())
+            _bdc.WaitForNetworkReadEvent(dif_time);
+    }
+    return false;
+}
+
+bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction)
+{
+  ReMutexHolder holder(_lock);
+    // these could be static .. not 
+  PyObject *doId2do = NULL; 
+  float startTime =0;
+  float endTime = 0;
+  // this seems weird...here
+  _bdc.Flush();
+  while (_bdc.GetMessage(_dg))
+  { 
+      if (get_verbose()) 
+          describe_message(nout, "RECV", _dg);
+
+      if (_time_warning > 0) 
+        startTime = ClockObject::get_global_clock()->get_real_time();
+
+      // Start breaking apart the datagram.
+      _di.assign(_dg);
+      unsigned char  wc_cnt = _di.get_uint8();
+      _msg_channels.clear();
+      for(unsigned char lp1 = 0; lp1 < wc_cnt; lp1++)
+          _msg_channels.push_back(_di.get_uint64());
+
+      _msg_sender = _di.get_uint64();
+      _msg_type = _di.get_uint16();
+
+      if( _msg_type == STATESERVER_OBJECT_UPDATE_FIELD)
+      {
+          if(doId2do == NULL)
+          {
+              // this is my attemp to take it out of the inner loop  RHH
+              doId2do =PyObject_GetAttrString(_python_repository, "doId2do");
+              nassertr(doId2do != NULL, false);
+          }
+
+          if (!handle_update_field_ai(doId2do)) 
+          {
+              Py_XDECREF(doId2do);
+              if (_time_warning > 0) {
+                endTime = ClockObject::get_global_clock()->get_real_time(); 
+                if ( _time_warning < (endTime - startTime)) {
+                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << " secs to process\n";
+                  _dg.dump_hex(nout, 2);
+                  describe_message(nout, "RECV", _dg);
+                }
+              }
+              return false; 
+          }
+      }
+      else
+      {
+          PyObject * result = PyEval_CallObject(PycallBackFunction, _python_ai_datagramiterator);
+          if (PyErr_Occurred()) 
+          {        
+              Py_XDECREF(doId2do);
+              if (_time_warning > 0) {
+                endTime = ClockObject::get_global_clock()->get_real_time(); 
+                if ( _time_warning < (endTime - startTime)) {
+                  nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << " secs to process\n";
+                  _dg.dump_hex(nout, 2);
+                  describe_message(nout, "RECV", _dg);
+                }
+              }
+              return true;
+          }
+      }
+
+      if (_time_warning > 0) {
+        endTime = ClockObject::get_global_clock()->get_real_time(); 
+        if ( _time_warning < (endTime - startTime)) {
+          nout << "msg " << _msg_type <<" from " << _msg_sender << " took "<<  (endTime-startTime) << " secs to process\n";
+          _dg.dump_hex(nout, 2);
+          describe_message(nout, "RECV", _dg);
+        }
+      }
+             
+  }
+
+
+  Py_XDECREF(doId2do);
+  return false;
+}
+
+#endif  // #ifdef WANT_NATIVE_NET
+#endif  // #ifdef HAVE_PYTHON
+
+
+#ifdef HAVE_PYTHON
+#ifdef WANT_NATIVE_NET
+
+
+bool CConnectionRepository::handle_update_field_ai(PyObject *doId2do) 
+{
+  PStatTimer timer(_update_pcollector);
+  unsigned int do_id = _di.get_uint32();
+ 
+  PyObject *doId = PyLong_FromUnsignedLong(do_id);
+  PyObject *distobj = PyDict_GetItem(doId2do, doId);
+  Py_DECREF(doId);
+
+  if (distobj != NULL)
+  {
+      PyObject *dclass_obj = PyObject_GetAttrString(distobj, "dclass");
+      nassertr(dclass_obj != NULL, false);
+
+      DCClass *dclass = NULL;
+      DTOOL_Call_ExtractThisPointerForType(dclass_obj, &Dtool_DCClass, (void **) &dclass);
+      if(dclass == NULL)
+          return false;
+
+      if (_track_clsends) {
+        DatagramIterator di(_di);
+        int field_id = di.get_uint16();
+        DCField *field = dclass->get_field_by_index(field_id);
+        if (field != (DCField *)NULL) {
+          if (field->is_clsend() || field->is_ownsend()) {
+            // need to look up sender avatar
+            PyObject *senderId = PyLong_FromUnsignedLong(get_msg_sender() & 0xffffffff);
+            PyObject *senderObj = PyDict_GetItem(doId2do, senderId);
+            Py_DECREF(senderId);
+            if (senderObj != NULL) {
+              char *trackMethodName = "trackClientSendMsg";
+              if (PyObject_HasAttrString(senderObj, trackMethodName)) {
+                PyObject *func = PyObject_GetAttrString(senderObj, trackMethodName);
+                if (func != (PyObject *)NULL) {
+                  PyObject *args = Py_BuildValue("(s#)", _dg.get_message().c_str(), _dg.get_length());
+                  if (args != (PyObject *)NULL) {
+                    PyObject *result;
+                    Py_INCREF(senderObj);
+                    result = PyObject_CallObject(func, args);
+                    Py_DECREF(senderObj);
+                    Py_XDECREF(result);
+                    Py_DECREF(args);
+                  }
+                  Py_DECREF(func);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      Py_INCREF(distobj);
+      dclass->receive_update(distobj, _di); 
+      Py_DECREF(distobj);
+
+      if (PyErr_Occurred()) 
+          return false;
+  }
+  return true;
+}
+
+#endif  // #ifdef WANT_NATIVE_NET
+#endif  // #ifdef HAVE_PYTHON

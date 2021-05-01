@@ -1,5 +1,5 @@
-from . import DistributedNodeAI
-from . import DistributedSmoothNodeBase
+import DistributedNodeAI
+import DistributedSmoothNodeBase
 
 class DistributedSmoothNodeAI(DistributedNodeAI.DistributedNodeAI,
                               DistributedSmoothNodeBase.DistributedSmoothNodeBase):
@@ -8,6 +8,7 @@ class DistributedSmoothNodeAI(DistributedNodeAI.DistributedNodeAI,
         DistributedNodeAI.DistributedNodeAI.__init__(self, air, name)
         DistributedSmoothNodeBase.DistributedSmoothNodeBase.__init__(self)
 
+        
     def preGenerate(self):
         DistributedNodeAI.DistributedNodeAI.preGenerate(self)
         DistributedSmoothNodeBase.DistributedSmoothNodeBase.preGenerate(self)

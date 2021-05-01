@@ -1,25 +1,24 @@
 """DistributedSmoothNode module: contains the DistributedSmoothNode class"""
 
-from panda3d.core import NodePath, ConfigVariableDouble, ConfigVariableBool
-from panda3d.direct import SmoothMover, EmbeddedValue
-from .ClockDelta import *
-from . import DistributedNode
-from . import DistributedSmoothNodeBase
+from pandac.PandaModules import *
+from ClockDelta import *
+import DistributedNode
+import DistributedSmoothNodeBase
 from direct.task.Task import cont
 
 # This number defines our tolerance for out-of-sync telemetry packets.
 # If a packet appears to have originated from more than MaxFuture
 # seconds in the future, assume we're out of sync with the other
 # avatar and suggest a resync for both.
-MaxFuture = ConfigVariableDouble("smooth-max-future", 0.2)
+MaxFuture = base.config.GetFloat("smooth-max-future", 0.2)
 
 # How frequently can we suggest a resynchronize with another client?
-MinSuggestResync = ConfigVariableDouble("smooth-min-suggest-resync", 15)
+MinSuggestResync = base.config.GetFloat("smooth-min-suggest-resync", 15)
 
 # These flags indicate whether global smoothing and/or prediction is
 # allowed or disallowed.
-EnableSmoothing = ConfigVariableBool("smooth-enable-smoothing", True)
-EnablePrediction = ConfigVariableBool("smooth-enable-prediction", True)
+EnableSmoothing = base.config.GetBool("smooth-enable-smoothing", 1)
+EnablePrediction = base.config.GetBool("smooth-enable-prediction", 1)
 
 # These values represent the amount of time, in seconds, to delay the
 # apparent position of other avatars, when non-predictive and
@@ -27,8 +26,9 @@ EnablePrediction = ConfigVariableBool("smooth-enable-prediction", True)
 # addition to the automatic delay of the observed average latency from
 # each avatar, which is intended to compensate for relative clock
 # skew.
-Lag = ConfigVariableDouble("smooth-lag", 0.2)
-PredictionLag = ConfigVariableDouble("smooth-prediction-lag", 0.0)
+Lag = base.config.GetDouble("smooth-lag", 0.2)
+PredictionLag = base.config.GetDouble("smooth-prediction-lag", 0.0)
+
 
 GlobalSmoothing = 0
 GlobalPrediction = 0
@@ -60,7 +60,9 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
     """
 
     def __init__(self, cr):
-        if not hasattr(self, 'DistributedSmoothNode_initialized'):
+        try:
+            self.DistributedSmoothNode_initialized
+        except:
             self.DistributedSmoothNode_initialized = 1
             DistributedNode.DistributedNode.__init__(self, cr)
             DistributedSmoothNodeBase.DistributedSmoothNodeBase.__init__(self)
@@ -190,7 +192,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         resume movement by making sure any old stored positions
         reflect the node's current position
         """
-        if self.stopped:
+        if (self.stopped):
             currTime = globalClock.getFrameTime()
             now = currTime - self.smoother.getExpectedBroadcastPeriod()
             last = self.smoother.getMostRecentTimestamp()
@@ -386,10 +388,10 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
             # be just slightly in the past, but it might be off by as much
             # as this frame's amount of time forward or back.
             howFarFuture = local - now
-            if howFarFuture - chug >= MaxFuture.value:
+            if howFarFuture - chug >= MaxFuture:
                 # Too far off; advise the other client of our clock information.
-                if globalClockDelta.getUncertainty() is not None and \
-                   realTime - self.lastSuggestResync >= MinSuggestResync.value and \
+                if globalClockDelta.getUncertainty() != None and \
+                   realTime - self.lastSuggestResync >= MinSuggestResync and \
                    hasattr(self.cr, 'localAvatarDoId'):
                     self.lastSuggestResync = realTime
                     timestampB = globalClockDelta.localToNetworkTime(realTime)
@@ -487,9 +489,9 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         result = self.peerToPeerResync(
             avId, timestampA, serverTime, uncertainty)
         if result >= 0 and \
-           globalClockDelta.getUncertainty() is not None:
+           globalClockDelta.getUncertainty() != None:
             other = self.cr.doId2do.get(avId)
-            if not other:
+            if (not other):
                 assert self.notify.info(
                     "Warning: couldn't find the avatar %d" % (avId))
             elif hasattr(other, "d_returnResync") and \
@@ -528,7 +530,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         # If we didn't get anything useful from the other client,
         # maybe our clock is just completely hosed.  Go ask the AI.
         if not gotSync:
-            if self.cr.timeManager is not None:
+            if self.cr.timeManager != None:
                 self.cr.timeManager.synchronize("suggested by %d" % (avId))
 
         return gotSync
@@ -557,12 +559,12 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
                 # Prediction and smoothing.
                 self.smoother.setSmoothMode(SmoothMover.SMOn)
                 self.smoother.setPredictionMode(SmoothMover.PMOn)
-                self.smoother.setDelay(PredictionLag.value)
+                self.smoother.setDelay(PredictionLag)
             else:
                 # Smoothing, but no prediction.
                 self.smoother.setSmoothMode(SmoothMover.SMOn)
                 self.smoother.setPredictionMode(SmoothMover.PMOff)
-                self.smoother.setDelay(Lag.value)
+                self.smoother.setDelay(Lag)
         else:
             # No smoothing, no prediction.
             self.smoother.setSmoothMode(SmoothMover.SMOff)

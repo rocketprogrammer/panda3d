@@ -1,5 +1,6 @@
 from direct.distributed.DistributedSmoothNodeBase import DistributedSmoothNodeBase
 from direct.distributed.GridParent import GridParent
+from pandac.PandaModules import EmbeddedValue
 
 class GridChild:
     """
@@ -44,7 +45,7 @@ class GridChild:
         # than just one)
         #if self._gridInterestEnabled:
         self.__setGridInterest(grid, zoneId)
-
+        
     def enableGridInterest(self, enabled = True):
         self._gridInterestEnabled = enabled
         if enabled and self.isOnAGrid():
@@ -72,13 +73,13 @@ class GridChild:
             return self._gridParent.getGridZone()
         else:
             return None
-
+        
     def __setGridParent(self, gridParent):
         if self._gridParent and self._gridParent is not gridParent:
             self._gridParent.delete()
         self._gridParent = gridParent
 
-
+    
     def __setGridInterest(self, grid, zoneId):
         assert not self.cr.noNewInterests()
         if self.cr.noNewInterests():
@@ -142,6 +143,10 @@ class GridChild:
     def checkPosition(self):
         return False
 
+
+
+
+
 class SmoothGridChild(GridChild):
     """
     SmoothNodes have a special requirement in that they need to send
@@ -177,11 +182,11 @@ class SmoothGridChild(GridChild):
 
     def transformTelemetry(self, x, y, z, h, p, r, e):
         # We don't really need to transform telemetry, but
-        # we do update our grid cell such that the new
+        # we do update our grid cell such that the new 
         # telemetry is correct now.
         # We do this instead of overriding setSmPosHprE()
         # because we're a mixin class.
         if self.isOnAGrid():
-            self.setGridCell(self.getGrid(), e) # causes a wrtReparent() which updates
+            self.setGridCell(self.getGrid(), e) # causes a wrtReparent() which updates 
                                                 # all previous smooth positions
         return x, y, z, h, p, r

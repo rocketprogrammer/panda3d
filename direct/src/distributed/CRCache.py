@@ -1,9 +1,7 @@
 """CRCache module: contains the CRCache class"""
 
 from direct.directnotify import DirectNotifyGlobal
-from direct.showbase.MessengerGlobal import messenger
-from direct.showbase.PythonUtil import safeRepr, itype
-from . import DistributedObject
+import DistributedObject
 
 class CRCache:
     notify = DirectNotifyGlobal.directNotify.newCategory("CRCache")
@@ -43,7 +41,7 @@ class CRCache:
         for distObj in delayDeleted:
             if distObj.getDelayDeleteCount() != 0:
                 delayDeleteLeaks.append(distObj)
-        if len(delayDeleteLeaks) > 0:
+        if len(delayDeleteLeaks):
             s = 'CRCache.flush:'
             for obj in delayDeleteLeaks:
                 s += ('\n  could not delete %s (%s), delayDeletes=%s' %
@@ -61,7 +59,7 @@ class CRCache:
         doId = distObj.getDoId()
         # Error check
         success = False
-        if doId in self.dict:
+        if self.dict.has_key(doId):
             CRCache.notify.warning("Double cache attempted for distObj "
                                    + str(doId))
         else:
@@ -78,7 +76,7 @@ class CRCache:
                 # if the cache is full, pop the oldest item
                 oldestDistObj = self.fifo.pop(0)
                 # and remove it from the dictionary
-                del self.dict[oldestDistObj.getDoId()]
+                del(self.dict[oldestDistObj.getDoId()])
                 # and delete it
                 oldestDistObj.deleteOrDelay()
                 if oldestDistObj.getDelayDeleteCount() <= 0:
@@ -91,11 +89,11 @@ class CRCache:
 
     def retrieve(self, doId):
         assert self.checkCache()
-        if doId in self.dict:
+        if self.dict.has_key(doId):
             # Find the object
             distObj = self.dict[doId]
             # Remove it from the dictionary
-            del self.dict[doId]
+            del(self.dict[doId])
             # Remove it from the fifo
             self.fifo.remove(distObj)
             # return the distObj
@@ -105,15 +103,15 @@ class CRCache:
             return None
 
     def contains(self, doId):
-        return doId in self.dict
+        return self.dict.has_key(doId)
 
     def delete(self, doId):
         assert self.checkCache()
-        assert doId in self.dict
+        assert self.dict.has_key(doId)
         # Look it up
         distObj = self.dict[doId]
         # Remove it from the dict and fifo
-        del self.dict[doId]
+        del(self.dict[doId])
         self.fifo.remove(distObj)
         # and delete it
         distObj.deleteOrDelay()
@@ -124,7 +122,7 @@ class CRCache:
     def checkCache(self):
         # For debugging; this verifies that the cache is sensible and
         # returns true if so.
-        from panda3d.core import NodePath
+        from pandac.PandaModules import NodePath
         for obj in self.dict.values():
             if isinstance(obj, NodePath):
                 assert not obj.isEmpty() and obj.getTopNode() != render.node()

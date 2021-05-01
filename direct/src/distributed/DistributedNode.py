@@ -1,15 +1,18 @@
 """DistributedNode module: contains the DistributedNode class"""
 
-from panda3d.core import NodePath
+from pandac.PandaModules import NodePath
 from direct.showbase.ShowBaseGlobal import *
 from direct.task import Task
-from . import DistributedObject
+import DistributedObject
+import types
 
 class DistributedNode(DistributedObject.DistributedObject, NodePath):
     """Distributed Node class:"""
 
     def __init__(self, cr):
-        if not hasattr(self, 'DistributedNode_initialized'):
+        try:
+            self.DistributedNode_initialized
+        except:
             self.DistributedNode_initialized = 1
             self.gotStringParentToken = 0
             DistributedObject.DistributedObject.__init__(self, cr)
@@ -21,7 +24,9 @@ class DistributedNode(DistributedObject.DistributedObject, NodePath):
             DistributedObject.DistributedObject.disable(self)
 
     def delete(self):
-        if not hasattr(self, 'DistributedNode_deleted'):
+        try:
+            self.DistributedNode_deleted
+        except:
             self.DistributedNode_deleted = 1
             if not self.isEmpty():
                 self.removeNode()
@@ -46,7 +51,7 @@ class DistributedNode(DistributedObject.DistributedObject, NodePath):
     ### setParent ###
 
     def b_setParent(self, parentToken):
-        if isinstance(parentToken, str):
+        if type(parentToken) == types.StringType:
             self.setParentStr(parentToken)
         else:
             self.setParent(parentToken)
@@ -54,7 +59,7 @@ class DistributedNode(DistributedObject.DistributedObject, NodePath):
         self.d_setParent(parentToken)
 
     def d_setParent(self, parentToken):
-        if isinstance(parentToken, str):
+        if type(parentToken) == types.StringType:
             self.sendUpdate("setParentStr", [parentToken])
         else:
             self.sendUpdate("setParent", [parentToken])

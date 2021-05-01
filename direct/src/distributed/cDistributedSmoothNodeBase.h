@@ -19,6 +19,7 @@
 #include "nodePath.h"
 #include "dcbase.h"
 #include "dcPacker.h"
+#include "dcPython.h"  // to pick up Python.h
 #include "clockObject.h"
 
 class DCClass;
@@ -30,17 +31,17 @@ class CConnectionRepository;
 //               DistributedSmoothNodeBase which have been moved into
 //               C++ as a performance optimization.
 ////////////////////////////////////////////////////////////////////
-class CDistributedSmoothNodeBase {
+class EXPCL_DIRECT CDistributedSmoothNodeBase {
 PUBLISHED:
   CDistributedSmoothNodeBase();
   ~CDistributedSmoothNodeBase();
-
-  INLINE void
+  
+  INLINE static void
   set_repository(CConnectionRepository *repository,
                  bool is_ai, CHANNEL_TYPE ai_id);
 
 #ifdef HAVE_PYTHON
-  INLINE void
+  INLINE static void
   set_clock_delta(PyObject *clock_delta);
 #endif
 
@@ -54,11 +55,11 @@ PUBLISHED:
   void broadcast_pos_hpr_xyh();
   void broadcast_pos_hpr_xy();
 
-  // This value is used to embed another data point into the telemetry stream.
+  // This value is used to embed another data point into the telemetry stream. 
   // For instance, an object on a grid would need to have a way to switch grid
   // cells at the same instant the positional data wraps.
-  void set_embedded_val(uint64_t e);
-  uint64_t get_embedded_val() const;
+  void set_embedded_val(PN_uint64 e);
+  PN_uint64 get_embedded_val() const;
 
 private:
   INLINE static bool only_changed(int flags, int compare);
@@ -73,9 +74,9 @@ private:
   INLINE void d_setSmXYH(float x, float y, float h);
   INLINE void d_setSmXYZH(float x, float y, float z, float h);
   INLINE void d_setSmPosHpr(float x, float y, float z, float h, float p, float r);
-  INLINE void d_setSmPosHprE(float x, float y, float z, float h, float p, float r, uint64_t e);
+  INLINE void d_setSmPosHprE(float x, float y, float z, float h, float p, float r, PN_uint64 e);
 
-  void begin_send_update(DCPacker &packer, const std::string &field_name);
+  void begin_send_update(DCPacker &packer, const string &field_name);
   void finish_send_update(DCPacker &packer);
 
   enum Flags {
@@ -92,18 +93,19 @@ private:
   DCClass *_dclass;
   CHANNEL_TYPE _do_id;
 
-  CConnectionRepository *_repository;
-  bool _is_ai;
-  CHANNEL_TYPE _ai_id;
+  static CConnectionRepository *_repository;
+  static bool _is_ai;
+  static CHANNEL_TYPE _ai_id;
 #ifdef HAVE_PYTHON
-  PyObject *_clock_delta;
+  static PyObject *_clock_delta;
 #endif
 
   LPoint3f _store_xyz;
   LVecBase3f _store_hpr;
-  uint64_t _store_e;
+  PN_uint64 _store_e;
   bool _dirty_e; // set when _store_e has been changed;
   bool _store_stop;
+
 };
 
 #include "cDistributedSmoothNodeBase.I"

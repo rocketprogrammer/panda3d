@@ -1,11 +1,14 @@
-from panda3d.core import NodePath
-from . import DistributedObjectAI
-from . import GridParent
+from pandac.PandaModules import NodePath
+import DistributedObjectAI
+import GridParent
+import types
 
 class DistributedNodeAI(DistributedObjectAI.DistributedObjectAI, NodePath):
     def __init__(self, air, name=None):
         # Be careful not to create multiple NodePath objects
-        if not hasattr(self, 'DistributedNodeAI_initialized'):
+        try:
+            self.DistributedNodeAI_initialized
+        except:
             self.DistributedNodeAI_initialized = 1
             DistributedObjectAI.DistributedObjectAI.__init__(self, air)
             if name is None:
@@ -18,16 +21,15 @@ class DistributedNodeAI(DistributedObjectAI.DistributedObjectAI, NodePath):
         DistributedObjectAI.DistributedObjectAI.delete(self)
 
     ### setParent ###
-
     def b_setParent(self, parentToken):
-        if isinstance(parentToken, str):
+        if type(parentToken) == types.StringType:
             self.setParentStr(parentToken)
         else:
             self.setParent(parentToken)
         self.d_setParent(parentToken)
 
     def d_setParent(self, parentToken):
-        if isinstance(parentToken, str):
+        if type(parentToken) == type(''):
             self.sendUpdate("setParentStr", [parentToken])
         else:
             self.sendUpdate("setParent", [parentToken])

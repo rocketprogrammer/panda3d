@@ -19,33 +19,30 @@
 #include "dcmsgtypes.h"
 #include "config_distributed.h"
 
-#ifdef HAVE_PYTHON
-#include "py_panda.h"
-#endif
-
-static const PN_stdfloat smooth_node_epsilon = 0.01;
+static const float smooth_node_epsilon = 0.01;
 static const double network_time_precision = 100.0;  // Matches ClockDelta.py
+
+CConnectionRepository *CDistributedSmoothNodeBase::_repository = NULL;
+bool CDistributedSmoothNodeBase::_is_ai;
+CHANNEL_TYPE CDistributedSmoothNodeBase::_ai_id;
+
+#ifdef HAVE_PYTHON
+PyObject *CDistributedSmoothNodeBase::_clock_delta = NULL;
+#endif
 
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::Constructor
 //       Access: Published
-//  Description:
+//  Description: 
 ////////////////////////////////////////////////////////////////////
 CDistributedSmoothNodeBase::
 CDistributedSmoothNodeBase(): _store_e(0), _dirty_e(false){
-  _repository = nullptr;
-  _is_ai = false;
-  _ai_id = 0;
-
-#ifdef HAVE_PYTHON
-  _clock_delta = nullptr;
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////
 //     Function: CDistributedSmoothNodeBase::Destructor
 //       Access: Published
-//  Description:
+//  Description: 
 ////////////////////////////////////////////////////////////////////
 CDistributedSmoothNodeBase::
 ~CDistributedSmoothNodeBase() {
@@ -78,7 +75,7 @@ initialize(const NodePath &node_path, DCClass *dclass, CHANNEL_TYPE do_id) {
 //       Access: Published
 //  Description: Examines the complete pos/hpr information to see
 //               which of the six elements have changed, and
-//               stores the info internally. You must send any
+//               stores the info internally. You must send any 
 //               updates for any detected changes manually.
 //               Returns flags associated with the changed values.
 ////////////////////////////////////////////////////////////////////
@@ -138,8 +135,8 @@ refresh_pos_hpr() {
 void CDistributedSmoothNodeBase::
 send_everything() {
   _dirty_e = false;
-  d_setSmPosHprE(_store_xyz[0], _store_xyz[1], _store_xyz[2],
-                 _store_hpr[0], _store_hpr[1], _store_hpr[2],
+  d_setSmPosHprE(_store_xyz[0], _store_xyz[1], _store_xyz[2], 
+                 _store_hpr[0], _store_hpr[1], _store_hpr[2], 
                  _store_e);
 }
 
@@ -212,7 +209,7 @@ broadcast_pos_hpr_full() {
   } else {
     // Any other change
     _store_stop = false;
-    d_setSmPosHpr(_store_xyz[0], _store_xyz[1], _store_xyz[2],
+    d_setSmPosHpr(_store_xyz[0], _store_xyz[1], _store_xyz[2], 
                   _store_hpr[0], _store_hpr[1], _store_hpr[2]);
   }
 }
@@ -315,7 +312,7 @@ broadcast_pos_hpr_xy() {
 void CDistributedSmoothNodeBase::
 begin_send_update(DCPacker &packer, const string &field_name) {
   DCField *field = _dclass->get_field_by_name(field_name);
-  nassertv(field != nullptr);
+  nassertv(field != (DCField *)NULL);
 
   if (_is_ai) {
 
@@ -323,12 +320,12 @@ begin_send_update(DCPacker &packer, const string &field_name) {
     packer.RAW_PACK_CHANNEL(_do_id);
     packer.RAW_PACK_CHANNEL(_ai_id);
     //packer.raw_pack_uint8('A');
-    packer.raw_pack_uint16(STATESERVER_OBJECT_SET_FIELD);
+    packer.raw_pack_uint16(STATESERVER_OBJECT_UPDATE_FIELD);
     packer.raw_pack_uint32(_do_id);
     packer.raw_pack_uint16(field->get_number());
 
   } else {
-    packer.raw_pack_uint16(CLIENT_OBJECT_SET_FIELD);
+    packer.raw_pack_uint16(CLIENT_OBJECT_UPDATE_FIELD);
     packer.raw_pack_uint32(_do_id);
     packer.raw_pack_uint16(field->get_number());
   }
@@ -346,7 +343,7 @@ void CDistributedSmoothNodeBase::
 finish_send_update(DCPacker &packer) {
 #ifdef HAVE_PYTHON
   PyObject *clock_delta = PyObject_GetAttrString(_clock_delta, "delta");
-  nassertv(clock_delta != nullptr);
+  nassertv(clock_delta != NULL);
   double delta = PyFloat_AsDouble(clock_delta);
   Py_DECREF(clock_delta);
 #else
@@ -406,18 +403,19 @@ finish_send_update(DCPacker &packer) {
 //               this object. It will be sent out with the next
 //               telemetry broadcast.
 //               We expose this because we can't infer changes in this
-//               value from the contained NodePath as we can with
+//               value from the contained NodePath as we can with 
 //               telemetry.
 ////////////////////////////////////////////////////////////////////
 void CDistributedSmoothNodeBase::
-set_embedded_val(uint64_t e) {
+set_embedded_val(PN_uint64 e) {
   if (e != _store_e) {
     _store_e = e;
     _dirty_e = true;
   }
 }
 
-uint64_t CDistributedSmoothNodeBase::
+PN_uint64 CDistributedSmoothNodeBase::
 get_embedded_val() const {
   return _store_e;
 }
+

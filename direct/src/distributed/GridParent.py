@@ -1,4 +1,5 @@
-from panda3d.core import NodePath
+from pandac.PandaModules import *
+
 
 class GridParent:
     """
@@ -6,11 +7,11 @@ class GridParent:
     GridChild can multiplex its telemetry from the cell (scenegraph parent)
     rather than the grid (distributed parent).
     """
-
+    
     # this lets GridParents share CellOrigins
     GridZone2CellOrigin = {} # The nodes beneath the grid
     GridZone2count = {}      # Reference counts to know when to delete them
-
+    
     @staticmethod
     def getCellOrigin(grid, zoneId):
         tup = (grid, zoneId)
@@ -24,7 +25,7 @@ class GridParent:
             GridParent.GridZone2CellOrigin[tup].setPos(*cellPos)
         GridParent.GridZone2count[tup] += 1
         return GridParent.GridZone2CellOrigin[tup]
-
+    
     @staticmethod
     def releaseCellOrigin(grid, zoneId):
         tup = (grid, zoneId)
@@ -45,7 +46,7 @@ class GridParent:
         self._child = child
         self._grid = None
         self._zoneId = None
-
+        
         # NOTE: this node gets renamed when it is put on a zone, so if you
         # are looking for it by name, try cellOrigin*.
         self.ownCellOrigin = NodePath("cellOrigin")
@@ -73,7 +74,7 @@ class GridParent:
 
     def getGridZone(self):
         return self._zoneId
-
+    
     def setGridCell(self, grid, zoneId):
         # This will wrtReparent the child to a new grid node in the scenegraph
         # If the child currently has no parent, it will simply be reparented to
@@ -94,3 +95,4 @@ class GridParent:
         self._grid = grid
         self._zoneId = zoneId
         pass
+    

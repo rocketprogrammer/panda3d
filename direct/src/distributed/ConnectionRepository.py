@@ -1,27 +1,26 @@
-from panda3d.core import *
-from panda3d.direct import *
+from pandac.PandaModules import *
 from direct.task import Task
-from direct.task.TaskManagerGlobal import taskMgr
-from direct.directnotify.DirectNotifyGlobal import directNotify
+from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.DoInterestManager import DoInterestManager
 from direct.distributed.DoCollectionManager import DoCollectionManager
 from direct.showbase import GarbageReport
-from direct.showbase.MessengerGlobal import messenger
-from .PyDatagramIterator import PyDatagramIterator
+from PyDatagram import PyDatagram
+from PyDatagramIterator import PyDatagramIterator
 
-import inspect
+import types
+import imp
 import gc
 
-__all__ = ["ConnectionRepository", "GCTrigger"]
 
-class ConnectionRepository(
+
+class ConnectionRepository( 
         DoInterestManager, DoCollectionManager, CConnectionRepository):
     """
     This is a base class for things that know how to establish a
     connection (and exchange datagrams) with a gameserver.  This
     includes ClientRepository and AIRepository.
     """
-    notify = directNotify.newCategory("ConnectionRepository")
+    notify = DirectNotifyGlobal.directNotify.newCategory("ConnectionRepository")
     taskPriority = -30
     taskChain = None
 
@@ -40,7 +39,7 @@ class ConnectionRepository(
         if threadedNet is None:
             # Default value.
             threadedNet = config.GetBool('threaded-net', False)
-
+            
         # let the C connection repository know whether we're supporting
         # 'owner' views of distributed objects (i.e. 'receives ownrecv',
         # 'I own this object and have a separate view of it regardless of
@@ -61,7 +60,7 @@ class ConnectionRepository(
         # events in the main thread, instead of within the network
         # thread (if there is one).
         self.accept(self._getLostConnectionEvent(), self.lostConnection)
-
+        
         self.config = config
 
         if self.config.GetBool('verbose-repository'):
@@ -104,7 +103,7 @@ class ConnectionRepository(
             self.notify.info("Using connect method 'net'")
         elif self.connectMethod == self.CM_NATIVE:
             self.notify.info("Using connect method 'native'")
-
+        
         self.connectHttp = None
         self.http = None
 
@@ -135,7 +134,7 @@ class ConnectionRepository(
             # periodically increase gc threshold if there is no garbage
             taskMgr.doMethodLater(self.config.GetFloat('garbage-threshold-adjust-delay', 5 * 60.),
                                   self._adjustGcThreshold, self.GarbageThresholdTaskName)
-
+            
         self._gcDefaultThreshold = gc.get_threshold()
 
     def _getLostConnectionEvent(self):
@@ -177,7 +176,7 @@ class ConnectionRepository(
         def applyFieldValues(distObj, dclass, values):
             for i in range(dclass.getNumInheritedFields()):
                 field = dclass.getInheritedField(i)
-                if field.asMolecularField() is None:
+                if field.asMolecularField() == None:
                     value = values.get(field.getName(), None)
                     if value is None and field.isRequired():
                         # Gee, this could be better.  What would really be
@@ -216,7 +215,7 @@ class ConnectionRepository(
 
         # Construct a new one
         classDef = dclass.getClassDef()
-        if classDef is None:
+        if classDef == None:
             self.notify.error("Could not create an undefined %s object."%(
                 dclass.getName()))
         distObj = classDef(self)
@@ -249,12 +248,12 @@ class ConnectionRepository(
         self.dclassesByNumber = {}
         self.hashVal = 0
 
-        if isinstance(dcFileNames, str):
+        if isinstance(dcFileNames, types.StringTypes):
             # If we were given a single string, make it a list.
             dcFileNames = [dcFileNames]
 
         dcImports = {}
-        if dcFileNames is None:
+        if dcFileNames == None:
             readResult = dcFile.readAll()
             if not readResult:
                 self.notify.error("Could not read dc file.")
@@ -262,7 +261,6 @@ class ConnectionRepository(
             searchPath = getModelPath().getValue()
             for dcFileName in dcFileNames:
                 pathname = Filename(dcFileName)
-                vfs = VirtualFileSystem.getGlobalPtr()
                 vfs.resolveFilename(pathname, searchPath)
                 readResult = dcFile.read(pathname)
                 if not readResult:
@@ -324,19 +322,19 @@ class ConnectionRepository(
                 classDef = dcImports.get(className)
 
             # Also try it without the dcSuffix.
-            if classDef is None:
+            if classDef == None:
                 className = dclass.getName()
                 classDef = dcImports.get(className)
             if classDef is None:
                 self.notify.debug("No class definition for %s." % (className))
             else:
-                if inspect.ismodule(classDef):
+                if type(classDef) == types.ModuleType:
                     if not hasattr(classDef, className):
                         self.notify.warning("Module %s does not define class %s." % (className, className))
                         continue
                     classDef = getattr(classDef, className)
 
-                if not inspect.isclass(classDef):
+                if type(classDef) != types.ClassType and type(classDef) != types.TypeType:
                     self.notify.error("Symbol %s is not a class name." % (className))
                 else:
                     dclass.setClassDef(classDef)
@@ -381,7 +379,7 @@ class ConnectionRepository(
             # in the DC file.
             for i in range(dcFile.getNumClasses()):
                 dclass = dcFile.getClass(i)
-                if (dclass.getName()+ownerDcSuffix) in ownerImportSymbols:
+                if ((dclass.getName()+ownerDcSuffix) in ownerImportSymbols):
                     number = dclass.getNumber()
                     className = dclass.getName() + ownerDcSuffix
 
@@ -391,7 +389,7 @@ class ConnectionRepository(
                     if classDef is None:
                         self.notify.error("No class definition for %s." % className)
                     else:
-                        if inspect.ismodule(classDef):
+                        if type(classDef) == types.ModuleType:
                             if not hasattr(classDef, className):
                                 self.notify.error("Module %s does not define class %s." % (className, className))
                             classDef = getattr(classDef, className)
@@ -420,7 +418,7 @@ class ConnectionRepository(
                 if hasattr(module, symbolName):
                     dcImports[symbolName] = getattr(module, symbolName)
                 else:
-                    raise Exception('Symbol %s not defined in module %s.' % (symbolName, moduleName))
+                    raise StandardError, 'Symbol %s not defined in module %s.' % (symbolName, moduleName)
         else:
             # "import moduleName"
 
@@ -433,6 +431,7 @@ class ConnectionRepository(
     def getServerAddress(self):
         return self._serverAddress
 
+    @report(types = ['args', 'deltaStamp'], dConfigParam = 'teleport')
     def connect(self, serverList,
                 successCallback = None, successArgs = [],
                 failureCallback = None, failureArgs = []):
@@ -493,7 +492,7 @@ class ConnectionRepository(
         elif self.connectMethod == self.CM_NET or (not hasattr(self,"connectNative")):
             # Try each of the servers in turn.
             for url in serverList:
-                self.notify.info("Connecting to %s via NET interface." % (url))
+                self.notify.info("Connecting to %s via NET interface." % (url.cStr()))
                 if self.tryConnectNet(url):
                     self.startReaderPollTask()
                     if successCallback:
@@ -505,7 +504,7 @@ class ConnectionRepository(
                 failureCallback(0, '', *failureArgs)
         elif self.connectMethod == self.CM_NATIVE:
             for url in serverList:
-                self.notify.info("Connecting to %s via Native interface." % (url))
+                self.notify.info("Connecting to %s via Native interface." % (url.cStr()))
                 if self.connectNative(url):
                     self.startReaderPollTask()
                     if successCallback:
@@ -516,7 +515,7 @@ class ConnectionRepository(
             if failureCallback:
                 failureCallback(0, '', *failureArgs)
         else:
-            print("uh oh, we aren't using one of the tri-state CM variables")
+            print "uh oh, we aren't using one of the tri-state CM variables"
             failureCallback(0, '', *failureArgs)
 
     def disconnect(self):
@@ -528,17 +527,19 @@ class ConnectionRepository(
         CConnectionRepository.disconnect(self)
         self.stopReaderPollTask()
 
+    @report(types = ['args', 'deltaStamp'], dConfigParam = 'teleport')
     def shutdown(self):
         self.ignoreAll()
         CConnectionRepository.shutdown(self)
 
+    @report(types = ['args', 'deltaStamp'], dConfigParam = 'teleport')
     def httpConnectCallback(self, ch, serverList, serverIndex,
                             successCallback, successArgs,
                             failureCallback, failureArgs):
         if ch.isConnectionReady():
             self.setConnectionHttp(ch)
             self._serverAddress = serverList[serverIndex-1]
-            self.notify.info("Successfully connected to %s." % (self._serverAddress))
+            self.notify.info("Successfully connected to %s." % (self._serverAddress.cStr()))
 
             ## if self.recorder:
             ##     # If we have a recorder, we wrap the connect inside a
@@ -564,7 +565,7 @@ class ConnectionRepository(
             # No connection yet, but keep trying.
 
             url = serverList[serverIndex]
-            self.notify.info("Connecting to %s via HTTP interface." % (url))
+            self.notify.info("Connecting to %s via HTTP interface." % (url.cStr()))
             ch.preserveStatus()
 
             ch.beginConnectTo(DocumentSpec(url))
@@ -585,7 +586,7 @@ class ConnectionRepository(
         # available.  Returns the HTTPClient (also self.http), or None
         # if not set.
 
-        if self.http is None:
+        if self.http == None:
             try:
                 self.http = HTTPClient()
             except:
@@ -593,6 +594,7 @@ class ConnectionRepository(
 
         return self.http
 
+    @report(types = ['args', 'deltaStamp'], dConfigParam = 'teleport')
     def startReaderPollTask(self):
         # Stop any tasks we are running now
         self.stopReaderPollTask()
@@ -664,7 +666,7 @@ class ConnectionRepository(
             self.setSimulatedDisconnect(0)
 
     def uniqueName(self, idString):
-        return "%s-%s" % (idString, self.uniqueId)
+        return ("%s-%s" % (idString, self.uniqueId))
 
 class GCTrigger:
     # used to trigger garbage collection

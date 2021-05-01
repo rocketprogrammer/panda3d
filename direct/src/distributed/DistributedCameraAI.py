@@ -6,6 +6,7 @@ class DistributedCameraAI(DistributedObjectAI):
         DistributedObjectAI.__init__(self, air)
         self.parent = 0
         self.fixtures = []
+        pass
 
     def getCamParent(self):
         return self.parent
