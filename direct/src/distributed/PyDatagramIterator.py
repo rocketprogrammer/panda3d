@@ -3,10 +3,8 @@
 # class variable FuncDict and so we can import DCSubatomicType at the top
 # of the file rather than every time we call the putArg function.
 
-from panda3d.core import *
-from panda3d.direct import *
+from pandac.PandaModules import *
 # Import the type numbers
-
 
 class PyDatagramIterator(DatagramIterator):
 
@@ -23,9 +21,9 @@ class PyDatagramIterator(DatagramIterator):
         STUint32: DatagramIterator.getUint32,
         STUint64: DatagramIterator.getUint64,
         STFloat64: DatagramIterator.getFloat64,
-        STString: DatagramIterator.getString,
-        STBlob: DatagramIterator.getBlob,
-        STBlob32: DatagramIterator.getBlob32,
+        STString: DatagramIterator.getString, 
+        STBlob: DatagramIterator.getString,
+        STBlob32: DatagramIterator.getString32,
         }
 
     getChannel = DatagramIterator.getUint64
@@ -76,9 +74,9 @@ class PyDatagramIterator(DatagramIterator):
                     b = self.getUint8()
                     retVal.append((a, b))
             else:
-                raise Exception("Error: No such type as: " + str(subatomicType))
+                raise Exception("Error: No such type as: " + str(subAtomicType))
         else:
-            # See if it is in the handy dict
+            # See if it is in the handy dict            
             getFunc = self.FuncDict.get(subatomicType)
             if getFunc:
                 retVal = (getFunc(self)/float(divisor))
@@ -122,4 +120,8 @@ class PyDatagramIterator(DatagramIterator):
             else:
                 raise Exception("Error: No such type as: " + str(subatomicType))
 
+
+
         return retVal
+
+

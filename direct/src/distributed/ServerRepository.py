@@ -1,18 +1,13 @@
 """ServerRepository module: contains the ServerRepository class"""
 
-from panda3d.core import *
-from panda3d.direct import *
+from pandac.PandaModules import *
 from direct.distributed.MsgTypesCMU import *
 from direct.task import Task
-from direct.task.TaskManagerGlobal import taskMgr
 from direct.directnotify import DirectNotifyGlobal
 from direct.distributed.PyDatagram import PyDatagram
-
-import inspect
-
-
-_server_doid_range = ConfigVariableInt('server-doid-range', 1000000)
-
+from direct.distributed.PyDatagramIterator import PyDatagramIterator
+import time
+import types
 
 class ServerRepository:
 
@@ -54,7 +49,7 @@ class ServerRepository:
             # or moving objects between zones, might influence this
             # set.
             self.currentInterestZoneIds = set()
-
+            
             # A dictionary of doId -> Object, for distributed objects
             # currently in existence that were created by the client.
             self.objectsByDoId = {}
@@ -81,14 +76,14 @@ class ServerRepository:
             # Note that the server does not store any other data about
             # the distributed objects; in particular, it doesn't
             # record its current fields.  That is left to the clients.
-
+            
 
     def __init__(self, tcpPort, serverAddress = None,
                  udpPort = None, dcFileNames = None,
                  threadedNet = None):
         if threadedNet is None:
             # Default value.
-            threadedNet = ConfigVariableBool('threaded-net', False).value
+            threadedNet = config.GetBool('threaded-net', False)
 
         # Set up networking interfaces.
         numThreads = 0
@@ -137,12 +132,12 @@ class ServerRepository:
 
         # The number of doId's to assign to each client.  Must remain
         # constant during server lifetime.
-        self.doIdRange = _server_doid_range.value
+        self.doIdRange = base.config.GetInt('server-doid-range', 1000000)
 
         # An allocator object that assigns the next doIdBase to each
         # client.
-        self.idAllocator = UniqueIdAllocator(0, 0xffffffff // self.doIdRange)
-
+        self.idAllocator = UniqueIdAllocator(0, 0xffffffff / self.doIdRange)
+        
         self.dcFile = DCFile()
         self.dcSuffix = ''
         self.readDCFile(dcFileNames)
@@ -158,7 +153,7 @@ class ServerRepository:
         for client in flush:
             client.connection.flush()
 
-        return Task.again
+        return task.again
 
     def setTcpHeaderSize(self, headerSize):
         """Sets the header size of TCP packets.  At the present, legal
@@ -173,7 +168,7 @@ class ServerRepository:
         """Returns the current setting of TCP header size. See
         setTcpHeaderSize(). """
         return self.qcr.getTcpHeaderSize()
-
+        
 
     def importModule(self, dcImports, moduleName, importSymbols):
         """ Imports the indicated moduleName and all of its symbols
@@ -197,7 +192,7 @@ class ServerRepository:
                     dcImports[symbolName] = getattr(module, symbolName)
 
                 else:
-                    raise Exception('Symbol %s not defined in module %s.' % (symbolName, moduleName))
+                    raise StandardError, 'Symbol %s not defined in module %s.' % (symbolName, moduleName)
 
         else:
             # "import moduleName"
@@ -221,7 +216,7 @@ class ServerRepository:
         self.hashVal = 0
 
         dcImports = {}
-        if dcFileNames is None:
+        if dcFileNames == None:
             readResult = dcFile.readAll()
             if not readResult:
                 self.notify.error("Could not read dc file.")
@@ -229,7 +224,6 @@ class ServerRepository:
             searchPath = getModelPath().getValue()
             for dcFileName in dcFileNames:
                 pathname = Filename(dcFileName)
-                vfs = VirtualFileSystem.getGlobalPtr()
                 vfs.resolveFilename(pathname, searchPath)
                 readResult = dcFile.read(pathname)
                 if not readResult:
@@ -273,19 +267,19 @@ class ServerRepository:
             classDef = dcImports.get(className)
 
             # Also try it without the dcSuffix.
-            if classDef is None:
+            if classDef == None:
                 className = dclass.getName()
                 classDef = dcImports.get(className)
 
-            if classDef is None:
+            if classDef == None:
                 self.notify.debug("No class definition for %s." % (className))
             else:
-                if inspect.ismodule(classDef):
+                if type(classDef) == types.ModuleType:
                     if not hasattr(classDef, className):
                         self.notify.error("Module %s does not define class %s." % (className, className))
                     classDef = getattr(classDef, className)
 
-                if not inspect.isclass(classDef):
+                if type(classDef) != types.ClassType and type(classDef) != types.TypeType:
                     self.notify.error("Symbol %s is not a class name." % (className))
                 else:
                     dclass.setClassDef(classDef)
@@ -305,7 +299,7 @@ class ServerRepository:
             retVal = self.qcl.getNewConnection(rendezvous, netAddress,
                                                newConnection)
             if not retVal:
-                return Task.cont
+                return task.cont
 
             # Crazy dereferencing
             newConnection = newConnection.p()
@@ -323,17 +317,17 @@ class ServerRepository:
 
             # Now we can start listening to that new connection.
             self.qcr.addConnection(newConnection)
-
+            
             self.lastConnection = newConnection
             self.sendDoIdRange(client)
-
-        return Task.cont
+            
+        return task.cont
 
     def readerPollUntilEmpty(self, task):
         """ continuously polls for new messages on the server """
         while self.readerPollOnce():
             pass
-        return Task.cont
+        return task.cont
 
     def readerPollOnce(self):
         """ checks for available messages to the server """
@@ -421,7 +415,7 @@ class ServerRepository:
                 self.notify.debug(
                     "Creating object %s of type %s by client %s" % (
                     doId, dclass.getName(), client.doIdBase))
-
+                    
             object = self.Object(doId, zoneId, dclass)
             client.objectsByDoId[doId] = object
             client.objectsByZoneId.setdefault(zoneId, set()).add(object)
@@ -439,7 +433,7 @@ class ServerRepository:
         dg.addUint16(classId)
         dg.addUint32(doId)
         dg.appendData(dgi.getRemainingBytes())
-
+        
         self.sendToZoneExcept(zoneId, dg, [client])
 
     def handleClientObjectUpdateField(self, datagram, dgi, targeted = False):
@@ -460,9 +454,9 @@ class ServerRepository:
                 "Ignoring update for unknown object %s from client %s" % (
                 doId, client.doIdBase))
             return
-
+        
         dcfield = object.dclass.getFieldByIndex(fieldId)
-        if dcfield is None:
+        if dcfield == None:
             self.notify.warning(
                 "Ignoring update for field %s on object %s from client %s; no such field for class %s." % (
                 fieldId, doId, client.doIdBase, object.dclass.getName()))
@@ -495,16 +489,16 @@ class ServerRepository:
                 return
             self.cw.send(dg, target.connection)
             self.needsFlush.add(target)
-
+            
         elif dcfield.hasKeyword('p2p'):
             # p2p: to object owner only
             self.cw.send(dg, owner.connection)
             self.needsFlush.add(owner)
-
+                        
         elif dcfield.hasKeyword('broadcast'):
             # Broadcast: to everyone except orig sender
             self.sendToZoneExcept(object.zoneId, dg, [client])
-
+            
         elif dcfield.hasKeyword('reflect'):
             # Reflect: broadcast to everyone including orig sender
             self.sendToZoneExcept(object.zoneId, dg, [])
@@ -534,7 +528,7 @@ class ServerRepository:
             return
 
         self.sendToZoneExcept(object.zoneId, datagram, [])
-
+        
         self.objectsByZoneId[object.zoneId].remove(object)
         if not self.objectsByZoneId[object.zoneId]:
             del self.objectsByZoneId[object.zoneId]
@@ -633,12 +627,12 @@ class ServerRepository:
         del self.clientsByConnection[client.connection]
         del self.clientsByDoIdBase[client.doIdBase]
 
-        id = client.doIdBase // self.doIdRange
+        id = client.doIdBase / self.doIdRange
         self.idAllocator.free(id)
 
         self.qcr.removeConnection(client.connection)
         self.qcm.closeConnection(client.connection)
-
+        
 
     def handleClientSetInterest(self, client, dgi):
         """ The client is specifying a particular set of zones it is
@@ -651,11 +645,11 @@ class ServerRepository:
 
         client.explicitInterestZoneIds = zoneIds
         self.updateClientInterestZones(client)
-
+        
     def updateClientInterestZones(self, client):
         """ Something about the client has caused its set of interest
         zones to potentially change.  Recompute them. """
-
+        
         origZoneIds = client.currentInterestZoneIds
         newZoneIds = client.explicitInterestZoneIds | set(client.objectsByZoneId.keys())
         if origZoneIds == newZoneIds:
@@ -689,23 +683,23 @@ class ServerRepository:
         self.cw.send(datagram, client.connection)
 
         self.needsFlush.add(client)
-
+            
 
     def clientHardDisconnectTask(self, task):
         """ client did not tell us he was leaving but we lost connection to
         him, so we need to update our data and tell others """
-        for client in list(self.clientsByConnection.values()):
+        for client in self.clientsByConnection.values():
             if not self.qcr.isConnectionOk(client.connection):
                 self.handleClientDisconnect(client)
-        return Task.cont
+        return task.cont
 
     def sendToZoneExcept(self, zoneId, datagram, exceptionList):
         """sends a message to everyone who has interest in the
         indicated zone, except for the clients on exceptionList."""
-
+        
         if self.notify.getDebug():
             self.notify.debug(
-                "ServerRepository sending to all in zone %s except %s:" % (zoneId, [c.doIdBase for c in exceptionList]))
+                "ServerRepository sending to all in zone %s except %s:" % (zoneId, map(lambda c: c.doIdBase, exceptionList)))
             #datagram.dumpHex(ostream)
 
         for client in self.zonesToClients.get(zoneId, []):
@@ -719,10 +713,10 @@ class ServerRepository:
     def sendToAllExcept(self, datagram, exceptionList):
         """ sends a message to all connected clients, except for
         clients on exceptionList. """
-
+        
         if self.notify.getDebug():
             self.notify.debug(
-                "ServerRepository sending to all except %s:" % ([c.doIdBase for c in exceptionList],))
+                "ServerRepository sending to all except %s:" % (map(lambda c: c.doIdBase, exceptionList),))
             #datagram.dumpHex(ostream)
 
         for client in self.clientsByConnection.values():
