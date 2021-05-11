@@ -61,6 +61,7 @@ MsgName2Id = {
     'STATESERVER_OBJECT_GET_ALL_RESP':                  2015,
     'STATESERVER_OBJECT_SET_FIELD':                     2020,
     'STATESERVER_OBJECT_SET_FIELDS':                    2021,
+    'STATESERVER_OBJECT_QUERY_FIELD':                   2024,
     'STATESERVER_OBJECT_DELETE_FIELD_RAM':              2030,
     'STATESERVER_OBJECT_DELETE_FIELDS_RAM':             2031,
     'STATESERVER_OBJECT_DELETE_RAM':                    2032,

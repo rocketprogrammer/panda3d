@@ -105,6 +105,7 @@ class AstronInternalRepository(ConnectionRepository):
     of this class.
     """
     notify = DirectNotifyGlobal.directNotify.newCategory("AstronInternalRepository")
+    InitialContext = 100000
 
     def __init__(self, baseChannel, serverId=None, dcFileNames = None,
                  dcSuffix = 'AI', connectMethod = None, threadedNet = None):
@@ -147,6 +148,9 @@ class AstronInternalRepository(ConnectionRepository):
                 self.setEventLogHost(eventLogHost)
 
         self.readDCFile(dcFileNames)
+
+        self.context=self.InitialContext
+        self.contextToClassName = {}
 
     def getContext(self):
         self.__contextCounter = (self.__contextCounter + 1) & 0xFFFFFFFF
@@ -263,6 +267,10 @@ class AstronInternalRepository(ConnectionRepository):
         elif msgType >= 20000:
             # These messages belong to the NetMessenger:
             self.netMessenger.handle(msgType, di)
+        elif msgType == STATESERVER_OBJECT_QUERY_FIELD_RESP:
+            self.handleObjectQueryField(di)
+        elif msgType == STATESERVER_OBJECT_QUERY_FIELDS_RESP:
+            self.handleObjectQueryFields(di)
         else:
             self.notify.warning('Received message with unknown MsgType=%d' % msgType)
 
@@ -824,3 +832,104 @@ class AstronInternalRepository(ConnectionRepository):
         for fieldId in fieldIds:
             dg.addUint16(fieldId)
         self.send(dg)
+
+    def handleObjectQueryField(self, di):
+        assert self.notify.debugStateCall(self)
+
+        doId = di.getUint32()
+        fieldId = di.getUint16()
+        context = di.getUint32()
+        success = di.getUint8()
+        if success and context:
+            className = self.contextToClassName.pop(context, None)
+            # This prevents a crash that occurs when an AI sends a query,
+            # crashes, comes back up, then receives the response
+            if className:
+                dclass = self.dclassesByName.get(className)
+                interface = dclass.getFieldByIndex(fieldId)
+                packer = DCPacker()
+                packer.setUnpackData(di.getRemainingBytes())
+                packer.beginUnpack(interface)
+                value = packer.unpackObject()
+                messenger.send(
+                    "doFieldResponse-%s"%(context,), [context, value])
+
+    def handleObjectQueryFields(self, di):
+        assert self.notify.debugStateCall(self)
+
+        doId = di.getUint32()
+        context = di.getUint32()
+        success = di.getUint8()
+        if success and context:
+            className = self.contextToClassName.pop(context)
+            # This prevents a crash that occurs when an AI sends a query,
+            # crashes, comes back up, then receives the response
+            if className:
+                dclass = self.dclassesByName.get(className)
+                packer = DCPacker()
+                objData = {}
+
+                while di.getRemainingSize() > 0:
+                    fieldId = di.getUint16()
+                    interface = dclass.getFieldByIndex(fieldId)
+                    packer.setUnpackData(di.getRemainingBytes())
+                    packer.beginUnpack(interface)
+                    value = packer.unpackObject()
+                    packer.endUnpack()
+                    objData[interface.getName()] = value
+                    di.skipBytes(packer.getNumUnpackedBytes())
+
+                messenger.send("doFieldResponse-%s"%(context,),[context,objData])
+            else:
+                self.notify.warning("STATESERVER_OBJECT_QUERY_FIELDS_RESP received with invalid context: %s" % context)
+                messenger.send("doFieldQueryFailed-%s"%(context),[context])
+        else:
+            messenger.send("doFieldQueryFailed-%s"%(context),[context])
+
+    @report(types = ['args'], dConfigParam = 'avatarmgr')
+    def queryObjectField(self, dclassName, fieldName, doId, context=0):
+        """
+        See Also: def sendUpdateToDoId
+        """
+        assert self.notify.debugStateCall(self)
+        assert len(dclassName) > 0
+        assert len(fieldName) > 0
+        assert doId > 0
+        dclass = self.dclassesByName.get(dclassName)
+        assert dclass is not None
+        if not dclass:
+            self.notify.error(
+                "queryObjectField invalid dclassName %s, %s"%(doId, fieldName))
+            return
+        if dclass is not None:
+            fieldId = dclass.getFieldByName(fieldName).getNumber()
+            assert fieldId # is 0 a valid value?
+            if not fieldId:
+                self.notify.error(
+                    "queryObjectField invalid field %s, %s"%(doId, fieldName))
+                return
+            self.queryObjectFieldId(doId, fieldId, context)
+
+    @report(types = ['args'], dConfigParam = 'avatarmgr')
+    def queryObjectFieldId(self, doId, fieldId, context=0):
+        """
+        Get a one-time snapshot look at the object.
+        """
+        assert self.notify.debugStateCall(self)
+        # Create a message
+        datagram = PyDatagram()
+        datagram.addServerHeader(
+            doId, self.ourChannel, STATESERVER_OBJECT_QUERY_FIELD)
+        datagram.addUint32(doId)
+        datagram.addUint16(fieldId)
+        # A context that can be used to index the response if needed
+        datagram.addUint32(context)
+        self.send(datagram)
+        # Make sure the message gets there.
+        self.flush()
+
+    def allocateContext(self):
+        self.context+=1
+        if self.context >= (1<<32):
+            self.context=self.InitialContext
+        return self.context
