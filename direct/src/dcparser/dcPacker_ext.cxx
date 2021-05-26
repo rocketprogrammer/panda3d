@@ -275,9 +275,8 @@ unpack_object() {
     break;
   }
 
-  if (object != nullptr) {
-    return object;
-  }
+  nassertr(object != nullptr, nullptr);
+  return object;
 }
 
 /**
