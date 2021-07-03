@@ -28,7 +28,7 @@ class aiWebServer(SystemInformation):
         self.air = simbase.air
         # self.taskMgr = Task.TaskManager()
         if __debug__:
-            print "Listen port set to: %d" % self.listenPort
+            print("Listen port set to: %d" % self.listenPort)
         # Start dispatcher
         self.web = WebRequest.WebRequestDispatcher()
         self.web.listenOnPort(self.listenPort)
@@ -92,7 +92,7 @@ class aiWebServer(SystemInformation):
                 # The most likely cause is the input of a non num type into
                 # the amount field
                 
-                print 'Incorrect value entered.'
+                print('Incorrect value entered.')
                 replyTo.respond('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">\n<TITLE>Money Error</title>\n</head><body>Please check the Amount field. Transaction could not be completed.</BODY>\n</HTML>')
                 return
                 
@@ -295,7 +295,7 @@ def inspectorFor(anObject):
     if typeName in _InspectorMap:
         inspectorName = _InspectorMap[typeName]
     else:
-        print "Can't find an inspector for " + typeName
+        print("Can't find an inspector for " + typeName)
         inspectorName = 'Inspector'
     inspector = globals()[inspectorName](anObject)
     return inspector

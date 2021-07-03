@@ -121,9 +121,9 @@ class SystemInformation:
 
 if __name__ == "__main__":
     s = SystemInformation()
-    print s.os
-    print s.cpu
-    print "RAM : %dKb total" % s.totalRAM
-    print "RAM : %dKb free" % s.availableRAM
-    print "Total VM: %dKb" % s.totalVM
-    print "Available VM: %dKb" % s.availableVM
+    print(s.os)
+    print(s.cpu)
+    print("RAM : %dKb total" % s.totalRAM)
+    print("RAM : %dKb free" % s.availableRAM)
+    print("Total VM: %dKb" % s.totalVM)
+    print("Available VM: %dKb" % s.availableVM)

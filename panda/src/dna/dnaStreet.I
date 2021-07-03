@@ -1,0 +1,138 @@
+// Filename: dnaStreet.I
+// Created by:  shochet (28Mar00)
+//
+////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::set_code
+//       Access: Public
+//  Description: sets the code of the street node
+////////////////////////////////////////////////////////////////////
+INLINE void DNAStreet::set_code(std::string code) {
+  _code = code;
+}
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::get_code
+//       Access: Public
+//  Description: returns the code of the street node
+////////////////////////////////////////////////////////////////////
+INLINE std::string DNAStreet::get_code() const {
+  return _code;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::set_street_color
+//       Access: Public
+//  Description: sets the color of the street node
+////////////////////////////////////////////////////////////////////
+INLINE void DNAStreet::set_street_color(const LColorf &color) {
+  _street_color = color;
+}
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::get_street_color
+//       Access: Public
+//  Description: returns the color of the street node
+////////////////////////////////////////////////////////////////////
+INLINE LColorf DNAStreet::get_street_color() const {
+  return _street_color;
+}
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::set_sidewalk_color
+//       Access: Public
+//  Description: sets the color of the sidewalk node
+////////////////////////////////////////////////////////////////////
+INLINE void DNAStreet::set_sidewalk_color(const LColorf &color) {
+  _sidewalk_color = color;
+}
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::get_sidewalk_color
+//       Access: Public
+//  Description: returns the color of the sidewalk node
+////////////////////////////////////////////////////////////////////
+INLINE LColorf DNAStreet::get_sidewalk_color() const {
+  return _sidewalk_color;
+}
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::set_curb_color
+//       Access: Public
+//  Description: sets the color of the sidewalk node
+////////////////////////////////////////////////////////////////////
+INLINE void DNAStreet::set_curb_color(const LColorf &color) {
+  _curb_color = color;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::get_curb_color
+//       Access: Public
+//  Description: returns the color of the curb node
+////////////////////////////////////////////////////////////////////
+INLINE LColorf DNAStreet::get_curb_color() const {
+  return _curb_color;
+}
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::set_street_texture
+//       Access: Public
+//  Description: sets the texture of the street node
+////////////////////////////////////////////////////////////////////
+INLINE void DNAStreet::set_street_texture(std::string street_texture) {
+  _street_texture = street_texture;
+}
+
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::get_street_texture
+//       Access: Public
+//  Description: returns the texture of the street node
+////////////////////////////////////////////////////////////////////
+INLINE std::string DNAStreet::get_street_texture() const {
+  return _street_texture;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::set_sidewalk_texture
+//       Access: Public
+//  Description: sets the texture of the sidewalk node
+////////////////////////////////////////////////////////////////////
+INLINE void DNAStreet::set_sidewalk_texture(std::string sidewalk_texture) {
+  _sidewalk_texture = sidewalk_texture;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::get_sidewalk_texture
+//       Access: Public
+//  Description: returns the texture of the sidewalk node
+////////////////////////////////////////////////////////////////////
+INLINE std::string DNAStreet::get_sidewalk_texture() const {
+  return _sidewalk_texture;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::set_curb_texture
+//       Access: Public
+//  Description: sets the texture of the curb node
+////////////////////////////////////////////////////////////////////
+INLINE void DNAStreet::set_curb_texture(std::string curb_texture) {
+  _curb_texture = curb_texture;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: DNAStreet::get_curb_texture
+//       Access: Public
+//  Description: returns the texture of the curb node
+////////////////////////////////////////////////////////////////////
+INLINE std::string DNAStreet::get_curb_texture() const {
+  return _curb_texture;
+}

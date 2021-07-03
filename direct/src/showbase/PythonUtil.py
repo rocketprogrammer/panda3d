@@ -3614,6 +3614,24 @@ if __debug__:
     assert s.c[0].text == 'testComment'
     del s
 
+def u2ascii(s):
+    # Unicode -> ASCII
+    if type(s) is str:
+        return unicodedata.normalize('NFKD', s).encode('ascii', 'backslashreplace')
+    else:
+        return str(s)
+
+def unicodeUtf8(s):
+    # * -> Unicode UTF-8
+    if type(s) is str:
+        return s
+    else:
+        return str(s)
+
+def encodedUtf8(s):
+    # * -> 8-bit-encoded UTF-8
+    return unicodeUtf8(s).encode('utf-8')
+
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
@@ -3675,3 +3693,6 @@ builtins.triglerp = triglerp
 builtins.cmp = cmp
 builtins.bpdb = bpdb
 builtins.describeException = describeException
+builtins.u2ascii = u2ascii
+builtins.unicodeUtf8 = unicodeUtf8
+builtins.encodedUtf8 = encodedUtf8
