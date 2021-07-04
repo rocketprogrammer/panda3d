@@ -28,7 +28,8 @@ from .OnscreenText import OnscreenText
 
 class DirectFrame(DirectGuiWidget):
     DefDynGroups = ('text', 'geom', 'image')
-    def __init__(self, parent = None, **kw):
+
+    def __init__(self, parent=None, **kw):
         # Inherits from DirectGuiWidget
         optiondefs = (
             # Define type of DirectGuiWidget
@@ -45,10 +46,10 @@ class DirectFrame(DirectGuiWidget):
             # Change default value of text mayChange flag from 0
             # (OnscreenText.py) to 1
             ('textMayChange',  1,          None),
-            )
+        )
         # Merge keyword options with default options
         self.defineoptions(kw, optiondefs,
-                           dynamicGroups = DirectFrame.DefDynGroups)
+                           dynamicGroups=DirectFrame.DefDynGroups)
 
         # Initialize superclasses
         DirectGuiWidget.__init__(self, parent)
@@ -101,36 +102,12 @@ class DirectFrame(DirectGuiWidget):
         if text is None or isinstance(text, str):
             text_list = (text,) * self['numStates']
         else:
-            # Otherwise, hope that the user has passed in a tuple/list
-            textList = self['text']
-        # Create/destroy components
-        for i in range(self['numStates']):
-            component = 'text' + repr(i)
-            # If fewer items specified than numStates,
-            # just repeat last item
-            try:
-                text = textList[i]
-            except IndexError:
-                text = textList[-1]
+            text_list = text
 
-            if self.hascomponent(component):
-                if text == None:
-                    # Destroy component
-                    self.destroycomponent(component)
-                else:
-                    self[component + '_text'] = text
-            else:
-                if text == None:
-                    return
-                else:
-                    from .OnscreenText import OnscreenText
-                    self.createcomponent(
-                        component, (), 'text',
-                        OnscreenText,
-                        (), parent = self.stateNodePath[i],
-                        text = text, scale = 1, mayChange = self['textMayChange'],
-                        sort = DGG.TEXT_SORT_INDEX,
-                        )
+        self.__reinitComponent("text", OnscreenText, text_list,
+            scale=1,
+            mayChange=self['textMayChange'],
+            sort=DGG.TEXT_SORT_INDEX)
 
     def clearGeom(self):
         self['geom'] = None
@@ -146,35 +123,11 @@ class DirectFrame(DirectGuiWidget):
            isinstance(geom, str):
             geom_list = (geom,) * self['numStates']
         else:
-            # Otherwise, hope that the user has passed in a tuple/list
-            geomList = geom
+            geom_list = geom
 
-        # Create/destroy components
-        for i in range(self['numStates']):
-            component = 'geom' + repr(i)
-            # If fewer items specified than numStates,
-            # just repeat last item
-            try:
-                geom = geomList[i]
-            except IndexError:
-                geom = geomList[-1]
-
-            if self.hascomponent(component):
-                if geom == None:
-                    # Destroy component
-                    self.destroycomponent(component)
-                else:
-                    self[component + '_geom'] = geom
-            else:
-                if geom == None:
-                    return
-                else:
-                    self.createcomponent(
-                        component, (), 'geom',
-                        OnscreenGeom,
-                        (), parent = self.stateNodePath[i],
-                        geom = geom, scale = 1,
-                        sort = DGG.GEOM_SORT_INDEX)
+        self.__reinitComponent("geom", OnscreenGeom, geom_list,
+            scale=1,
+            sort=DGG.GEOM_SORT_INDEX)
 
     def clearImage(self):
         self['image'] = None
@@ -195,38 +148,8 @@ class DirectFrame(DirectGuiWidget):
             isinstance(image[1], str)):
             image_list = (image,) * self['numStates']
         else:
-            # Otherwise, hope that the user has passed in a tuple/list
-            if ((len(arg) == 2) and
-                isinstance(arg[0], stringType) and
-                isinstance(arg[1], stringType)):
-                # Its a model/node pair of strings
-                imageList = (arg,) * self['numStates']
-            else:
-                # Assume its a list of node paths
-                imageList = arg
-        # Create/destroy components
-        for i in range(self['numStates']):
-            component = 'image' + repr(i)
-            # If fewer items specified than numStates,
-            # just repeat last item
-            try:
-                image = imageList[i]
-            except IndexError:
-                image = imageList[-1]
+            image_list = image
 
-            if self.hascomponent(component):
-                if image == None:
-                    # Destroy component
-                    self.destroycomponent(component)
-                else:
-                    self[component + '_image'] = image
-            else:
-                if image == None:
-                    return
-                else:
-                    self.createcomponent(
-                        component, (), 'image',
-                        OnscreenImage,
-                        (), parent = self.stateNodePath[i],
-                        image = image, scale = 1,
-                        sort = DGG.IMAGE_SORT_INDEX)
+        self.__reinitComponent("image", OnscreenImage, image_list,
+            scale=1,
+            sort=DGG.IMAGE_SORT_INDEX)
