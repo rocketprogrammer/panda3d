@@ -5,7 +5,7 @@ from .DisneyMessageTypes import *
 
 MsgName2Id = {
     # 2 new params: passwd, char bool 0/1 1 = new account
-    # 2 new return values: 129 = not found, 12 = bad passwd, 
+    # 2 new return values: 129 = not found, 12 = bad passwd,
     'CLIENT_LOGIN':                                  1,
     'CLIENT_LOGIN_RESP':                             2,
     'CLIENT_GET_AVATARS':                            3,
@@ -75,10 +75,10 @@ MsgName2Id = {
 
     'CLIENT_DONE_INTEREST_RESP':                     204,
 
-    'CLIENT_ADD_INTEREST':                           200,
+    'CLIENT_ADD_INTEREST':                           97,
     'CLIENT_ADD_INTEREST_MULTIPLE':                  201,
-    'CLIENT_REMOVE_INTEREST':                        203,
-    'CLIENT_OBJECT_LOCATION':                        140,
+    'CLIENT_REMOVE_INTEREST':                        99,
+    'CLIENT_OBJECT_LOCATION':                        102,
 
     # These are sent internally inside the Astron cluster.
 
@@ -192,7 +192,7 @@ MsgName2Id = {
 
 # create id->name table for debugging
 MsgId2Names = invertDictLossless(MsgName2Id)
-    
+
 # put msg names in module scope, assigned to msg value
 for name, value in MsgName2Id.items():
     exec('%s = %s' % (name, value))
@@ -204,7 +204,7 @@ QUIET_ZONE_IGNORED_LIST = [
     # We mustn't ignore updates, because some updates for localToon
     # are always important.
     #CLIENT_OBJECT_UPDATE_FIELD,
-    
+
     # These are now handled. If it is a create for a class that is in the
     # uber zone, we should create it.
     #CLIENT_CREATE_OBJECT_REQUIRED,
