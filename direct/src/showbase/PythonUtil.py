@@ -11,6 +11,7 @@ __all__ = [
     'boolEqual', 'lineupPos', 'formatElapsedSeconds', 'solveQuadratic',
     'findPythonModule', 'mostDerivedLast', 'clampScalar', 'weightedChoice',
     'randFloat', 'normalDistrib', 'weightedRand', 'randUint31', 'randInt32',
+    'randUint32',
     'SerialNumGen', 'serialNum', 'uniqueName', 'Enum', 'Singleton',
     'SingletonError', 'printListEnum', 'safeRepr', 'fastRepr',
     'isDefaultValue', 'ScratchPad', 'Sync', 'itype', 'getNumberedTypedString',
@@ -1208,6 +1209,11 @@ def randInt32(rng=random.random):
         i *= -1
     return i
 
+def randUint32(rng=random.random):
+    """returns a random integer in [0..2^32).
+    rng must return float in [0..1]"""
+    return long(rng() * 0xFFFFFFFF)
+
 class SerialNumGen:
     """generates serial numbers"""
     def __init__(self, start=None):
@@ -1573,7 +1579,7 @@ def appendStr(obj, st):
             return s
         oldStr = Functor(stringer, str(obj))
         stringer = None
-    obj.__str__ = types.MethodType(Functor(appendedStr, oldStr, st), obj, obj.__class__)
+    obj.__str__ = types.MethodType(Functor(appendedStr, oldStr, st), obj)
     appendedStr = None
     return obj
 
