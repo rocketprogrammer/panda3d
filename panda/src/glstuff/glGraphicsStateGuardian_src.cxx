@@ -1104,6 +1104,20 @@ reset() {
       _supports_clear_texture = true;
     }
   }
+#elif !defined(OPENGLES_1)
+  if (has_extension("GL_EXT_clear_texture")) {
+    _glClearTexImage = (PFNGLCLEARTEXIMAGEEXTPROC)
+      get_extension_func("glClearTexImageEXT");
+    _glClearTexSubImage = (PFNGLCLEARTEXSUBIMAGEEXTPROC)
+      get_extension_func("glClearTexSubImageEXT");
+
+    if (_glClearTexImage == nullptr || _glClearTexSubImage == nullptr) {
+      GLCAT.warning()
+        << "GL_EXT_clear_texture advertised as supported by OpenGL runtime, but could not get pointers to extension functions.\n";
+    } else {
+      _supports_clear_texture = true;
+    }
+  }
 #endif
 
   _supports_clear_buffer = false;
@@ -3319,23 +3333,30 @@ reset() {
 #endif
 
   // Set depth range from zero to one if requested.
-#ifndef OPENGLES
+#ifndef OPENGLES_1
   _use_depth_zero_to_one = false;
   _use_remapped_depth_range = false;
 
   if (gl_depth_zero_to_one) {
+#ifndef OPENGLES
+    PFNGLCLIPCONTROLPROC pglClipControl = nullptr;
     if (is_at_least_gl_version(4, 5) || has_extension("GL_ARB_clip_control")) {
-      PFNGLCLIPCONTROLPROC pglClipControl =
-        (PFNGLCLIPCONTROLPROC)get_extension_func("glClipControl");
+      pglClipControl = (PFNGLCLIPCONTROLPROC)get_extension_func("glClipControl");
+    }
+#else
+    PFNGLCLIPCONTROLEXTPROC pglClipControl = nullptr;
+    if (has_extension("GL_EXT_clip_control")) {
+      pglClipControl = (PFNGLCLIPCONTROLEXTPROC)get_extension_func("glClipControlEXT");
+    }
+#endif
 
-      if (pglClipControl != nullptr) {
-        pglClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
-        _use_depth_zero_to_one = true;
+    if (pglClipControl != nullptr) {
+      pglClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+      _use_depth_zero_to_one = true;
 
-        if (GLCAT.is_debug()) {
-          GLCAT.debug()
-            << "Set zero-to-one depth using glClipControl\n";
-        }
+      if (GLCAT.is_debug()) {
+        GLCAT.debug()
+          << "Set zero-to-one depth using glClipControl\n";
       }
     }/* else if (has_extension("GL_NV_depth_buffer_float")) {
       // Alternatively, all GeForce 8+ and even some AMD drivers support this
@@ -3963,32 +3984,32 @@ prepare_display_region(DisplayRegionPipelineReader *dr) {
     }
   }
 
-  PN_stdfloat near;
-  PN_stdfloat far;
-  dr->get_depth_range(near, far);
+  PN_stdfloat nearv;
+  PN_stdfloat farv;
+  dr->get_depth_range(nearv, farv);
 #ifdef GSG_VERBOSE
   if (GLCAT.is_spam()) {
     GLCAT.spam()
-      << "glDepthRange(" << near << ", " << far << ")" << endl;
+      << "glDepthRange(" << nearv << ", " << farv << ")" << endl;
   }
 #endif
 
 #ifdef OPENGLES
   // OpenGL ES uses a single-precision call.
-  glDepthRangef((GLclampf)near, (GLclampf)far);
+  glDepthRangef((GLclampf)nearv, (GLclampf)farv);
 #else
   // Mainline OpenGL uses a double-precision call.
   if (!_use_remapped_depth_range) {
-    glDepthRange((GLclampd)near, (GLclampd)far);
+    glDepthRange((GLclampd)nearv, (GLclampd)farv);
   } else {
     // If we have a remapped depth range, we should adjust the values to range
     // from -1 to 1.  We need to use an NV extension to pass unclamped values.
-    _glDepthRangedNV(near * 2.0 - 1.0, far * 2.0 - 1.0);
+    _glDepthRangedNV(nearv * 2.0 - 1.0, farv * 2.0 - 1.0);
   }
 #endif  // OPENGLES
   _has_attrib_depth_range = false;
-  _depth_range_near = near;
-  _depth_range_far = far;
+  _depth_range_near = nearv;
+  _depth_range_far = farv;
 
   report_my_gl_errors();
 }
