@@ -454,7 +454,7 @@ protected:
 #ifdef SUPPORT_FIXED_FUNCTION
   void do_issue_fog();
 #endif
-  void do_issue_depth_offset();
+  void do_issue_depth_bias();
   void do_issue_shade_model();
 #ifndef OPENGLES_1
   void do_issue_shader();
@@ -675,6 +675,9 @@ protected:
   bool _scissor_enabled;
   bool _scissor_attrib_active;
   epvector<LVecBase4i> _scissor_array;
+  PN_stdfloat _depth_range_near;
+  PN_stdfloat _depth_range_far;
+  bool _has_attrib_depth_range;
 
 #ifndef OPENGLES_1
   BitMask32 _enabled_vertex_attrib_arrays;
@@ -768,6 +771,9 @@ public:
   bool _use_depth_zero_to_one;
   bool _use_remapped_depth_range;
   PFNGLDEPTHRANGEDNVPROC _glDepthRangedNV;
+#endif
+#ifndef OPENGLES_1
+  PFNGLPOLYGONOFFSETCLAMPEXTPROC _glPolygonOffsetClamp;
 #endif
 
   bool _supports_point_parameters;

@@ -52,6 +52,7 @@
 #include "alphaTestAttrib.h"
 #include "clipPlaneAttrib.h"
 #include "cullFaceAttrib.h"
+#include "depthBiasAttrib.h"
 #include "depthOffsetAttrib.h"
 #include "depthWriteAttrib.h"
 #include "fogAttrib.h"
@@ -153,6 +154,13 @@ null_glBlendFuncSeparate(GLenum src, GLenum dest, GLenum, GLenum) {
 
 static void APIENTRY
 null_glBlendColor(GLclampf, GLclampf, GLclampf, GLclampf) {
+}
+#endif
+
+#ifndef OPENGLES_1
+static void APIENTRY
+null_glPolygonOffsetClamp(GLfloat factor, GLfloat units, GLfloat clamp) {
+  glPolygonOffset(factor, units);
 }
 #endif
 
@@ -528,6 +536,7 @@ CLP(GraphicsStateGuardian)(GraphicsEngine *engine, GraphicsPipe *pipe) :
 
   _scissor_enabled = false;
   _scissor_attrib_active = false;
+  _has_attrib_depth_range = false;
 
   _white_texture = 0;
 
@@ -625,6 +634,7 @@ reset() {
   _inv_state_mask.clear_bit(ColorAttrib::get_class_slot());
   _inv_state_mask.clear_bit(ColorScaleAttrib::get_class_slot());
   _inv_state_mask.clear_bit(CullFaceAttrib::get_class_slot());
+  _inv_state_mask.clear_bit(DepthBiasAttrib::get_class_slot());
   _inv_state_mask.clear_bit(DepthOffsetAttrib::get_class_slot());
   _inv_state_mask.clear_bit(DepthTestAttrib::get_class_slot());
   _inv_state_mask.clear_bit(DepthWriteAttrib::get_class_slot());
@@ -3337,6 +3347,7 @@ reset() {
         _glDepthRangedNV(-1.0, 1.0);
         _use_depth_zero_to_one = true;
         _use_remapped_depth_range = true;
+        _has_attrib_depth_range = false;
 
         if (GLCAT.is_debug()) {
           GLCAT.debug()
@@ -3349,6 +3360,32 @@ reset() {
       GLCAT.warning()
         << "Zero-to-one depth was requested, but driver does not support it.\n";
     }
+  }
+#endif
+
+  if (_has_attrib_depth_range) {
+#ifdef OPENGLES
+    glDepthRangef(0.0f, 1.0f);
+#else
+    glDepthRange(0.0, 1.0);
+#endif
+    _depth_range_near = 0;
+    _depth_range_far = 1;
+    _has_attrib_depth_range = false;
+  }
+
+#ifndef OPENGLES_1
+#ifndef OPENGLES
+  if (is_at_least_gl_version(4, 6) || has_extension("GL_ARB_polygon_offset_clamp")) {
+    _glPolygonOffsetClamp = (PFNGLPOLYGONOFFSETCLAMPEXTPROC)get_extension_func("glPolygonOffsetClamp");
+  }
+  else
+#endif
+  if (has_extension("GL_EXT_polygon_offset_clamp")) {
+    _glPolygonOffsetClamp = (PFNGLPOLYGONOFFSETCLAMPEXTPROC)get_extension_func("glPolygonOffsetClampEXT");
+  }
+  else {
+    _glPolygonOffsetClamp = null_glPolygonOffsetClamp;
   }
 #endif
 
@@ -3925,6 +3962,33 @@ prepare_display_region(DisplayRegionPipelineReader *dr) {
       }
     }
   }
+
+  PN_stdfloat near;
+  PN_stdfloat far;
+  dr->get_depth_range(near, far);
+#ifdef GSG_VERBOSE
+  if (GLCAT.is_spam()) {
+    GLCAT.spam()
+      << "glDepthRange(" << near << ", " << far << ")" << endl;
+  }
+#endif
+
+#ifdef OPENGLES
+  // OpenGL ES uses a single-precision call.
+  glDepthRangef((GLclampf)near, (GLclampf)far);
+#else
+  // Mainline OpenGL uses a double-precision call.
+  if (!_use_remapped_depth_range) {
+    glDepthRange((GLclampd)near, (GLclampd)far);
+  } else {
+    // If we have a remapped depth range, we should adjust the values to range
+    // from -1 to 1.  We need to use an NV extension to pass unclamped values.
+    _glDepthRangedNV(near * 2.0 - 1.0, far * 2.0 - 1.0);
+  }
+#endif  // OPENGLES
+  _has_attrib_depth_range = false;
+  _depth_range_near = near;
+  _depth_range_far = far;
 
   report_my_gl_errors();
 }
@@ -8133,41 +8197,67 @@ do_issue_fog() {
  *
  */
 void CLP(GraphicsStateGuardian)::
-do_issue_depth_offset() {
-  const DepthOffsetAttrib *target_depth_offset = (const DepthOffsetAttrib *)
-     _target_rs->get_attrib_def(DepthOffsetAttrib::get_class_slot());
-
+do_issue_depth_bias() {
+  const DepthOffsetAttrib *target_depth_offset;
+  _target_rs->get_attrib_def(target_depth_offset);
   int offset = target_depth_offset->get_offset();
 
-  if (offset != 0) {
+  const DepthBiasAttrib *target_depth_bias;
+  if (_target_rs->get_attrib(target_depth_bias)) {
+    GLfloat slope_factor = target_depth_bias->get_slope_factor();
+    GLfloat constant_factor = target_depth_bias->get_constant_factor();
+
+    slope_factor -= offset;
+    constant_factor -= offset;
+
+#ifndef OPENGLES_1
+    GLfloat clamp = target_depth_bias->get_clamp();
+    _glPolygonOffsetClamp(slope_factor, constant_factor, clamp);
+#else
+    glPolygonOffset(slope_factor, constant_factor);
+#endif
+    enable_polygon_offset(true);
+  }
+  else if (offset != 0) {
     // The relationship between these two parameters is a little unclear and
     // poorly explained in the GL man pages.
     glPolygonOffset((GLfloat) -offset, (GLfloat) -offset);
     enable_polygon_offset(true);
-
-  } else {
+  }
+  else {
     enable_polygon_offset(false);
   }
 
   PN_stdfloat min_value = target_depth_offset->get_min_value();
   PN_stdfloat max_value = target_depth_offset->get_max_value();
+  if (min_value != (PN_stdfloat)0.0 ||
+      max_value != (PN_stdfloat)1.0 ||
+      _has_attrib_depth_range) {
+    min_value = _depth_range_far * min_value + _depth_range_near * (1 - min_value);
+    max_value = _depth_range_far * max_value + _depth_range_near * (1 - max_value);
+
 #ifdef GSG_VERBOSE
-    GLCAT.spam()
-      << "glDepthRange(" << min_value << ", " << max_value << ")" << endl;
+    if (GLCAT.is_spam()) {
+      GLCAT.spam()
+        << "glDepthRange(" << min_value << ", " << max_value << ")" << endl;
+    }
 #endif
 #ifdef OPENGLES
-  // OpenGL ES uses a single-precision call.
-  glDepthRangef((GLclampf)min_value, (GLclampf)max_value);
+    // OpenGL ES uses a single-precision call.
+    glDepthRangef((GLclampf)min_value, (GLclampf)max_value);
 #else
-  // Mainline OpenGL uses a double-precision call.
-  if (!_use_remapped_depth_range) {
-    glDepthRange((GLclampd)min_value, (GLclampd)max_value);
-  } else {
-    // If we have a remapped depth range, we should adjust the values to range
-    // from -1 to 1.  We need to use an NV extension to pass unclamped values.
-    _glDepthRangedNV(min_value * 2.0 - 1.0, max_value * 2.0 - 1.0);
-  }
+    // Mainline OpenGL uses a double-precision call.
+    if (!_use_remapped_depth_range) {
+      glDepthRange((GLclampd)min_value, (GLclampd)max_value);
+    } else {
+      // If we have a remapped depth range, we should adjust the values to range
+      // from -1 to 1.  We need to use an NV extension to pass unclamped values.
+      _glDepthRangedNV(min_value * 2.0 - 1.0, max_value * 2.0 - 1.0);
+    }
 #endif  // OPENGLES
+
+    _has_attrib_depth_range = true;
+  }
 
   report_my_gl_errors();
 }
@@ -11734,11 +11824,15 @@ set_state_and_transform(const RenderState *target,
     _state_mask.set_bit(cull_face_slot);
   }
 
+  int depth_bias_slot = DepthBiasAttrib::get_class_slot();
   int depth_offset_slot = DepthOffsetAttrib::get_class_slot();
-  if (_target_rs->get_attrib(depth_offset_slot) != _state_rs->get_attrib(depth_offset_slot) ||
+  if (_target_rs->get_attrib(depth_bias_slot) != _state_rs->get_attrib(depth_bias_slot) ||
+      _target_rs->get_attrib(depth_offset_slot) != _state_rs->get_attrib(depth_offset_slot) ||
+      !_state_mask.get_bit(depth_bias_slot) ||
       !_state_mask.get_bit(depth_offset_slot)) {
     // PStatGPUTimer timer(this, _draw_set_state_depth_offset_pcollector);
-    do_issue_depth_offset();
+    do_issue_depth_bias();
+    _state_mask.set_bit(depth_bias_slot);
     _state_mask.set_bit(depth_offset_slot);
   }
 
