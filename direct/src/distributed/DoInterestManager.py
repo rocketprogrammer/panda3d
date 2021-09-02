@@ -548,7 +548,6 @@ class DoInterestManager(DirectObject.DirectObject):
         datagram = PyDatagram()
         # Add message type
         datagram.addUint16(CLIENT_REMOVE_INTEREST)
-        datagram.addUint32(0)
         datagram.addUint16((1<<15) + handle)
         self.send(datagram)
 
