@@ -82,27 +82,27 @@ class DistributedCartesianGrid(DistributedNode, CartesianGridBase):
     def handleChildArrive(self, child, zoneId):
         DistributedNode.handleChildArrive(self, child, zoneId)
         if zoneId >= self.startingZone:
-            if not child.gridParent:
-                child.gridParent = GridParent(child)
-            child.gridParent.setGridParent(self, zoneId)
-        elif child.gridParent:
-            child.gridParent.delete()
-            child.gridParent = None
+            if not child._gridParent:
+                child._gridParent = GridParent(child)
+            child._gridParent.setGridParent(self, zoneId)
+        elif child._gridParent:
+            child._gridParent.delete()
+            child._gridParent = None
 
     def handleChildArriveZone(self, child, zoneId):
         DistributedNode.handleChildArrive(self, child, zoneId)
         if zoneId >= self.startingZone:
-            if not child.gridParent:
-                child.gridParent = GridParent(child)
-            child.gridParent.setGridParent(self, zoneId)
-        elif child.gridParent:
-            child.gridParent.delete()
-            child.gridParent = None
+            if not child._gridParent:
+                child._gridParent = GridParent(child)
+            child._gridParent.setGridParent(self, zoneId)
+        elif child._gridParent:
+            child._gridParent.delete()
+            child._gridParent = None
 
     def handleChildLeave(self, child, zoneId):
-        if child.gridParent:
-            child.gridParent.delete()
-            child.gridParent = None
+        if child._gridParent:
+            child._gridParent.delete()
+            child._gridParent = None
 
     @report(types = ['deltaStamp', 'avLocation', 'args'], dConfigParam = ['connector','shipboard'])
     def startProcessVisibility(self, avatar):
