@@ -3421,7 +3421,8 @@ def FindLocation(fn, ipath, pyabi=None):
         if fn.endswith(".dll"):
             fn = fn[:-4] + ".lib"
         elif fn.endswith(".pyd"):
-            fn = os.path.splitext(fn[:-4] + GetExtensionSuffix())[0] + ".lib"
+            fn = "libpy.panda3d." \
+               + os.path.splitext(fn[:-4] + GetExtensionSuffix())[0] + ".lib"
 
     loc = CalcLocation(fn, ipath)
     base, ext = os.path.splitext(fn)
