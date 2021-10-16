@@ -99,7 +99,7 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "PANDAPARTICLESYSTEM",                               # Built in particle system
   "CONTRIB",                                           # Experimental
   "SSE2", "NEON",                                      # Compiler features
-  "NAMETAG", "MOVEMENT", "NAVIGATION",                 # libotp
+  "NAMETAG", "MOVEMENT", "NAVIGATION", "SECURE" ,      # libotp
   "DNA", "SUIT", "PETS",                               # libtoontown
 ])
 
@@ -3235,7 +3235,7 @@ if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"
     if not PkgSkip("NAVIGATION"):
         CopyAllHeaders('panda/src/navigation')
 
-if not PkgSkip("DNA") or not PkgSkip("SUIT") or not PkgSkip("PETS"):
+if not PkgSkip("DNA") or not PkgSkip("SUIT") or not PkgSkip("PETS") or not PkgSkip("SECURE"):
     CopyAllHeaders('panda/src/toontownbase')
     if not PkgSkip("DNA"):
         CopyAllHeaders('panda/src/dna')
@@ -3243,6 +3243,8 @@ if not PkgSkip("DNA") or not PkgSkip("SUIT") or not PkgSkip("PETS"):
         CopyAllHeaders('panda/src/suit')
     if not PkgSkip("PETS"):
         CopyAllHeaders('panda/src/pets')
+    if not PkgSkip("SECURE"):
+        CopyAllHeaders('panda/src/secure')
 
 if not PkgSkip("PANDATOOL"):
     CopyAllHeaders('pandatool/src/pandatoolbase')
@@ -5181,11 +5183,24 @@ if not PkgSkip("NAVIGATION"):
     TargetAdd('libp3navigation.in', opts=['IMOD:panda3d.otp', 'ILIB:libp3navigation', 'SRCDIR:panda/src/navigation'])
 
 #
+# DIRECTORY: panda/src/secure/
+#
+if not PkgSkip("SECURE"):
+  OPTS=['DIR:panda/src/secure', 'BUILDING:OTP', 'OPENSSL', 'ZLIB']
+  TargetAdd('get_fingerprint.obj', opts=OPTS, input='get_fingerprint.cxx')
+  TargetAdd('loadClientCertificate.obj', opts=OPTS, input='loadClientCertificate.cxx')
+  IGATEFILES=["loadClientCertificate.cxx", "loadClientCertificate.h", "get_fingerprint.h", "get_fingerprint.cxx"]
+  TargetAdd('libp3secure.in', opts=OPTS, input=IGATEFILES)
+  TargetAdd('libp3secure.in', opts=['IMOD:otp', 'ILIB:libp3secure', 'SRCDIR:panda/src/secure'])
+  PyTargetAdd('libp3secure_igate.obj', input='libp3secure.in', opts=["DEPENDENCYONLY"])
+
+#
 # DIRECTORY: panda/src/nametag/
 # DIRECTORY: panda/src/movement/
 # DIRECTORY: panda/src/navigation/
+# DIRECTORY: panda/src/secure/
 #
-if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"):
+if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION") or not PkgSkip("SECURE"):
     if not PkgSkip("NAMETAG"):
         TargetAdd('libp3otp.dll', input='p3nametag_composite1.obj')
         TargetAdd('libp3otp.dll', input='p3nametag_composite2.obj')
@@ -5194,6 +5209,9 @@ if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"
         TargetAdd('libp3otp.dll', input='p3movement_composite1.obj')
     if not PkgSkip("NAVIGATION"):
         PyTargetAdd('libp3otp.dll', input='p3navigation_composite1.obj')
+    if not PkgSkip("SECURE"):
+        PyTargetAdd('libp3otp.dll', input='get_fingerprint.obj')
+        PyTargetAdd('libp3otp.dll', input='loadClientCertificate.obj')
     TargetAdd('libp3otp.dll', input=COMMON_PANDA_LIBS)
 
     if not PkgSkip("NAMETAG"):
@@ -5202,6 +5220,8 @@ if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"
         PyTargetAdd('otp_module.obj', input='libp3movement.in')
     if not PkgSkip("NAVIGATION"):
         PyTargetAdd('otp_module.obj', input='libp3navigation.in')
+    if not PkgSkip("SECURE"):
+        PyTargetAdd('otp_module.obj', input='libp3secure.in')
     PyTargetAdd('otp_module.obj', opts=['IMOD:panda3d.otp', 'ILIB:otp', 'IMPORT:panda3d.core'])
 
     PyTargetAdd('otp.pyd', input='otp_module.obj')
@@ -5211,6 +5231,8 @@ if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"
         PyTargetAdd('otp.pyd', input='libp3movement_igate.obj')
     if not PkgSkip("NAVIGATION"):
         PyTargetAdd('otp.pyd', input='libp3navigation_igate.obj')
+    if not PkgSkip("SECURE"):
+        PyTargetAdd('otp.pyd', input='libp3secure_igate.obj')
     PyTargetAdd('otp.pyd', input='libp3otp.dll')
     PyTargetAdd('otp.pyd', input='libp3interrogatedb.dll')
     PyTargetAdd('otp.pyd', input=COMMON_PANDA_LIBS)
