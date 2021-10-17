@@ -17,7 +17,6 @@
 
 #ifndef PANDABASE_H
 #define PANDABASE_H
-#define YY_NO_UNISTD_H 1
 
 #include "dtoolbase.h"
 #include "pandasymbols.h"
