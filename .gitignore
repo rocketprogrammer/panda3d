@@ -1,11 +1,8 @@
 # makepanda directories
 /built*/
 /thirdparty/
-/thirdparty_x64/
-/thirdparty_x86/
 /targetroot/
 /dstroot/
-*.zip
 /sdks/
 
 # Core dumps and traces
@@ -73,3 +70,5 @@ __pycache__/
 /.settings/
 /.cproject
 /.project
+Panda3D-1.11.0-py3.7-x64-pdb.zip
+Panda3D-1.11.0-py3.9-x64-pdb.zip

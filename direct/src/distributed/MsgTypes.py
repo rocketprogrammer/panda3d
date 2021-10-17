@@ -1,7 +1,6 @@
 """MsgTypes module: contains distributed object message types"""
 
 from direct.showbase.PythonUtil import invertDictLossless
-from .DisneyMessageTypes import *
 
 MsgName2Id = {
     'CLIENT_HELLO':                                  1,
@@ -14,13 +13,6 @@ MsgName2Id = {
     'CLIENT_EJECT':                                  4,
 
     'CLIENT_HEARTBEAT':                              5,
-
-    'CLIENT_OBJECT_DISABLE':                         25,
-    'CLIENT_OBJECT_DISABLE_RESP':                    25,
-    'CLIENT_OBJECT_DISABLE_OWNER':                   26,
-    'CLIENT_OBJECT_DISABLE_OWNER_RESP':              26,
-    'CLIENT_OBJECT_DELETE':                          27,
-    'CLIENT_OBJECT_DELETE_RESP':                     27,
 
     'CLIENT_OBJECT_SET_FIELD':                       120,
     'CLIENT_OBJECT_SET_FIELDS':                      121,
@@ -37,6 +29,7 @@ MsgName2Id = {
     'CLIENT_ADD_INTEREST_MULTIPLE':                  201,
     'CLIENT_REMOVE_INTEREST':                        203,
     'CLIENT_OBJECT_LOCATION':                        140,
+
 
     # These are sent internally inside the Astron cluster.
 
@@ -70,7 +63,6 @@ MsgName2Id = {
     'STATESERVER_OBJECT_ENTER_LOCATION_WITH_REQUIRED_OTHER':    2043,
     'STATESERVER_OBJECT_GET_LOCATION':                          2044,
     'STATESERVER_OBJECT_GET_LOCATION_RESP':                     2045,
-    'STATESERVER_OBJECT_LOCATION_ACK':                          2046,
     'STATESERVER_OBJECT_SET_AI':                                2050,
     'STATESERVER_OBJECT_CHANGING_AI':                           2051,
     'STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED':                2052,
@@ -145,7 +137,6 @@ MsgName2Id = {
     'CLIENTAGENT_ADD_INTEREST':                     1200,
     'CLIENTAGENT_ADD_INTEREST_MULTIPLE':            1201,
     'CLIENTAGENT_REMOVE_INTEREST':                  1203,
-    'CLIENTAGENT_DONE_INTEREST_RESP':               1204,
     }
 
 # create id->name table for debugging
@@ -174,7 +165,3 @@ CLIENT_LOGIN_2_GREEN = 1       # Disney's GoReg subscription token, not used.
 CLIENT_LOGIN_2_PLAY_TOKEN = 2  # VR Studio PlayToken.
 CLIENT_LOGIN_2_BLUE = 3        # The international GoReg token.
 CLIENT_LOGIN_3_DISL_TOKEN = 4  # SSL encoded blob from DISL system.
-
-# ExtAgent messages.
-CLIENTAGENT_EXTAGENT_MESSAGE = 1205
-CLIENTAGENT_EXTAGENT_RESPONSE = 1206

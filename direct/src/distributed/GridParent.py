@@ -1,3 +1,7 @@
+
+from panda3d.core import *
+from panda3d.direct import *
+
 #
 # GridParent.py
 # Any object that can be parented to the ocean grid
@@ -7,8 +11,6 @@
 # GridParent will put a node inbetween the object and the grid so
 # that the object is broadcasting its position relative to the gridCell
 # it lies in.
-
-from panda3d.core import NodePath
 
 class GridParent:
 

@@ -17,15 +17,6 @@ from base64 import urlsafe_b64encode
 from makepandacore import LocateBinary, GetExtensionSuffix, SetVerbose, GetVerbose, GetMetadataValue
 
 
-def get_real_filepath(filename):
-    if sys.version_info[0] >= 3:
-        from pathlib import Path
-        return str(Path(filename).resolve())
-    else:
-        # well then...
-        return os.path.realpath(filename)
-
-
 def get_abi_tag():
     soabi = get_config_var('SOABI')
     if soabi and soabi.startswith('cpython-'):
@@ -636,14 +627,6 @@ def makewheel(version, output_dir, platform=None):
             whl.lib_path += ["/lib", "/usr/lib"]
 
         whl.ignore_deps.update(MANYLINUX_LIBS)
-    elif platform.startswith('linux'):
-        whl.lib_path.append('/usr/local/lib')
-        whl.lib_path.append('/usr/lib')
-
-        if platform.endswith("_x86_64"):
-            whl.lib_path += ["/lib64", "/usr/lib64"]
-        else:
-            whl.lib_path += ["/lib", "/usr/lib"]
 
     # Add libpython for deployment.
     if sys.platform in ('win32', 'cygwin'):
