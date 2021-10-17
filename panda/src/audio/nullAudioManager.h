@@ -21,7 +21,7 @@
 class EXPCL_PANDA_AUDIO NullAudioManager : public AudioManager {
   // All of these methods are stubbed out to some degree.  If you're looking
   // for a starting place for a new AudioManager, please consider looking at
-  // the openalAudioManager.
+  // the milesAudioManager.
 
 public:
   NullAudioManager();
@@ -29,9 +29,9 @@ public:
 
   virtual bool is_valid();
 
-  virtual PT(AudioSound) get_sound(const Filename &, bool positional = false, int mode=SM_heuristic);
+  virtual PT(AudioSound) get_sound(const std::string&, bool positional = false, int mode=SM_heuristic);
   virtual PT(AudioSound) get_sound(MovieAudio *sound, bool positional = false, int mode=SM_heuristic);
-  virtual void uncache_sound(const Filename &);
+  virtual void uncache_sound(const std::string&);
   virtual void clear_cache();
   virtual void set_cache_limit(unsigned int);
   virtual unsigned int get_cache_limit() const;

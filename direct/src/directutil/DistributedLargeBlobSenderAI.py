@@ -43,7 +43,7 @@ class DistributedLargeBlobSenderAI(DistributedObjectAI.DistributedObjectAI):
             # NOTE: there's a small chance of a race condition here, if
             # the file is created by another AI just after the stat fails
             f = open(filename, 'wb')
-            f.write(s)
+            f.write(s.encode())
             f.close()
             os.chdir(origDir)
             self.sendUpdateToAvatarId(self.targetAvId,
