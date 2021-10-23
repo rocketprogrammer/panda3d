@@ -1851,13 +1851,13 @@ class ShowBase(DirectObject.DirectObject):
             # by modulefinder when packaging an application.
 
             if not self.particleMgr:
-                PMG = importlib.import_module('direct.particles.ParticleManagerGlobal')
+                import direct.particles.ParticleManagerGlobal as PMG
                 self.particleMgr = PMG.particleMgr
                 self.particleMgr.setFrameStepping(1)
 
             if not self.physicsMgr:
-                PMG = importlib.import_module('direct.showbase.PhysicsManagerGlobal')
-                physics = importlib.import_module('panda3d.physics')
+                import direct.showbase.PhysicsManagerGlobal as PMG
+                import panda3d.physics as physics
                 self.physicsMgr = PMG.physicsMgr
                 integrator = physics.LinearEulerIntegrator()
                 self.physicsMgr.attachLinearIntegrator(integrator)
