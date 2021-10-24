@@ -21,7 +21,7 @@ __all__ = [
     'listToItem2index', 'formatTimeCompact', 'deeptype', 'StdoutCapture',
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
-    'histogramDict', 'unescapeHtmlString', 'repeatableRepr',
+    'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
     'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'cmp',
     'ParamObj'
 ]
@@ -50,6 +50,7 @@ __report_indent = 3
 from panda3d.core import ConfigVariableBool
 from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
+from __pypperoni__ import describeException
 
 ## with one integer positional arg, this uses about 4/5 of the memory of the Functor class below
 #def Functor(function, *args, **kArgs):
@@ -3652,6 +3653,7 @@ builtins.clampScalar = clampScalar
 builtins.isClient = isClient
 builtins.triglerp = triglerp
 builtins.bpdb = bpdb
+builtins.describeException = describeException
 builtins.u2ascii = u2ascii
 builtins.unicodeUtf8 = unicodeUtf8
 builtins.encodedUtf8 = encodedUtf8
