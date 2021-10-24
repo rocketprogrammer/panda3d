@@ -21,7 +21,7 @@ __all__ = [
     'listToItem2index', 'formatTimeCompact', 'deeptype', 'StdoutCapture',
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
     'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
-    'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
+    'histogramDict', 'unescapeHtmlString', 'repeatableRepr',
     'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'cmp',
     'ParamObj'
 ]
@@ -3414,43 +3414,6 @@ if __debug__ and __name__ == '__main__':
     assert hasattr(d1, 'bar')
     assert len(d1.bar) == 0
 
-def describeException(backTrace=4):
-
-    def byteOffsetToLineno(code, byte):
-        import array
-        lnotab = array.array('B', code.co_lnotab)
-        line = code.co_firstlineno
-        for i in range(0, len(lnotab), 2):
-            byte -= lnotab[i]
-            if byte <= 0:
-                return line
-            line += lnotab[(i + 1)]
-
-        return line
-
-    infoArr = sys.exc_info()
-    exception = infoArr[0]
-    exceptionName = getattr(exception, '__name__', None)
-    extraInfo = infoArr[1]
-    trace = infoArr[2]
-    stack = []
-    while trace.tb_next:
-        frame = trace.tb_frame
-        module = frame.f_globals.get('__name__', None)
-        lineno = byteOffsetToLineno(frame.f_code, frame.f_lasti)
-        stack.append('%s:%s, ' % (module, lineno))
-        trace = trace.tb_next
-
-    frame = trace.tb_frame
-    module = frame.f_globals.get('__name__', None)
-    lineno = byteOffsetToLineno(frame.f_code, frame.f_lasti)
-    stack.append('%s:%s, ' % (module, lineno))
-    description = ''
-    for i in range(len(stack) - 1, max(len(stack) - backTrace, 0) - 1, -1):
-        description += stack[i]
-
-    description += '%s: %s' % (exceptionName, extraInfo)
-    return description
 
 def triglerp(v0, v1, t):
     x = lerp(-math.pi / 2, math.pi / 2, t)
@@ -3689,7 +3652,6 @@ builtins.clampScalar = clampScalar
 builtins.isClient = isClient
 builtins.triglerp = triglerp
 builtins.bpdb = bpdb
-builtins.describeException = describeException
 builtins.u2ascii = u2ascii
 builtins.unicodeUtf8 = unicodeUtf8
 builtins.encodedUtf8 = encodedUtf8
