@@ -9,7 +9,6 @@
 #include "cullTraverserData.cxx"
 #include "cullableObject.cxx"
 #include "decalEffect.cxx"
-#include "depthBiasAttrib.cxx"
 #include "depthOffsetAttrib.cxx"
 #include "depthTestAttrib.cxx"
 #include "depthWriteAttrib.cxx"
