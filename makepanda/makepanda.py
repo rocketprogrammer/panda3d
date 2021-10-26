@@ -99,6 +99,8 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "PANDAPARTICLESYSTEM",                               # Built in particle system
   "CONTRIB",                                           # Experimental
   "SSE2", "NEON",                                      # Compiler features
+  "NAMETAG", "MOVEMENT", "NAVIGATION",                 # libotp
+  "DNA", "SUIT", "PETS",                               # libtoontown
 ])
 
 CheckPandaSourceTree()
@@ -464,6 +466,9 @@ if WHEEL and PkgSkip("PYTHON"):
 
 if not os.path.isdir("contrib"):
     PkgDisable("CONTRIB")
+
+# TEMP: Disable libp3navigation until we need it.
+PkgDisable("NAVIGATION")
 
 ########################################################################
 ##
@@ -2806,6 +2811,10 @@ if not PkgSkip("ODE"):
     panda_modules.append('ode')
 if not PkgSkip("VRPN"):
     panda_modules.append('vrpn')
+if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"):
+    panda_modules.append('otp')
+if not PkgSkip("DNA") or not PkgSkip("SUIT") or not PkgSkip("PETS"):
+    panda_modules.append('toontown')
 
 panda_modules_code = """
 "This module is deprecated.  Import from panda3d.core and other panda3d.* modules instead."
@@ -3281,6 +3290,24 @@ if not PkgSkip("DIRECT"):
     CopyAllHeaders('direct/src/showbase')
     CopyAllHeaders('direct/src/dcparse')
 
+if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"):
+    CopyAllHeaders('panda/src/otpbase')
+    if not PkgSkip("NAMETAG"):
+        CopyAllHeaders('panda/src/nametag')
+    if not PkgSkip("MOVEMENT"):
+        CopyAllHeaders('panda/src/movement')
+    if not PkgSkip("NAVIGATION"):
+        CopyAllHeaders('panda/src/navigation')
+
+if not PkgSkip("DNA") or not PkgSkip("SUIT") or not PkgSkip("PETS"):
+    CopyAllHeaders('panda/src/toontownbase')
+    if not PkgSkip("DNA"):
+        CopyAllHeaders('panda/src/dna')
+    if not PkgSkip("SUIT"):
+        CopyAllHeaders('panda/src/suit')
+    if not PkgSkip("PETS"):
+        CopyAllHeaders('panda/src/pets')
+
 if not PkgSkip("PANDATOOL"):
     CopyAllHeaders('pandatool/src/pandatoolbase')
     CopyAllHeaders('pandatool/src/converter')
@@ -3325,6 +3352,9 @@ if not PkgSkip("PANDATOOL"):
     CopyAllHeaders('pandatool/src/vrmlprogs')
     CopyAllHeaders('pandatool/src/win-stats')
     CopyAllHeaders('pandatool/src/xfileprogs')
+
+    if not PkgSkip("DNA"):
+        CopyAllHeaders('pandatool/src/dnaprogs')
 
 if not PkgSkip("CONTRIB"):
     CopyAllHeaders('contrib/src/contribbase')
@@ -5188,6 +5218,168 @@ if not PkgSkip("DIRECT"):
     TargetAdd('p3dcparse.exe', opts=['ADVAPI'])
 
 #
+# DIRECTORY: panda/src/nametag/
+#
+if not PkgSkip("NAMETAG"):
+    OPTS=['DIR:panda/src/nametag', 'BUILDING:OTP']
+    TargetAdd('p3nametag_composite1.obj', opts=OPTS, input='nametag_composite1.cxx')
+    TargetAdd('p3nametag_composite2.obj', opts=OPTS, input='nametag_composite2.cxx')
+
+    OPTS=['DIR:panda/src/nametag']
+    IGATEFILES=GetDirectoryContents('panda/src/nametag', ["*.h", "*_composite*.cxx"])
+    TargetAdd('libp3nametag.in', opts=OPTS, input=IGATEFILES)
+    TargetAdd('libp3nametag.in', opts=['IMOD:panda3d.otp', 'ILIB:libp3nametag', 'SRCDIR:panda/src/nametag'])
+
+#
+# DIRECTORY: panda/src/movement/
+#
+if not PkgSkip("MOVEMENT"):
+    OPTS=['DIR:panda/src/movement', 'BUILDING:OTP']
+    TargetAdd('p3movement_composite1.obj', opts=OPTS, input='movement_composite1.cxx')
+
+    OPTS=['DIR:panda/src/movement']
+    IGATEFILES=GetDirectoryContents('panda/src/movement', ["*.h", "*_composite*.cxx"])
+    TargetAdd('libp3movement.in', opts=OPTS, input=IGATEFILES)
+    TargetAdd('libp3movement.in', opts=['IMOD:panda3d.otp', 'ILIB:libp3movement', 'SRCDIR:panda/src/movement'])
+
+#
+# DIRECTORY: panda/src/navigation/
+#
+if not PkgSkip("NAVIGATION"):
+    OPTS=['DIR:panda/src/navigation', 'BUILDING:OTP']
+    PyTargetAdd('p3navigation_composite1.obj', opts=OPTS, input='navigation_composite1.cxx')
+
+    OPTS=['DIR:panda/src/navigation']
+    IGATEFILES=GetDirectoryContents('panda/src/navigation', ["*.h", "*_composite*.cxx"])
+    TargetAdd('libp3navigation.in', opts=OPTS, input=IGATEFILES)
+    TargetAdd('libp3navigation.in', opts=['IMOD:panda3d.otp', 'ILIB:libp3navigation', 'SRCDIR:panda/src/navigation'])
+
+#
+# DIRECTORY: panda/src/nametag/
+# DIRECTORY: panda/src/movement/
+# DIRECTORY: panda/src/navigation/
+#
+if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"):
+    if not PkgSkip("NAMETAG"):
+        TargetAdd('libp3otp.dll', input='p3nametag_composite1.obj')
+        TargetAdd('libp3otp.dll', input='p3nametag_composite2.obj')
+        TargetAdd('libp3otp.dll', input='libp3direct.dll')
+    if not PkgSkip("MOVEMENT"):
+        TargetAdd('libp3otp.dll', input='p3movement_composite1.obj')
+    if not PkgSkip("NAVIGATION"):
+        PyTargetAdd('libp3otp.dll', input='p3navigation_composite1.obj')
+    TargetAdd('libp3otp.dll', input=COMMON_PANDA_LIBS)
+
+    if not PkgSkip("NAMETAG"):
+        PyTargetAdd('otp_module.obj', input='libp3nametag.in')
+    if not PkgSkip("MOVEMENT"):
+        PyTargetAdd('otp_module.obj', input='libp3movement.in')
+    if not PkgSkip("NAVIGATION"):
+        PyTargetAdd('otp_module.obj', input='libp3navigation.in')
+    PyTargetAdd('otp_module.obj', opts=['IMOD:panda3d.otp', 'ILIB:otp', 'IMPORT:panda3d.core'])
+
+    PyTargetAdd('otp.pyd', input='otp_module.obj')
+    if not PkgSkip("NAMETAG"):
+        PyTargetAdd('otp.pyd', input='libp3nametag_igate.obj')
+    if not PkgSkip("MOVEMENT"):
+        PyTargetAdd('otp.pyd', input='libp3movement_igate.obj')
+    if not PkgSkip("NAVIGATION"):
+        PyTargetAdd('otp.pyd', input='libp3navigation_igate.obj')
+    PyTargetAdd('otp.pyd', input='libp3otp.dll')
+    PyTargetAdd('otp.pyd', input='libp3interrogatedb.dll')
+    PyTargetAdd('otp.pyd', input=COMMON_PANDA_LIBS)
+
+#
+# DIRECTORY: panda/src/dna/
+#
+if not PkgSkip("DNA"):
+    OPTS=['DIR:panda/src/dna', 'BUILDING:TOONTOWN']
+    TargetAdd('p3dna_composite1.obj', opts=OPTS, input='dnaLoader_composite1.cxx')
+    TargetAdd('p3dna_composite2.obj', opts=OPTS, input='dnaLoader_composite2.cxx')
+
+    OPTS=['DIR:panda/src/dna', 'BUILDING:TOONTOWN', 'BISONPREFIX_dnayy', 'FLEXDASHI']
+    CreateFile(GetOutputDir()+"/include/dnaParser.h")
+    TargetAdd('p3dna_dnaParser.obj', opts=OPTS, input='dnaParser.yxx')
+    TargetAdd('dnaParser.h', input='p3dna_dnaParser.obj', opts=['DEPENDENCYONLY'])
+    TargetAdd('p3dna_dnaLexer.obj', opts=OPTS, input='dnaLexer.lxx')
+
+    OPTS=['DIR:panda/src/dna']
+    IGATEFILES=GetDirectoryContents('panda/src/dna', ["*.h", "*_composite*.cxx"])
+    if "dnaParser.h" in IGATEFILES: IGATEFILES.remove("dnaParser.h")
+    TargetAdd('libp3dna.in', opts=OPTS, input=IGATEFILES)
+    TargetAdd('libp3dna.in', opts=['IMOD:panda3d.toontown', 'ILIB:libp3dna', 'SRCDIR:panda/src/dna'])
+
+#
+# DIRECTORY: panda/src/suit/
+#
+if not PkgSkip("SUIT"):
+    if PkgSkip("DNA"):
+        exit("libp3suit depends on libp3dna.")
+
+    OPTS=['DIR:panda/src/suit', 'BUILDING:TOONTOWN']
+    TargetAdd('p3suit_composite1.obj', opts=OPTS, input='suit_composite1.cxx')
+
+    OPTS=['DIR:panda/src/suit']
+    IGATEFILES=GetDirectoryContents('panda/src/suit', ["*.h", "*_composite*.cxx"])
+    TargetAdd('libp3suit.in', opts=OPTS, input=IGATEFILES)
+    TargetAdd('libp3suit.in', opts=['IMOD:panda3d.toontown', 'ILIB:libp3suit', 'SRCDIR:panda/src/suit'])
+
+#
+# DIRECTORY: panda/src/pets/
+#
+if not PkgSkip("PETS"):
+    if PkgSkip("MOVEMENT"):
+        exit("libp3pets depends on libp3movement.")
+
+    OPTS=['DIR:panda/src/pets', 'BUILDING:TOONTOWN']
+    TargetAdd('p3pets_composite1.obj', opts=OPTS, input='pets_composite1.cxx')
+
+    OPTS=['DIR:panda/src/pets']
+    IGATEFILES=GetDirectoryContents('panda/src/pets', ["*.h", "*_composite*.cxx"])
+    TargetAdd('libp3pets.in', opts=OPTS, input=IGATEFILES)
+    TargetAdd('libp3pets.in', opts=['IMOD:panda3d.toontown', 'ILIB:libp3pets', 'SRCDIR:panda/src/pets'])
+
+#
+# DIRECTORY: panda/src/dna/
+# DIRECTORY: panda/src/suit/
+# DIRECTORY: panda/src/pets/
+#
+if not PkgSkip("DNA") or not PkgSkip("SUIT") or not PkgSkip("PETS"):
+    if not PkgSkip("DNA"):
+        TargetAdd('libp3toontown.dll', input='p3dna_composite1.obj')
+        TargetAdd('libp3toontown.dll', input='p3dna_composite2.obj')
+        TargetAdd('libp3toontown.dll', input='p3dna_dnaParser.obj')
+        TargetAdd('libp3toontown.dll', input='p3dna_dnaLexer.obj')
+        if not PkgSkip("SUIT"):
+            TargetAdd('libp3toontown.dll', input='p3suit_composite1.obj')
+    if not PkgSkip("PETS"):
+        TargetAdd('libp3toontown.dll', input='p3pets_composite1.obj')
+        TargetAdd('libp3toontown.dll', input='libp3otp.dll')
+    TargetAdd('libp3toontown.dll', input=COMMON_PANDA_LIBS)
+
+    if not PkgSkip("DNA"):
+        PyTargetAdd('toontown_module.obj', input='libp3dna.in')
+        if not PkgSkip("SUIT"):
+            PyTargetAdd('toontown_module.obj', input='libp3suit.in')
+    if not PkgSkip("PETS"):
+        PyTargetAdd('toontown_module.obj', input='libp3pets.in')
+        PyTargetAdd('toontown_module.obj', opts=['IMOD:panda3d.toontown', 'ILIB:toontown', 'IMPORT:panda3d.otp'])
+    else:
+        PyTargetAdd('toontown_module.obj', opts=['IMOD:panda3d.toontown', 'ILIB:toontown', 'IMPORT:panda3d.core'])
+
+    PyTargetAdd('toontown.pyd', input='toontown_module.obj')
+    if not PkgSkip("DNA"):
+        PyTargetAdd('toontown.pyd', input='libp3dna_igate.obj')
+        if not PkgSkip("SUIT"):
+            PyTargetAdd('toontown.pyd', input='libp3suit_igate.obj')
+    if not PkgSkip("PETS"):
+        PyTargetAdd('toontown.pyd', input='libp3pets_igate.obj')
+    PyTargetAdd('toontown.pyd', input='libp3otp.dll')
+    PyTargetAdd('toontown.pyd', input='libp3toontown.dll')
+    PyTargetAdd('toontown.pyd', input='libp3interrogatedb.dll')
+    PyTargetAdd('toontown.pyd', input=COMMON_PANDA_LIBS)
+
+#
 # DIRECTORY: pandatool/src/pandatoolbase/
 #
 
@@ -5914,6 +6106,18 @@ if not PkgSkip("PANDATOOL"):
         TargetAdd('x2egg.exe', input='libp3xfile.lib')
         TargetAdd('x2egg.exe', input=COMMON_EGG2X_LIBS)
         TargetAdd('x2egg.exe', opts=['ADVAPI'])
+
+#
+# DIRECTORY: pandatool/src/dnaprogs/
+#
+
+if not PkgSkip("PANDATOOL") and not PkgSkip("DNA"):
+  OPTS=['DIR:pandatool/src/dnaprogs']
+  TargetAdd('dna-trans_dnaTrans.obj', opts=OPTS, input='dnaTrans.cxx')
+  TargetAdd('dna-trans.exe', input='dna-trans_dnaTrans.obj')
+  TargetAdd('dna-trans.exe', input=COMMON_PANDA_LIBS)
+  TargetAdd('dna-trans.exe', input='libp3toontown.dll')
+  TargetAdd('dna-trans.exe', opts=['ADVAPI'])
 
 #
 # DIRECTORY: pandatool/src/mayaprogs/
