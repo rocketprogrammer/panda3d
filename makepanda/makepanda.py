@@ -1393,7 +1393,7 @@ def CompileCxx(obj,src,opts):
                 cmd += ' -mfpu=neon'
 
         elif GetTarget() == 'emscripten':
-            cmd += " -s WARN_ON_UNDEFINED_SYMBOLS=1 -s NO_FILESYSTEM=1"
+            cmd += " -s WARN_ON_UNDEFINED_SYMBOLS=1 -s NO_FILESYSTEM=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0"
 
             if GetOptimize() <= 1:
                 cmd += " -s ASSERTIONS=2"
@@ -1919,7 +1919,7 @@ def CompileLink(dll, obj, opts):
             cmd += ' -lc -lm'
 
         elif GetTarget() == 'emscripten':
-            cmd += " -s WARN_ON_UNDEFINED_SYMBOLS=1"
+            cmd += " -s WARN_ON_UNDEFINED_SYMBOLS=1 -s ERROR_ON_UNDEFINED_SYMBOLS=0"
             if GetOrigExt(dll) == ".exe":
                 cmd += " --memory-init-file 0"
                 cmd += " -s EXIT_RUNTIME=1"
