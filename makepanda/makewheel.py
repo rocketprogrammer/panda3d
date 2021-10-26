@@ -17,6 +17,15 @@ from base64 import urlsafe_b64encode
 from makepandacore import LocateBinary, GetExtensionSuffix, SetVerbose, GetVerbose, GetMetadataValue
 
 
+def get_real_filepath(filename):
+    if sys.version_info[0] >= 3:
+        from pathlib import Path
+        return str(Path(filename).resolve())
+    else:
+        # well then...
+        return os.path.realpath(filename)
+
+
 def get_abi_tag():
     soabi = get_config_var('SOABI')
     if soabi and soabi.startswith('cpython-'):
@@ -82,7 +91,7 @@ ABI_TAG = get_abi_tag()
 EXCLUDE_EXT = [".pyc", ".pyo", ".N", ".prebuilt", ".xcf", ".plist", ".vcproj", ".sln"]
 
 # Plug-ins to install.
-PLUGIN_LIBS = ["pandagl", "pandagles", "pandagles2", "pandadx9", "p3tinydisplay", "p3ptloader", "p3assimp", "p3ffmpeg", "p3openal_audio", "p3fmod_audio"]
+PLUGIN_LIBS = ["pandagl", "pandagles", "pandagles2", "pandadx9", "p3tinydisplay", "p3ptloader", "p3assimp", "p3ffmpeg", "p3openal_audio", "p3fmod_audio", "p3headlessgl"]
 
 # Libraries included in manylinux ABI that should be ignored.  See PEP 513/571/599.
 MANYLINUX_LIBS = [
@@ -95,6 +104,7 @@ MANYLINUX_LIBS = [
     # These are not mentioned in manylinux1 spec but should nonetheless always
     # be excluded.
     "linux-vdso.so.1", "linux-gate.so.1", "ld-linux.so.2", "libdrm.so.2",
+    "libEGL.so.1", "libOpenGL.so.0", "libGLX.so.0", "libGLdispatch.so.0",
 ]
 
 # Binaries to never scan for dependencies on non-Windows systems.
@@ -408,7 +418,6 @@ class WheelFile(object):
                     deps_path = '@executable_path/../Frameworks'
                 else:
                     deps_path = '@loader_path'
-                remove_signature = False
                 loader_path = [os.path.dirname(source_path)]
                 for dep in deps:
                     if dep.endswith('/Python'):
@@ -450,11 +459,9 @@ class WheelFile(object):
                         continue
 
                     subprocess.call(["install_name_tool", "-change", dep, new_dep, temp.name])
-                    remove_signature = True
 
-                # Remove the codesign signature if we modified the library.
-                if remove_signature:
-                    subprocess.call(["codesign", "--remove-signature", temp.name])
+                # Make sure it has an ad-hoc code signature.
+                subprocess.call(["codesign", "-f", "-s", "-", temp.name])
             else:
                 # On other unixes, we just add dependencies normally.
                 for dep in deps:
@@ -629,6 +636,14 @@ def makewheel(version, output_dir, platform=None):
             whl.lib_path += ["/lib", "/usr/lib"]
 
         whl.ignore_deps.update(MANYLINUX_LIBS)
+    elif platform.startswith('linux'):
+        whl.lib_path.append('/usr/local/lib')
+        whl.lib_path.append('/usr/lib')
+
+        if platform.endswith("_x86_64"):
+            whl.lib_path += ["/lib64", "/usr/lib64"]
+        else:
+            whl.lib_path += ["/lib", "/usr/lib"]
 
     # Add libpython for deployment.
     if sys.platform in ('win32', 'cygwin'):
