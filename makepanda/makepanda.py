@@ -5140,7 +5140,7 @@ if not PkgSkip("DIRECT"):
 # DIRECTORY: direct/src/distributed/
 #
 
-if not PkgSkip("DIRECT"):
+if not PkgSkip("DIRECT") and GetTarget() != 'emscripten':
     OPTS=['DIR:direct/src/distributed', 'DIR:direct/src/dcparser', 'WITHINPANDA', 'BUILDING:DIRECT']
     TargetAdd('p3distributed_config_distributed.obj', opts=OPTS, input='config_distributed.cxx')
 
@@ -5208,7 +5208,8 @@ if not PkgSkip("DIRECT"):
     if GetTarget() == 'darwin':
         TargetAdd('libp3direct.dll', input='p3showbase_showBase_assist.obj')
     TargetAdd('libp3direct.dll', input='p3deadrec_composite1.obj')
-    TargetAdd('libp3direct.dll', input='p3distributed_config_distributed.obj')
+    if GetTarget() != 'emscripten':
+        TargetAdd('libp3direct.dll', input='p3distributed_config_distributed.obj')
     TargetAdd('libp3direct.dll', input='p3interval_composite1.obj')
     TargetAdd('libp3direct.dll', input='p3motiontrail_config_motiontrail.obj')
     TargetAdd('libp3direct.dll', input='p3motiontrail_cMotionTrail.obj')
@@ -5219,7 +5220,8 @@ if not PkgSkip("DIRECT"):
     PyTargetAdd('direct_module.obj', input='libp3showbase.in')
     PyTargetAdd('direct_module.obj', input='libp3deadrec.in')
     PyTargetAdd('direct_module.obj', input='libp3interval.in')
-    PyTargetAdd('direct_module.obj', input='libp3distributed.in')
+    if GetTarget() != 'emscripten':
+        PyTargetAdd('direct_module.obj', input='libp3distributed.in')
     PyTargetAdd('direct_module.obj', input='libp3motiontrail.in')
     PyTargetAdd('direct_module.obj', opts=['IMOD:panda3d.direct', 'ILIB:direct', 'IMPORT:panda3d.core'])
 
@@ -5228,15 +5230,17 @@ if not PkgSkip("DIRECT"):
     PyTargetAdd('direct.pyd', input='libp3deadrec_igate.obj')
     PyTargetAdd('direct.pyd', input='libp3interval_igate.obj')
     PyTargetAdd('direct.pyd', input='p3interval_cInterval_ext.obj')
-    PyTargetAdd('direct.pyd', input='libp3distributed_igate.obj')
+    if GetTarget() != 'emscripten':
+        PyTargetAdd('direct.pyd', input='libp3distributed_igate.obj')
     PyTargetAdd('direct.pyd', input='libp3motiontrail_igate.obj')
 
     # These are part of direct.pyd, not libp3direct.dll, because they rely on
     # the Python libraries.  If a C++ user needs these modules, we can move them
     # back and filter out the Python-specific code.
     PyTargetAdd('direct.pyd', input='p3dcparser_ext_composite.obj')
-    PyTargetAdd('direct.pyd', input='p3distributed_cConnectionRepository.obj')
-    PyTargetAdd('direct.pyd', input='p3distributed_cDistributedSmoothNodeBase.obj')
+    if GetTarget() != 'emscripten':
+        PyTargetAdd('direct.pyd', input='p3distributed_cConnectionRepository.obj')
+        PyTargetAdd('direct.pyd', input='p3distributed_cDistributedSmoothNodeBase.obj')
 
     PyTargetAdd('direct.pyd', input='direct_module.obj')
     PyTargetAdd('direct.pyd', input='libp3direct.dll')
