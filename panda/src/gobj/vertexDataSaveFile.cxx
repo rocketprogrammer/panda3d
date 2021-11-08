@@ -135,6 +135,8 @@ VertexDataSaveFile(const Filename &directory, const std::string &prefix,
     // simultaneously writing to the same save file.
 #ifdef PHAVE_LOCKF
     int result = lockf(_fd, F_TLOCK, 0);
+#elif defined(__SWITCH__)
+    int result = 0;
 #else
     int result = flock(_fd, LOCK_EX | LOCK_NB);
 #endif

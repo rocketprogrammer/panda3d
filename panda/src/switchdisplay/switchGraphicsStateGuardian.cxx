@@ -6,29 +6,34 @@
  * license.  You should have received a copy of this license along
  * with this source code in a file named "LICENSE."
  *
- * @file eglGraphicsStateGuardian.cxx
+ * @file switchGraphicsStateGuardian.cxx
  * @author rdb
- * @date 2009-05-21
+ * @date 2013-01-11
  */
 
-#include "eglGraphicsStateGuardian.h"
-#include "config_egldisplay.h"
+#include "switchGraphicsStateGuardian.h"
+#include "config_switchdisplay.h"
 #include "lightReMutexHolder.h"
 
-TypeHandle eglGraphicsStateGuardian::_type_handle;
+TypeHandle SwitchGraphicsStateGuardian::_type_handle;
 
 /**
  *
  */
-eglGraphicsStateGuardian::
-eglGraphicsStateGuardian(GraphicsEngine *engine, GraphicsPipe *pipe,
-       eglGraphicsStateGuardian *share_with) :
-  BaseGraphicsStateGuardian(engine, pipe)
+SwitchGraphicsStateGuardian::
+SwitchGraphicsStateGuardian(GraphicsEngine *engine, GraphicsPipe *pipe,
+       SwitchGraphicsStateGuardian *share_with) :
+#ifdef OPENGLES_2
+  GLES2GraphicsStateGuardian(engine, pipe)
+#else
+  GLESGraphicsStateGuardian(engine, pipe)
+#endif
 {
-  _share_context=0;
-  _context=0;
-  _egl_display=0;
-  _fbconfig=0;
+  _share_context = 0;
+  _context = 0;
+  _egl_display = 0;
+  _fbconfig = 0;
+  _format = 0;
 
   if (share_with != nullptr) {
     _prepared_objects = share_with->get_prepared_objects();
@@ -39,11 +44,11 @@ eglGraphicsStateGuardian(GraphicsEngine *engine, GraphicsPipe *pipe,
 /**
  *
  */
-eglGraphicsStateGuardian::
-~eglGraphicsStateGuardian() {
+SwitchGraphicsStateGuardian::
+~SwitchGraphicsStateGuardian() {
   if (_context != (EGLContext)nullptr) {
     if (!eglDestroyContext(_egl_display, _context)) {
-      egldisplay_cat.error() << "Failed to destroy EGL context: "
+      switchdisplay_cat.error() << "Failed to destroy EGL context: "
         << get_egl_error_string(eglGetError()) << "\n";
     }
     _context = (EGLContext)nullptr;
@@ -53,7 +58,7 @@ eglGraphicsStateGuardian::
 /**
  * Gets the FrameBufferProperties to match the indicated config.
  */
-void eglGraphicsStateGuardian::
+void SwitchGraphicsStateGuardian::
 get_properties(FrameBufferProperties &properties,
       bool &pbuffer_supported, bool &pixmap_supported,
                         bool &slow, EGLConfig config) {
@@ -76,7 +81,7 @@ get_properties(FrameBufferProperties &properties,
   eglGetConfigAttrib(_egl_display, config, EGL_CONFIG_CAVEAT, &caveat);
   int err = eglGetError();
   if (err != EGL_SUCCESS) {
-    egldisplay_cat.error() << "Failed to get EGL config attrib: "
+    switchdisplay_cat.error() << "Failed to get EGL config attrib: "
       << get_egl_error_string(err) << "\n";
   }
 
@@ -95,6 +100,11 @@ get_properties(FrameBufferProperties &properties,
     slow = true;
   }
 
+  if ((surface_type & EGL_WINDOW_BIT)==0) {
+    // We insist on having a context that will support an onscreen window.
+    return;
+  }
+
   properties.set_back_buffers(1);
   properties.set_rgb_color(1);
   properties.set_rgba_bits(red_size, green_size, blue_size, alpha_size);
@@ -102,34 +112,31 @@ get_properties(FrameBufferProperties &properties,
   properties.set_depth_bits(depth_size);
   properties.set_multisamples(samples);
 
-  // "slow" likely indicates no hardware acceleration.
-  properties.set_force_software(slow);
-  properties.set_force_hardware(!slow);
+  // Set both hardware and software bits, indicating not-yet-known.
+  properties.set_force_software(1);
+  properties.set_force_hardware(1);
 }
 
 /**
  * Selects a visual or fbconfig for all the windows and buffers that use this
- * gsg.  Also creates the GL context and obtains the visual.
+ * gsg.
  */
-void eglGraphicsStateGuardian::
+void SwitchGraphicsStateGuardian::
 choose_pixel_format(const FrameBufferProperties &properties,
-                    eglGraphicsPipe *egl_pipe, bool need_window,
                     bool need_pbuffer, bool need_pixmap) {
 
-  _egl_display = egl_pipe->get_egl_display();
-  _context = 0;
+  _egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
   _fbconfig = 0;
-  _fbprops.clear();
+  _format = 0;
 
   int attrib_list[] = {
-#if defined(OPENGLES_1)
+    EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+#ifdef OPENGLES_1
     EGL_RENDERABLE_TYPE, EGL_OPENGL_ES_BIT,
-#elif defined(OPENGLES_2)
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-#else
-    EGL_RENDERABLE_TYPE, EGL_OPENGL_BIT,
 #endif
-    EGL_SURFACE_TYPE, need_window ? EGL_WINDOW_BIT : EGL_DONT_CARE,
+#ifdef OPENGLES_2
+    EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+#endif
     EGL_NONE
   };
 
@@ -137,7 +144,7 @@ choose_pixel_format(const FrameBufferProperties &properties,
   // memory to allocate.
   int num_configs = 0, returned_configs;
   if (!eglChooseConfig(_egl_display, attrib_list, nullptr, num_configs, &returned_configs) || returned_configs <= 0) {
-    egldisplay_cat.error() << "eglChooseConfig failed: "
+    switchdisplay_cat.error() << "eglChooseConfig failed: "
       << get_egl_error_string(eglGetError()) << "\n";
     return;
   }
@@ -146,7 +153,7 @@ choose_pixel_format(const FrameBufferProperties &properties,
   EGLConfig *configs = new EGLConfig[num_configs];
 
   if (!eglChooseConfig(_egl_display, attrib_list, configs, num_configs, &returned_configs) || returned_configs <= 0) {
-    egldisplay_cat.error() << "eglChooseConfig failed: "
+    switchdisplay_cat.error() << "eglChooseConfig failed: "
       << get_egl_error_string(eglGetError()) << "\n";
     delete[] configs;
     return;
@@ -167,7 +174,7 @@ choose_pixel_format(const FrameBufferProperties &properties,
     const char *pbuffertext = pbuffer_supported ? " (pbuffer)" : "";
     const char *pixmaptext = pixmap_supported ? " (pixmap)" : "";
     const char *slowtext = slow ? " (slow)" : "";
-    egldisplay_cat.debug()
+    switchdisplay_cat.debug()
       << i << ": " << fbprops << pbuffertext << pixmaptext << slowtext << "\n";
     int quality = fbprops.get_quality(properties);
     if ((quality > 0)&&(slow)) quality -= 10000000;
@@ -179,108 +186,107 @@ choose_pixel_format(const FrameBufferProperties &properties,
       continue;
     }
 
+    // We need to reject any 32-bit depth-buffers,
+    // as they don't actaully work and just result in a segmentation fault on 
+    // glClear();
+    if (fbprops.get_depth_bits() == 32) {
+      continue;
+    }
+
+
     if (quality > best_quality) {
       best_quality = quality;
       best_result = i;
       best_props = fbprops;
     }
   }
-#ifdef USE_X11
-  X11_Display *display = egl_pipe->get_display();
-  if (display) {
-    int screen = egl_pipe->get_screen();
-    int depth = DefaultDepth(display, screen);
-    _visual = new XVisualInfo;
-    XMatchVisualInfo(display, screen, depth, TrueColor, _visual);
-  }
-#endif
 
   if (best_quality > 0) {
-    egldisplay_cat.debug()
+    switchdisplay_cat.debug()
       << "Chosen config " << best_result << ": " << best_props << "\n";
     _fbconfig = configs[best_result];
+    eglGetConfigAttrib(_egl_display, _fbconfig, EGL_NATIVE_VISUAL_ID, &_format);
 
-    EGLint attribs[32];
-    int n = 0;
+    switchdisplay_cat.debug()
+      << "Window format: " << _format << "\n";
 
-#ifdef OPENGLES_2
-    attribs[n++] = EGL_CONTEXT_CLIENT_VERSION;
-    attribs[n++] = 2;
-#elif defined(OPENGLES_1)
-#else  // Regular OpenGL
-    if (gl_version.get_num_words() > 0) {
-      attribs[n++] = EGL_CONTEXT_MAJOR_VERSION;
-      attribs[n++] = gl_version[0];
-      if (gl_version.get_num_words() > 1) {
-        attribs[n++] = EGL_CONTEXT_MINOR_VERSION;
-        attribs[n++] = gl_version[1];
-      }
-    }
-    if (gl_debug) {
-      attribs[n++] = EGL_CONTEXT_OPENGL_DEBUG;
-      attribs[n++] = EGL_TRUE;
-    }
-    if (gl_forward_compatible) {
-      attribs[n++] = EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE;
-      attribs[n++] = EGL_TRUE;
-    }
-#endif
-    attribs[n] = EGL_NONE;
-
-    _context = eglCreateContext(_egl_display, _fbconfig, _share_context, (n > 0) ? attribs : nullptr);
-
-    int err = eglGetError();
-    if (_context && err == EGL_SUCCESS) {
-#ifdef USE_X11
-      if (!display || _visual)
-#endif
-      {
-        // This is set during window creation, but for now we have to pretend
-        // that we can honor the request, if we support the extension.
-        if (properties.get_srgb_color()) {
-          const char *extensions = eglQueryString(_egl_display, EGL_EXTENSIONS);
-          if (extensions != nullptr) {
-            vector_string tokens;
-            extract_words(extensions, tokens);
-
-            if (std::find(tokens.begin(), tokens.end(), "EGL_KHR_gl_colorspace") != tokens.end()) {
-              best_props.set_srgb_color(true);
-            }
-          }
-        }
-
-        _fbprops = best_props;
-        delete[] configs;
-        return;
-      }
-    }
-    // This really shouldn't happen, so I'm not too careful about cleanup.
-    egldisplay_cat.error()
-      << "Could not create EGL context!\n"
-      << get_egl_error_string(err) << "\n";
-    _fbconfig = 0;
-    _context = 0;
-#ifdef USE_X11
-    _visual = 0;
-#endif
+    _fbprops = best_props;
+    return;
   }
 
-  egldisplay_cat.error() <<
+  switchdisplay_cat.error() <<
     "Could not find a usable pixel format.\n";
 
   delete[] configs;
 }
 
 /**
+ * Creates the context based on the config previously obtained in
+ * choose_pixel_format.
+ */
+bool SwitchGraphicsStateGuardian::
+create_context() {
+  if (_context != EGL_NO_CONTEXT) {
+    destroy_context();
+  }
+
+#ifdef OPENGLES_2
+  EGLint context_attribs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+  _context = eglCreateContext(_egl_display, _fbconfig, _share_context, context_attribs);
+#else
+  _context = eglCreateContext(_egl_display, _fbconfig, _share_context, nullptr);
+#endif
+
+  int err = eglGetError();
+  if (_context != EGL_NO_CONTEXT && err == EGL_SUCCESS) {
+    _needs_reset = true;
+    return true;
+  }
+
+  switchdisplay_cat.error()
+    << "Could not create EGL context!\n"
+    << get_egl_error_string(err) << "\n";
+  return false;
+}
+
+/**
+ * Destroys the context previously created by create_context.
+ */
+void SwitchGraphicsStateGuardian::
+destroy_context() {
+  if (_context == EGL_NO_CONTEXT) {
+    return;
+  }
+
+  if (!eglMakeCurrent(_egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT)) {
+    switchdisplay_cat.error() << "Failed to call eglMakeCurrent: "
+      << get_egl_error_string(eglGetError()) << "\n";
+  }
+
+  release_all();
+
+  eglDestroyContext(_egl_display, _context);
+  _context = EGL_NO_CONTEXT;
+}
+
+/**
  * Resets all internal state as if the gsg were newly created.
  */
-void eglGraphicsStateGuardian::
+void SwitchGraphicsStateGuardian::
 reset() {
-  BaseGraphicsStateGuardian::reset();
+#ifdef OPENGLES_2
+  GLES2GraphicsStateGuardian::reset();
+#else
+  GLESGraphicsStateGuardian::reset();
+#endif
 
-  if (_gl_renderer == "Software Rasterizer") {
+  // If "PixelFlinger" is present, assume software.
+  if (_gl_renderer.find("PixelFlinger") != std::string::npos) {
     _fbprops.set_force_software(1);
     _fbprops.set_force_hardware(0);
+  } else {
+    _fbprops.set_force_hardware(1);
+    _fbprops.set_force_software(0);
   }
 }
 
@@ -288,7 +294,7 @@ reset() {
  * Returns true if the runtime GLX version number is at least the indicated
  * value, false otherwise.
  */
-bool eglGraphicsStateGuardian::
+bool SwitchGraphicsStateGuardian::
 egl_is_at_least_version(int major_version, int minor_version) const {
   if (_egl_version_major < major_version) {
     return false;
@@ -302,53 +308,54 @@ egl_is_at_least_version(int major_version, int minor_version) const {
 /**
  * Calls glFlush().
  */
-void eglGraphicsStateGuardian::
+void SwitchGraphicsStateGuardian::
 gl_flush() const {
-#ifdef USE_X11
-  // This call requires synchronization with X.
-  LightReMutexHolder holder(eglGraphicsPipe::_x_mutex);
+#ifdef OPENGLES_2
+  GLES2GraphicsStateGuardian::gl_flush();
+#else
+  GLESGraphicsStateGuardian::gl_flush();
 #endif
-  BaseGraphicsStateGuardian::gl_flush();
 }
 
 /**
  * Returns the result of glGetError().
  */
-GLenum eglGraphicsStateGuardian::
+GLenum SwitchGraphicsStateGuardian::
 gl_get_error() const {
-#ifdef USE_X11
-  // This call requires synchronization with X.
-  LightReMutexHolder holder(eglGraphicsPipe::_x_mutex);
+#ifdef OPENGLES_2
+  return GLES2GraphicsStateGuardian::gl_get_error();
+#else
+  return GLESGraphicsStateGuardian::gl_get_error();
 #endif
-  return BaseGraphicsStateGuardian::gl_get_error();
 }
 
 /**
  * Queries the runtime version of OpenGL in use.
  */
-void eglGraphicsStateGuardian::
+void SwitchGraphicsStateGuardian::
 query_gl_version() {
-  BaseGraphicsStateGuardian::query_gl_version();
+#ifdef OPENGLES_2
+  GLES2GraphicsStateGuardian::query_gl_version();
+#else
+  GLESGraphicsStateGuardian::query_gl_version();
+#endif
 
   // Calling eglInitialize on an already-initialized display will just provide
   // us the version numbers.
   if (!eglInitialize(_egl_display, &_egl_version_major, &_egl_version_minor)) {
-    egldisplay_cat.error() << "Failed to get EGL version number: "
+    switchdisplay_cat.error() << "Failed to get EGL version number: "
       << get_egl_error_string(eglGetError()) << "\n";
   }
 
-  // We output to glesgsg_cat instead of egldisplay_cat, since this is where
-  // the GL version has been output, and it's nice to see the two of these
-  // together.
+  // We output to glesgsg_cat instead of switchdisplay_cat, since this is
+  // where the GL version has been output, and it's nice to see the two of
+  // these together.
 #ifdef OPENGLES_2
   if (gles2gsg_cat.is_debug()) {
     gles2gsg_cat.debug()
-#elif defined(OPENGLES_1)
+#else
   if (glesgsg_cat.is_debug()) {
     glesgsg_cat.debug()
-#else
-  if (glgsg_cat.is_debug()) {
-    glgsg_cat.debug()
 #endif
       << "EGL_VERSION = " << _egl_version_major << "." << _egl_version_minor
       << "\n";
@@ -360,7 +367,7 @@ query_gl_version() {
  * further extensions strings may be appropriate to that interface, in
  * addition to the GL extension strings return by glGetString().
  */
-void eglGraphicsStateGuardian::
+void SwitchGraphicsStateGuardian::
 get_extra_extensions() {
   save_extensions(eglQueryString(_egl_display, EGL_EXTENSIONS));
 }
@@ -371,7 +378,7 @@ get_extra_extensions() {
  * extension is defined in the OpenGL runtime prior to calling this; it is an
  * error to call this for a function that is not defined.
  */
-void *eglGraphicsStateGuardian::
+void *SwitchGraphicsStateGuardian::
 do_get_extension_func(const char *name) {
   return (void *)eglGetProcAddress(name);
 }
