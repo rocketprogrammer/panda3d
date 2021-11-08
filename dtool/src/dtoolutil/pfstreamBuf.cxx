@@ -195,9 +195,14 @@ eof_pipe() const {
  */
 bool PipeStreamBuf::
 open_pipe(const string &cmd) {
+#ifdef __SWITCH__
+  // Switch has no popen() function.
+  return false;
+#else
   const char *typ = (_dir == Output)?"w":"r";
   _pipe = popen(cmd.c_str(), typ);
   return (_pipe != nullptr);
+#endif // __SWITCH__
 }
 
 /**

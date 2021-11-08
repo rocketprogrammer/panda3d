@@ -886,6 +886,7 @@ read_args() {
   }
 #endif
 
+#ifndef __SWITCH__
 #ifndef _WIN32
   // Try to use realpath to get cleaner paths.
 
@@ -903,6 +904,7 @@ read_args() {
     }
   }
 #endif  // _WIN32
+#endif  // __SWITCH__
 
   if (_dtool_name.empty()) {
     _dtool_name = _binary_name;

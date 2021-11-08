@@ -29,7 +29,6 @@
 // Posix case.
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/mman.h>
 
 #ifndef MAP_ANON
 #define MAP_ANON 0x1000
@@ -199,6 +198,10 @@ MemoryHook() {
 
   _page_size = (size_t)sysinfo.dwPageSize;
 
+#elif defined(__SWITCH__)
+
+  // Switch case.
+  _page_size = 0x1000;
 #else
 
   // Posix case.
@@ -540,6 +543,8 @@ mmap_alloc(size_t size, bool allow_exec) {
 
   return ptr;
 
+#elif defined(__SWITCH__)
+  return malloc(size);
 #else
 
   // Posix case.
@@ -573,6 +578,8 @@ mmap_free(void *ptr, size_t size) {
 
 #ifdef _WIN32
   VirtualFree(ptr, 0, MEM_RELEASE);
+#elif defined(__SWITCH__)
+  free(ptr);
 #else
   munmap(ptr, size);
 #endif
