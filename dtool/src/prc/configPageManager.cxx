@@ -38,8 +38,10 @@
 #include <algorithm>
 #include <ctype.h>
 
+#ifndef __SWITCH__
 #ifndef _WIN32
 #include <dlfcn.h>
+#endif
 #endif
 
 using std::string;
@@ -122,6 +124,8 @@ reload_implicit_pages() {
   };
 #ifdef _WIN32
   const BlobInfo *blobinfo = (const BlobInfo *)GetProcAddress(GetModuleHandle(NULL), "blobinfo");
+#elif defined(__SWITCH__)
+  const BlobInfo *blobinfo = nullptr;
 #elif defined(RTLD_MAIN_ONLY)
   const BlobInfo *blobinfo = (const BlobInfo *)dlsym(RTLD_MAIN_ONLY, "blobinfo");
 //#elif defined(RTLD_SELF)
@@ -132,7 +136,9 @@ reload_implicit_pages() {
   if (blobinfo == nullptr) {
 #ifndef _WIN32
     // Clear the error flag.
+#ifndef __SWITCH__
     dlerror();
+#endif
 #endif
   } else if (blobinfo->version == 0 || blobinfo->num_pointers < 10) {
     blobinfo = nullptr;
