@@ -15,6 +15,8 @@
 #include "config_egldisplay.h"
 #include "lightReMutexHolder.h"
 
+#include <dlfcn.h>
+
 TypeHandle eglGraphicsStateGuardian::_type_handle;
 
 /**

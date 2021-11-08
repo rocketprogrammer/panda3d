@@ -1022,7 +1022,6 @@ make_canonical() {
   }
 
 #ifndef _WIN32
-#ifndef __SWITCH__
   // Use realpath in order to resolve symlinks properly
   char newpath [PATH_MAX + 1];
   if (realpath(c_str(), newpath) != nullptr) {
@@ -1030,7 +1029,6 @@ make_canonical() {
     newpath_fn._flags = _flags;
     (*this) = newpath_fn;
   }
-#endif
 #endif
 
   Filename cwd = ExecutionEnvironment::get_cwd();
@@ -2294,7 +2292,7 @@ touch() const {
   // time.  For these systems, we'll just temporarily open the file in append
   // mode, then close it again (it gets closed when the pfstream goes out of
   // scope).
-  pofstream file;
+  pfstream file;
   return open_append(file);
 #endif  // _WIN32, PHAVE_UTIME_H
 }
@@ -2711,57 +2709,7 @@ atomic_compare_and_exchange_contents(string &orig_contents,
 
   CloseHandle(hfile);
   return match;
-#elif defined(__SWITCH__)
-  // Switch doesn't support file locking at the OS level, but
-  // given that there's no multitasking, we don't need to worry
-  // about other processes messing with the file.
 
-  string os_specific = to_os_specific();
-
-  FILE *fp = fopen(os_specific.c_str(), "a+b");
-
-  if (fp == nullptr) {
-    perror(os_specific.c_str());
-    return false;
-  }
-
-  static const size_t buf_size = 512;
-  char buf[buf_size];
-
-  orig_contents = string();
-
-  size_t bytes_read = fread(buf, 1, buf_size, fp);
-
-  while (bytes_read > 0) {
-    orig_contents += string(buf, bytes_read);
-
-    bytes_read = fread(buf, 1, buf_size, fp);
-  }
-
-  if (bytes_read < 0) {
-    perror(os_specific.c_str());
-    fclose(fp);
-    return false;
-  }
-
-  bool match = false;
-  if (orig_contents == old_contents) {
-    match = true;
-    fseek(fp, 0, SEEK_SET);
-    size_t bytes_written = fwrite(new_contents.data(), 1, new_contents.size(), fp);
-    if (bytes_written < new_contents.size()) {
-      perror(os_specific.c_str());
-      fclose(fp);
-      return false;
-    }
-  }
-
-  if (fclose(fp) != 0) {
-    perror(os_specific.c_str());
-    return false;
-  }
-
-  return match;
 #else  // _WIN32
   string os_specific = to_os_specific();
   int fd = open(os_specific.c_str(), O_RDWR | O_CREAT, 0666);
@@ -2876,37 +2824,6 @@ atomic_read_contents(string &contents) const {
   }
 
   CloseHandle(hfile);
-  return true;
-#elif defined(__SWITCH__)
-
-  string os_specific = to_os_specific();
-
-  FILE *fp = fopen(os_specific.c_str(), "a+b");
-
-  if (fp == nullptr) {
-    perror(os_specific.c_str());
-    return false;
-  }
-
-  static const size_t buf_size = 512;
-  char buf[buf_size];
-
-  contents = string();
-
-  size_t bytes_read = fread(buf, 1, buf_size, fp);
-  while (bytes_read > 0) {
-    contents += string(buf, bytes_read);
-
-    bytes_read = fread(buf, 1, buf_size, fp);
-  }
-
-  if (bytes_read < 0) {
-    perror(os_specific.c_str());
-    fclose(fp);
-    return false;
-  }
-
-  fclose(fp);
   return true;
 
 #else  // _WIN32

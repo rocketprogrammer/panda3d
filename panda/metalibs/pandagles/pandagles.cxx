@@ -29,8 +29,6 @@ init_libpandagles() {
 
 #if defined(ANDROID)
   init_libandroiddisplay();
-#elif defined(__SWITCH__)
-  init_libswitchdisplay();
 #else
   init_libegldisplay();
 #endif
@@ -44,8 +42,6 @@ int
 get_pipe_type_pandagles() {
 #if defined(ANDROID)
   return AndroidGraphicsPipe::get_class_type().get_index();
-#elif defined(__SWITCH__)
-  return SwitchGraphicsPipe::get_class_type().get_index();
 #else
   return eglGraphicsPipe::get_class_type().get_index();
 #endif

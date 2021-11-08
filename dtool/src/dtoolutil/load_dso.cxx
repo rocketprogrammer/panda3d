@@ -107,27 +107,6 @@ get_dso_symbol(void *handle, const string &name) {
 
 /* end Win32-specific code */
 
-#elif defined(__SWITCH__)
-void *
-load_dso(const DSearchPath &path, const Filename &filename) {
-	return nullptr;
-}
-
-bool
-unload_dso(void *dso_handle) {
-	return true;
-}
-
-string
-load_dso_error() {
-  return "Not supported.";
-}
-
-void *
-get_dso_symbol(void *handle, const string &name) {
-  return nullptr;
-}
-
 #else
 /* begin Posix code */
 

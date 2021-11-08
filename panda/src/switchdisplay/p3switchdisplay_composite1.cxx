@@ -1,6 +1,0 @@
-#include "config_switchdisplay.cxx"
-//#include "switchGraphicsBuffer.cxx"
-#include "switchGraphicsPipe.cxx"
-//#include "switchGraphicsPixmap.cxx"
-#include "switchGraphicsStateGuardian.cxx"
-#include "switchGraphicsWindow.cxx"

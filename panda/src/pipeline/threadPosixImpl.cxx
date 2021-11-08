@@ -98,8 +98,6 @@ start(ThreadPriority priority, bool joinable) {
       << "Unable to set stack size.\n";
   }
 
-  // Switch can't use thread priority.
-#ifndef __SWITCH__
   // Ensure the thread has "system" scope, which should ensure it can run in
   // parallel with other threads.
   result = pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
@@ -139,8 +137,6 @@ start(ThreadPriority priority, bool joinable) {
     thread_cat->warning()
       << "Unable to specify thread priority.\n";
   }
-
-#endif // __SWITCH__
 
   // Increment the parent object's reference count first.  The thread will
   // eventually decrement it when it terminates.
