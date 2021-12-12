@@ -163,10 +163,55 @@ from _frozen_importlib import _imp, FrozenImporter
 from importlib import _bootstrap_external
 from importlib.abc import Loader, MetaPathFinder
 from importlib.machinery import ModuleSpec
+from io import RawIOBase, TextIOWrapper
+
+from android_log import write as android_log_write
 
 
 sys.frozen = True
 sys.platform = "android"
+
+
+# Replace stdout/stderr with something that writes to the Android log.
+class AndroidLogStream:
+    closed = False
+    encoding = 'utf-8'
+
+    def __init__(self, prio, tag):
+        self.prio = prio
+        self.tag = tag
+        self.buffer = ''
+
+    def isatty(self):
+        return False
+
+    def write(self, text):
+        self.writelines(text.split('\\n'))
+
+    def writelines(self, lines):
+        num_lines = len(lines)
+        if num_lines == 1:
+            self.buffer += lines[0]
+        elif num_lines > 1:
+            android_log_write(self.prio, self.tag, self.buffer + lines[0])
+            for line in lines[1:-1]:
+                android_log_write(self.prio, self.tag, line)
+            self.buffer = lines[-1]
+
+    def flush(self):
+        pass
+
+    def seekable(self):
+        return False
+
+    def readable(self):
+        return False
+
+    def writable(self):
+        return True
+
+sys.stdout = AndroidLogStream(2, 'Python')
+sys.stderr = AndroidLogStream(3, 'Python')
 
 
 # Alter FrozenImporter to give a __file__ property to frozen modules.
@@ -191,7 +236,7 @@ class AndroidExtensionFinder(MetaPathFinder):
     @classmethod
     def find_spec(cls, fullname, path=None, target=None):
         soname = 'libpy.' + fullname + '.so'
-        path = os.path.join(sys._native_library_dir, soname)
+        path = os.path.join(os.path.dirname(sys.executable), soname)
 
         if os.path.exists(path):
             loader = _bootstrap_external.ExtensionFileLoader(fullname, path)
@@ -421,9 +466,12 @@ class build_apps(setuptools.Command):
 
         # Default to all supported ABIs (for the given Android version).
         if self.android_max_sdk_version and self.android_max_sdk_version < 21:
+            assert self.android_max_sdk_version >= 19, \
+                'Panda3D requires at least Android API level 19!'
+
             if self.android_abis:
                 for abi in self.android_abis:
-                    assert abi in ('mips64', 'x86_64', 'arm64-v8a'), \
+                    assert abi not in ('mips64', 'x86_64', 'arm64-v8a'), \
                         f'{abi} was not a valid Android ABI before Android 21!'
             else:
                 self.android_abis = ['armeabi-v7a', 'x86']
