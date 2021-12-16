@@ -36,7 +36,7 @@ class DistributedLargeBlobSender(DistributedObject.DistributedObject):
             return
 
         if not self.useDisk:
-            self.blob = ''
+            self.blob = b''
 
     def setChunk(self, chunk):
         DistributedLargeBlobSender.notify.debug('setChunk')
