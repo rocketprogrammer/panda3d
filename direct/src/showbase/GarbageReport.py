@@ -11,7 +11,6 @@ from direct.showbase.MessengerGlobal import messenger
 import direct.showbase.DConfig as config
 import gc
 import types
-import inspect
 
 GarbageCycleCountAnnounceEvent = 'announceGarbageCycleDesc2num'
 
@@ -214,7 +213,7 @@ class GarbageReport(Job):
                     startIndex = 0
                     # + 1 to include a reference back to the first object
                     endIndex = numObjs + 1
-                    if inspect.isclass(objs[-1]) and type(objs[0]) is dict:
+                    if type(objs[-1]) is types.InstanceType and type(objs[0]) is dict:
                         startIndex -= 1
                         endIndex -= 1
 
@@ -223,7 +222,7 @@ class GarbageReport(Job):
                             numToSkip -= 1
                             continue
                         obj = objs[index]
-                        if inspect.isclass(obj):
+                        if type(obj) is types.InstanceType:
                             if not objAlreadyRepresented:
                                 cycleBySyntax += '%s' % obj.__class__.__name__
                             cycleBySyntax += '.'
