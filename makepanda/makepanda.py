@@ -21,6 +21,7 @@ try:
     import threading
     import signal
     import shutil
+    import sysconfig
     import plistlib
     import queue
 except KeyboardInterrupt:
@@ -30,7 +31,10 @@ except:
     print("Please install the development package of Python and try again.")
     exit(1)
 
-from distutils.util import get_platform
+if sys.version_info >= (3, 10):
+    from sysconfig import get_platform
+else:
+    from distutils.util import get_platform
 from makepandacore import *
 
 try:
@@ -63,6 +67,7 @@ DISTRIBUTOR=""
 VERSION=None
 DEBVERSION=None
 WHLVERSION=None
+RPMVERSION=None
 RPMRELEASE="1"
 GIT_COMMIT=None
 MAJOR_VERSION=None
@@ -167,7 +172,7 @@ def usage(problem):
 def parseopts(args):
     global INSTALLER,WHEEL,RUNTESTS,GENMAN,DISTRIBUTOR,VERSION
     global COMPRESSOR,THREADCOUNT,OSX_ARCHS
-    global DEBVERSION,WHLVERSION,RPMRELEASE,GIT_COMMIT
+    global DEBVERSION,WHLVERSION,RPMVERSION,RPMRELEASE,GIT_COMMIT
     global STRDXSDKVERSION, WINDOWS_SDK, MSVC_VERSION, BOOUSEINTELCOMPILER
     global COPY_PYTHON
 
@@ -182,7 +187,7 @@ def parseopts(args):
         "help","distributor=","verbose","tests",
         "optimize=","everything","nothing","installer","wheel","rtdist","nocolor",
         "version=","lzma","no-python","threads=","outputdir=","override=",
-        "static","debversion=","rpmrelease=","p3dsuffix=","rtdist-version=",
+        "static","debversion=","rpmversion=","rpmrelease=","p3dsuffix=","rtdist-version=",
         "directx-sdk=", "windows-sdk=", "msvc-version=", "clean", "use-icl",
         "universal", "target=", "arch=", "git-commit=", "no-copy-python",
         "cggl-incdir=", "cggl-libdir="
@@ -229,6 +234,7 @@ def parseopts(args):
             elif (option=="--override"): AddOverride(value.strip())
             elif (option=="--static"): SetLinkAllStatic(True)
             elif (option=="--debversion"): DEBVERSION=value
+            elif (option=="--rpmversion"): RPMVERSION=value
             elif (option=="--rpmrelease"): RPMRELEASE=value
             elif (option=="--git-commit"): GIT_COMMIT=value
             # Backward compatibility, OPENGL was renamed to GL
@@ -368,6 +374,9 @@ print("Version: %s" % VERSION)
 
 if DEBVERSION is None:
     DEBVERSION = VERSION
+
+if RPMVERSION is None:
+    RPMVERSION = VERSION
 
 MAJOR_VERSION = '.'.join(VERSION.split('.')[:2])
 
@@ -1382,14 +1391,17 @@ def CompileCxx(obj,src,opts):
         # Needed by both Python, Panda, Eigen, all of which break aliasing rules.
         cmd += " -fno-strict-aliasing"
 
-        if optlevel >= 3:
-            cmd += " -ffast-math -fno-stack-protector"
-        if optlevel == 3:
-            # Fast math is nice, but we'd like to see NaN in dev builds.
-            cmd += " -fno-finite-math-only"
+        # Certain clang versions crash when passing these math flags while
+        # compiling Objective-C++ code
+        if not src.endswith(".m") and not src.endswith(".mm"):
+            if optlevel >= 3:
+                cmd += " -ffast-math -fno-stack-protector"
+            if optlevel == 3:
+                # Fast math is nice, but we'd like to see NaN in dev builds.
+                cmd += " -fno-finite-math-only"
 
-        # Make sure this is off to avoid GCC/Eigen bug (see GitHub #228)
-        cmd += " -fno-unsafe-math-optimizations"
+            # Make sure this is off to avoid GCC/Eigen bug (see GitHub #228)
+            cmd += " -fno-unsafe-math-optimizations"
 
         if (optlevel==1): cmd += " -ggdb -D_DEBUG"
         if (optlevel==2): cmd += " -O1 -D_DEBUG"
@@ -6467,8 +6479,8 @@ if INSTALLER:
 
     MakeInstaller(version=VERSION, outputdir=GetOutputDir(),
                   optimize=GetOptimize(), compressor=COMPRESSOR,
-                  debversion=DEBVERSION, rpmrelease=RPMRELEASE,
-                  python_versions=python_versions)
+                  debversion=DEBVERSION, rpmversion=RPMVERSION,
+                  rpmrelease=RPMRELEASE, python_versions=python_versions)
 
 if WHEEL:
     ProgressOutput(100.0, "Building wheel")
