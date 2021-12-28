@@ -6,6 +6,7 @@ import shutil
 import glob
 import re
 import subprocess
+import sysconfig
 from makepandacore import *
 from installpanda import *
 
@@ -214,7 +215,7 @@ def MakeDebugSymbolArchive(zipname, dirname):
     zip.close()
 
 
-def MakeInstallerLinux(version, debversion=None, rpmrelease=1,
+def MakeInstallerLinux(version, debversion=None, rpmversion=None, rpmrelease=1,
                        python_versions=[], **kwargs):
     outputdir = GetOutputDir()
 
@@ -235,6 +236,8 @@ def MakeInstallerLinux(version, debversion=None, rpmrelease=1,
     major_version = '.'.join(version.split('.')[:2])
     if not debversion:
         debversion = version
+    if not rpmversion:
+        rpmversion = version
 
     # Clean and set up a directory to install Panda3D into
     oscmd("rm -rf targetroot data.tar.gz control.tar.gz panda3d.spec")
@@ -371,13 +374,13 @@ def MakeInstallerLinux(version, debversion=None, rpmrelease=1,
                 txt += "/usr/bin/%s\n" % (base)
 
         # Write out the spec file.
-        txt = txt.replace("VERSION", version)
+        txt = txt.replace("VERSION", rpmversion)
         txt = txt.replace("RPMRELEASE", str(rpmrelease))
         txt = txt.replace("PANDASOURCE", pandasource)
         WriteFile("panda3d.spec", txt)
 
         oscmd("fakeroot rpmbuild --define '_rpmdir "+pandasource+"' --buildroot '"+os.path.abspath("targetroot")+"' -bb panda3d.spec")
-        oscmd("mv "+arch+"/panda3d-"+version+"-"+rpmrelease+"."+arch+".rpm .")
+        oscmd("mv "+arch+"/panda3d-"+rpmversion+"-"+rpmrelease+"."+arch+".rpm .")
         oscmd("rm -rf "+arch, True)
 
     else:
@@ -926,8 +929,7 @@ def MakeInstallerAndroid(version, **kwargs):
                     shutil.copy(os.path.join(source_dir, base), target)
 
     # Copy the Python standard library to the .apk as well.
-    from distutils.sysconfig import get_python_lib
-    stdlib_source = get_python_lib(False, True)
+    stdlib_source = sysconfig.get_path("stdlib")
     stdlib_target = os.path.join("apkroot", "lib", "python{0}.{1}".format(*sys.version_info))
     copy_python_tree(stdlib_source, stdlib_target)
 
@@ -1042,6 +1044,13 @@ if __name__ == "__main__":
     )
     parser.add_option(
         '',
+        '--rpmversion',
+        dest='rpmversion',
+        help='Version number for .rpm file',
+        default=None,
+    )
+    parser.add_option(
+        '',
         '--rpmrelease',
         dest='rpmrelease',
         help='Release number for .rpm file',
@@ -1109,6 +1118,7 @@ if __name__ == "__main__":
         optimize=GetOptimize(),
         compressor=options.compressor,
         debversion=options.debversion,
+        rpmversion=options.rpmversion,
         rpmrelease=options.rpmrelease,
         python_versions=ReadPythonVersionInfoFile(),
         installdir=options.installdir,
