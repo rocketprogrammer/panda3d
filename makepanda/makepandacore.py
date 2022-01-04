@@ -1640,7 +1640,10 @@ def LocateLibrary(lib, lpath=[], prefer_static=False):
                 return os.path.join(dir, 'lib%s.a' % lib)
 
     for dir in lpath:
-        if target == 'darwin' and os.path.isfile(os.path.join(dir, 'lib%s.dylib' % lib)):
+        if target == 'windows':
+            if os.path.isfile(os.path.join(dir, lib + '.lib')):
+                return os.path.join(dir, lib + '.lib')
+        elif target == 'darwin' and os.path.isfile(os.path.join(dir, 'lib%s.dylib' % lib)):
             return os.path.join(dir, 'lib%s.dylib' % lib)
         elif target != 'darwin' and os.path.isfile(os.path.join(dir, 'lib%s.so' % lib)):
             return os.path.join(dir, 'lib%s.so' % lib)
@@ -2303,7 +2306,7 @@ def SdkLocateWindows(version=None):
     if version == '10':
         version = '10.0'
 
-    if version and version.startswith('10.') and version.count('.') == 1:
+    if (version and version.startswith('10.') and version.count('.') == 1) or version == '11':
         # Choose the latest version of the Windows 10 SDK.
         platsdk = GetRegistryKey("SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10")
 
@@ -2312,7 +2315,13 @@ def SdkLocateWindows(version=None):
             platsdk = "C:\\Program Files (x86)\\Windows Kits\\10\\"
 
         if platsdk and os.path.isdir(platsdk):
+            min_version = (10, 0, 0)
+            if version == '11':
+                version = '10.0'
+                min_version = (10, 0, 22000)
+
             incdirs = glob.glob(os.path.join(platsdk, 'Include', version + '.*.*'))
+
             max_version = ()
             for dir in incdirs:
                 verstring = os.path.basename(dir)
@@ -2330,7 +2339,7 @@ def SdkLocateWindows(version=None):
                     continue
 
                 vertuple = tuple(map(int, verstring.split('.')))
-                if vertuple > max_version:
+                if vertuple > max_version and vertuple > min_version:
                     version = verstring
                     max_version = vertuple
 
@@ -2773,7 +2782,7 @@ def SetupVisualStudioEnviron():
         elif not win_kit.endswith('\\'):
             win_kit += '\\'
 
-        for vnum in 10150, 10240, 10586, 14393, 15063, 16299, 17134, 17763, 18362, 19041:
+        for vnum in 10150, 10240, 10586, 14393, 15063, 16299, 17134, 17763, 18362, 19041, 20348, 22000:
             version = "10.0.{0}.0".format(vnum)
             if os.path.isfile(win_kit + "Include\\" + version + "\\ucrt\\assert.h"):
                 print("Using Universal CRT %s" % (version))
