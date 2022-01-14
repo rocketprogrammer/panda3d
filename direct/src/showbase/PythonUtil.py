@@ -49,7 +49,7 @@ import unicodedata
 
 __report_indent = 3
 
-from panda3d.core import ConfigVariableBool
+from panda3d.core import ConfigVariableBool, ClockObject
 from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 
@@ -2075,6 +2075,7 @@ def report(types = [], prefix = '', xform = None, notifyFunc = None, dConfigPara
             if prefixes:
                 outStr = '%%s %s' % (outStr,)
 
+            globalClock = ClockObject.getGlobalClock()
 
             if 'module' in types:
                 outStr = '%s {M:%s}' % (outStr, f.__module__.split('.')[-1])
@@ -2325,9 +2326,10 @@ if __debug__:
                 # at the time that PythonUtil is loaded
                 if not ConfigVariableBool("profile-debug", False):
                     #dumb timings
-                    st=globalClock.getRealTime()
-                    f(*args,**kArgs)
-                    s=globalClock.getRealTime()-st
+                    clock = ClockObject.getGlobalClock()
+                    st = clock.getRealTime()
+                    f(*args, **kArgs)
+                    s = clock.getRealTime() - st
                     print("Function %s.%s took %s seconds"%(f.__module__, f.__name__,s))
                 else:
                     import profile as prof, pstats
