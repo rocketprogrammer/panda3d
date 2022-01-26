@@ -49,7 +49,6 @@ public:
 public:
   // From base class PandaNode.
   virtual bool cull_callback(CullTraverser *trav, CullTraverserData &data);
-  virtual bool is_renderable() const;
 
   virtual void write(std::ostream &out, int indent_level) const;
 
