@@ -531,6 +531,7 @@ class DoInterestManager(DirectObject.DirectObject):
                          action=None):
         """
         Part of the new otp-server code.
+
         handle is a client-side created number that refers to
                 a set of interests.  The same handle number doesn't
                 necessarily have any relationship to the same handle
@@ -549,18 +550,23 @@ class DoInterestManager(DirectObject.DirectObject):
                 'trying to set interest to invalid parent: %s' % parentId)
         datagram = PyDatagram()
         # Add message type
-        datagram.addUint16(97) # CLIENT_ADD_INTEREST
-        datagram.addUint16(handle)
-        datagram.addUint32(contextId)
-        datagram.addUint32(parentId)
         if isinstance(zoneIdList, list):
             vzl = list(zoneIdList)
             vzl.sort()
             uniqueElements(vzl)
+            datagram.addUint16(CLIENT_ADD_INTEREST_MULTIPLE)
+            datagram.addUint32(contextId)
+            datagram.addUint16(handle)
+            datagram.addUint32(parentId)
+            datagram.addUint16(len(vzl))
             for zone in vzl:
                 datagram.addUint32(zone)
         else:
-           datagram.addUint32(zoneIdList)
+            datagram.addUint16(CLIENT_ADD_INTEREST)
+            datagram.addUint32(contextId)
+            datagram.addUint16(handle)
+            datagram.addUint32(parentId)
+            datagram.addUint32(zoneIdList)
         self.send(datagram)
 
     def _sendRemoveInterest(self, handle, contextId):
@@ -574,10 +580,9 @@ class DoInterestManager(DirectObject.DirectObject):
         assert handle in DoInterestManager._interests
         datagram = PyDatagram()
         # Add message type
-        datagram.addUint16(99) # CLIENT_REMOVE_INTEREST
+        datagram.addUint16(CLIENT_REMOVE_INTEREST)
+        datagram.addUint32(contextId)
         datagram.addUint16(handle)
-        if contextId != 0:
-            datagram.addUint32(contextId)
         self.send(datagram)
         if __debug__:
             state = DoInterestManager._interests[handle]
