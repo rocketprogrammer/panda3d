@@ -180,3 +180,5 @@ CLIENT_LOGIN_3_DISL_TOKEN = 4  # SSL encoded blob from DISL system.
 # ExtAgent messages.
 CLIENTAGENT_EXTAGENT_MESSAGE = 1205
 CLIENTAGENT_EXTAGENT_RESPONSE = 1206
+
+MSG_TO_NAME_DICT = {v: k for k, v in locals().items() if type(v) == int}
