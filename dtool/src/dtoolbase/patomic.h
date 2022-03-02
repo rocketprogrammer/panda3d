@@ -103,6 +103,8 @@ using patomic = std::atomic<T>;
  */
 class EXPCL_DTOOL_DTOOLBASE patomic_unsigned_lock_free : public patomic<uint32_t> {
 public:
+  typedef uint32_t value_type;
+
   constexpr patomic_unsigned_lock_free() noexcept;
   constexpr patomic_unsigned_lock_free(uint32_t desired) noexcept;
 
@@ -116,6 +118,8 @@ public:
  */
 class EXPCL_DTOOL_DTOOLBASE patomic_signed_lock_free : public patomic<int32_t> {
 public:
+  typedef int32_t value_type;
+
   constexpr patomic_signed_lock_free() noexcept;
   constexpr patomic_signed_lock_free(int32_t desired) noexcept;
 
@@ -157,9 +161,9 @@ ALWAYS_INLINE void patomic_notify_one(volatile uint32_t *value);
 ALWAYS_INLINE void patomic_notify_all(volatile uint32_t *value);
 
 #ifdef _WIN32
-EXPCL_DTOOL_DTOOLBASE extern BOOL (*_patomic_wait_func)(volatile VOID *, PVOID, SIZE_T, DWORD);
-EXPCL_DTOOL_DTOOLBASE extern void (*_patomic_wake_one_func)(PVOID);
-EXPCL_DTOOL_DTOOLBASE extern void (*_patomic_wake_all_func)(PVOID);
+EXPCL_DTOOL_DTOOLBASE extern BOOL (__stdcall *_patomic_wait_func)(volatile VOID *, PVOID, SIZE_T, DWORD);
+EXPCL_DTOOL_DTOOLBASE extern void (__stdcall *_patomic_wake_one_func)(PVOID);
+EXPCL_DTOOL_DTOOLBASE extern void (__stdcall *_patomic_wake_all_func)(PVOID);
 #elif !defined(__linux__) && defined(HAVE_POSIX_THREADS)
 EXPCL_DTOOL_DTOOLBASE void _patomic_wait(const volatile uint32_t *value, uint32_t old);
 EXPCL_DTOOL_DTOOLBASE void _patomic_notify_all(volatile uint32_t *value);
