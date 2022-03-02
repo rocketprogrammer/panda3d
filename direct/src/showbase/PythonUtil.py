@@ -12,7 +12,7 @@ __all__ = [
     'findPythonModule', 'mostDerivedLast', 'clampScalar', 'weightedChoice',
     'randFloat', 'normalDistrib', 'weightedRand', 'randUint31', 'randInt32',
     'randUint32',
-    'SerialNumGen', 'serialNum', 'uniqueName', 'Enum', 'Singleton',
+    'SerialNumGen', 'serialNum', 'uniqueName', 'Singleton',
     'SingletonError', 'printListEnum', 'safeRepr', 'fastRepr',
     'isDefaultValue', 'ScratchPad', 'Sync', 'itype', 'getNumberedTypedString',
     'getNumberedTypedSortedString', 'printNumberedTyped', 'DelayedCall',
