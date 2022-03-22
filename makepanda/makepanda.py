@@ -6353,6 +6353,9 @@ if PkgSkip("PYTHON") == 0:
         PyTargetAdd('deploy-stubw.exe', input='deploy-stubw.obj')
         PyTargetAdd('deploy-stubw.exe', opts=['MACOS_APP_BUNDLE', 'DEPLOYSTUB', 'NOICON'])
     elif GetTarget() == 'android':
+        TargetAdd('org/jnius/NativeInvocationHandler.class', opts=OPTS, input='NativeInvocationHandler.java')
+        TargetAdd('classes.dex', input='org/jnius/NativeInvocationHandler.class')
+
         PyTargetAdd('deploy-stubw_android_main.obj', opts=OPTS, input='android_main.cxx')
         PyTargetAdd('deploy-stubw_android_log.obj', opts=OPTS, input='android_log.c')
         PyTargetAdd('libdeploy-stubw.dll', input='android_native_app_glue.obj')
@@ -6481,6 +6484,8 @@ def ParallelMake(tasklist):
             tasklist = extras
         sys.stdout.flush()
         if tasksqueued == 0:
+            if len(tasklist) > 0:
+                continue
             break
         donetask = donequeue.get()
         if donetask == 0:

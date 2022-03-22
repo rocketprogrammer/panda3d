@@ -155,7 +155,9 @@ from android_log import write as android_log_write
 
 
 sys.frozen = True
-sys.platform = "android"
+
+# Temporary hack for plyer to detect Android, see kivy/plyer#670
+os.environ['ANDROID_ARGUMENT'] = ''
 
 
 # Replace stdout/stderr with something that writes to the Android log.
@@ -465,7 +467,7 @@ class build_apps(setuptools.Command):
         elif not self.android_abis:
             self.android_abis = ['arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86']
 
-        supported_abis = 'armeabi', 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86-64', 'mips', 'mips64'
+        supported_abis = 'armeabi', 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64', 'mips', 'mips64'
         unsupported_abis = set(self.android_abis) - set(supported_abis)
         if unsupported_abis:
             raise ValueError(f'Unrecognized value(s) for android_abis: {", ".join(unsupported_abis)}\n'
@@ -735,7 +737,7 @@ class build_apps(setuptools.Command):
 
         for appname in self.gui_apps:
             activity = ET.SubElement(application, 'activity')
-            activity.set('android:name', 'org.panda3d.android.PandaActivity')
+            activity.set('android:name', 'org.panda3d.android.PythonActivity')
             activity.set('android:label', appname)
             activity.set('android:theme', '@android:style/Theme.NoTitleBar')
             activity.set('android:configChanges', 'orientation|keyboardHidden')
@@ -1023,7 +1025,7 @@ class build_apps(setuptools.Command):
 
             freezer_extras.update(freezer.extras)
             freezer_modules.update(freezer.getAllModuleNames())
-            for suffix in freezer.moduleSuffixes:
+            for suffix in freezer.mf.suffixes:
                 if suffix[2] == imp.C_EXTENSION:
                     ext_suffixes.add(suffix[0])
 
