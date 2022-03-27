@@ -11,7 +11,7 @@ __all__ = [
     'boolEqual', 'lineupPos', 'formatElapsedSeconds', 'solveQuadratic',
     'findPythonModule', 'mostDerivedLast', 'clampScalar', 'weightedChoice',
     'randFloat', 'normalDistrib', 'weightedRand', 'randUint31', 'randInt32',
-    'SerialNumGen', 'serialNum', 'uniqueName', 'Enum', 'Singleton',
+    'SerialNumGen', 'serialNum', 'uniqueName', 'Singleton',
     'SingletonError', 'printListEnum', 'safeRepr', 'fastRepr',
     'isDefaultValue', 'ScratchPad', 'Sync', 'itype', 'getNumberedTypedString',
     'getNumberedTypedSortedString', 'printNumberedTyped', 'DelayedCall',
@@ -47,7 +47,7 @@ from . import BpDb
 
 __report_indent = 3
 
-from panda3d.core import ConfigVariableBool
+from panda3d.core import ConfigVariableBool, ClockObject
 from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 
@@ -1238,111 +1238,6 @@ def uniqueName(name):
     global _serialGen
     return '%s-%s' % (name, _serialGen.next())
 
-class EnumIter:
-    def __init__(self, enum):
-        self._values = tuple(enum._stringTable.keys())
-        self._index = 0
-    def __iter__(self):
-        return self
-    def __next__(self):
-        if self._index >= len(self._values):
-            raise StopIteration
-        self._index += 1
-        return self._values[self._index-1]
-
-class Enum:
-    """Pass in list of strings or string of comma-separated strings.
-    Items are accessible as instance.item, and are assigned unique,
-    increasing integer values. Pass in integer for 'start' to override
-    starting value.
-
-    Example:
-
-    >>> colors = Enum('red, green, blue')
-    >>> colors.red
-    0
-    >>> colors.green
-    1
-    >>> colors.blue
-    2
-    >>> colors.getString(colors.red)
-    'red'
-    """
-
-    if __debug__:
-        # chars that cannot appear within an item string.
-        def _checkValidIdentifier(item):
-            import string
-            invalidChars = string.whitespace + string.punctuation
-            invalidChars = invalidChars.replace('_', '')
-            invalidFirstChars = invalidChars+string.digits
-            if item[0] in invalidFirstChars:
-                raise SyntaxError("Enum '%s' contains invalid first char" %
-                                    item)
-            if not disjoint(item, invalidChars):
-                for char in item:
-                    if char in invalidChars:
-                        raise SyntaxError(
-                            "Enum\n'%s'\ncontains illegal char '%s'" %
-                            (item, char))
-            return 1
-        _checkValidIdentifier = staticmethod(_checkValidIdentifier)
-
-    def __init__(self, items, start=0):
-        if isinstance(items, str):
-            items = items.split(',')
-
-        self._stringTable = {}
-
-        # make sure we don't overwrite an existing element of the class
-        assert self._checkExistingMembers(items)
-        assert uniqueElements(items)
-
-        i = start
-        for item in items:
-            # remove leading/trailing whitespace
-            item = item.strip()
-            # is there anything left?
-            if len(item) == 0:
-                continue
-            # make sure there are no invalid characters
-            assert Enum._checkValidIdentifier(item)
-            self.__dict__[item] = i
-            self._stringTable[i] = item
-            i += 1
-
-    def __iter__(self):
-        return EnumIter(self)
-
-    def hasString(self, string):
-        return string in set(self._stringTable.values())
-
-    def fromString(self, string):
-        if self.hasString(string):
-            return self.__dict__[string]
-        # throw an error
-        {}[string]
-
-    def getString(self, value):
-        return self._stringTable[value]
-
-    def __contains__(self, value):
-        return value in self._stringTable
-
-    def __len__(self):
-        return len(self._stringTable)
-
-    def copyTo(self, obj):
-        # copies all members onto obj
-        for name, value in self._stringTable:
-            setattr(obj, name, value)
-
-    if __debug__:
-        def _checkExistingMembers(self, items):
-            for item in items:
-                if hasattr(self, item):
-                    return 0
-            return 1
 
 ############################################################
 # class: Singleton
@@ -2068,6 +1963,7 @@ def report(types = [], prefix = '', xform = None, notifyFunc = None, dConfigPara
             if prefixes:
                 outStr = '%%s %s' % (outStr,)
 
+            globalClock = ClockObject.getGlobalClock()
 
             if 'module' in types:
                 outStr = '%s {M:%s}' % (outStr, f.__module__.split('.')[-1])
@@ -2318,9 +2214,10 @@ if __debug__:
                 # at the time that PythonUtil is loaded
                 if not ConfigVariableBool("profile-debug", False):
                     #dumb timings
-                    st=globalClock.getRealTime()
-                    f(*args,**kArgs)
-                    s=globalClock.getRealTime()-st
+                    clock = ClockObject.getGlobalClock()
+                    st = clock.getRealTime()
+                    f(*args, **kArgs)
+                    s = clock.getRealTime() - st
                     print("Function %s.%s took %s seconds"%(f.__module__, f.__name__,s))
                 else:
                     import profile as prof, pstats
@@ -3631,7 +3528,6 @@ def encodedUtf8(s):
 builtins.Functor = Functor
 builtins.Stack = Stack
 builtins.Queue = Queue
-builtins.Enum = Enum
 builtins.SerialNumGen = SerialNumGen
 builtins.SerialMaskedGen = SerialMaskedGen
 builtins.ScratchPad = ScratchPad

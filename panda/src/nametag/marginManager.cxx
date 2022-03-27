@@ -25,6 +25,7 @@ TypeHandle MarginManager::_type_handle;
 MarginManager::
 MarginManager() : PandaNode("popups") {
   set_cull_callback();
+  set_renderable();
 
   _num_available_cells = 0;
 
@@ -365,7 +366,7 @@ update() {
       // If the popup wants to hide itself, we can oblige it right
       // away.
       hide(info._cell_index);
-      
+
     } else if (info._wants_visible && !popup->is_visible()) {
       // This popup wants to reveal itself; we'll have to defer that
       // request for a bit until we've looked at all the popups.
@@ -433,27 +434,9 @@ cull_callback(CullTraverser *, CullTraverserData &) {
 }
 
 ////////////////////////////////////////////////////////////////////
-//     Function: MarginManager::is_renderable
-//       Access: Public, Virtual
-//  Description: Returns true if there is some value to visiting this
-//               particular node during the cull traversal for any
-//               camera, false otherwise.  This will be used to
-//               optimize the result of get_net_draw_show_mask(), so
-//               that any subtrees that contain only nodes for which
-//               is_renderable() is false need not be visited.
-////////////////////////////////////////////////////////////////////
-bool MarginManager::
-is_renderable() const {
-  // We flag the MarginManager as renderable, even though it
-  // technically doesn't have anything to render, but we do need the
-  // traverser to visit it every frame.
-  return true;
-}
-
-////////////////////////////////////////////////////////////////////
 //     Function: MarginManager::write
 //       Access: Published, Virtual
-//  Description: 
+//  Description:
 ////////////////////////////////////////////////////////////////////
 void MarginManager::
 write(std::ostream &out, int indent_level) const {
