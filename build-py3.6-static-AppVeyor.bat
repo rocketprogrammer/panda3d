@@ -1,1 +1,0 @@
-"thirdparty/win-python3.6-x64/python.exe" makepanda/makepanda.py --everything --installer --msvc-version=14.3 --no-eigen --windows-sdk 10 --threads=16 --static
