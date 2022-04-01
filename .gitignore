@@ -74,3 +74,4 @@ __pycache__/
 /.settings/
 /.cproject
 /.project
+*.7z
