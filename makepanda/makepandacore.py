@@ -2204,10 +2204,6 @@ def SdkLocatePython(prefer_thirdparty_python=False):
             py_fwx = "/Library/Frameworks/Python.framework/Versions/" + version
 
         if not os.path.exists(py_fwx):
-            # Use Brew Python.
-            py_fwx = "/usr/local/opt/python@%s/Frameworks/Python.framework/Versions/%s" % (version, version)
-
-        if not os.path.exists(py_fwx):
             exit("Could not locate Python installation at %s" % (py_fwx))
 
         SDK["PYTHON"] = py_fwx + "/Headers"
