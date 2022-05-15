@@ -1376,6 +1376,10 @@ def CompileCxx(obj,src,opts):
                 if 'NOARCH:' + arch.upper() not in opts:
                     cmd += " -arch %s" % arch
 
+        elif 'clang' not in GetCXX().split('/')[-1]:
+            # Enable interprocedural optimizations in GCC.
+            cmd += " -fno-semantic-interposition"
+
         if "SYSROOT" in SDK:
             if GetTarget() != "android":
                 cmd += ' --sysroot=%s' % (SDK["SYSROOT"])
@@ -5062,8 +5066,10 @@ if GetTarget() == 'android' and not PkgSkip("EGL") and not PkgSkip("GLES2"):
 # DIRECTORY: panda/src/tinydisplay/
 #
 
-if (GetTarget() in ('windows', 'darwin') or not PkgSkip("X11")) and not PkgSkip("TINYDISPLAY"):
+if not PkgSkip("TINYDISPLAY"):
     OPTS=['DIR:panda/src/tinydisplay', 'BUILDING:TINYDISPLAY', 'X11']
+    if not PkgSkip("X11"):
+        OPTS += ['X11']
     TargetAdd('p3tinydisplay_composite1.obj', opts=OPTS, input='p3tinydisplay_composite1.cxx')
     TargetAdd('p3tinydisplay_composite2.obj', opts=OPTS, input='p3tinydisplay_composite2.cxx')
     TargetAdd('p3tinydisplay_ztriangle_1.obj', opts=OPTS, input='ztriangle_1.cxx')
@@ -5074,7 +5080,7 @@ if (GetTarget() in ('windows', 'darwin') or not PkgSkip("X11")) and not PkgSkip(
     if GetTarget() == 'windows':
         TargetAdd('libp3tinydisplay.dll', input='libp3windisplay.dll')
         TargetAdd('libp3tinydisplay.dll', opts=['WINIMM', 'WINGDI', 'WINKERNEL', 'WINOLDNAMES', 'WINUSER', 'WINMM'])
-    elif GetTarget() != 'darwin':
+    elif GetTarget() != 'darwin' and not PkgSkip("X11"):
         TargetAdd('libp3tinydisplay.dll', input='p3x11display_composite1.obj')
         TargetAdd('libp3tinydisplay.dll', opts=['X11'])
     TargetAdd('libp3tinydisplay.dll', input='p3tinydisplay_composite1.obj')
@@ -6349,6 +6355,9 @@ if PkgSkip("PYTHON") == 0:
         PyTargetAdd('deploy-stubw.exe', input='deploy-stubw.obj')
         PyTargetAdd('deploy-stubw.exe', opts=['MACOS_APP_BUNDLE', 'DEPLOYSTUB', 'NOICON'])
     elif GetTarget() == 'android':
+        TargetAdd('org/jnius/NativeInvocationHandler.class', opts=OPTS, input='NativeInvocationHandler.java')
+        TargetAdd('classes.dex', input='org/jnius/NativeInvocationHandler.class')
+
         PyTargetAdd('deploy-stubw_android_main.obj', opts=OPTS, input='android_main.cxx')
         PyTargetAdd('deploy-stubw_android_log.obj', opts=OPTS, input='android_log.c')
         PyTargetAdd('libdeploy-stubw.dll', input='android_native_app_glue.obj')
@@ -6477,6 +6486,8 @@ def ParallelMake(tasklist):
             tasklist = extras
         sys.stdout.flush()
         if tasksqueued == 0:
+            if len(tasklist) > 0:
+                continue
             break
         donetask = donequeue.get()
         if donetask == 0:
