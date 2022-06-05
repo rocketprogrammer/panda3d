@@ -549,7 +549,7 @@ class DoInterestManager(DirectObject.DirectObject):
                 'trying to set interest to invalid parent: %s' % parentId)
         datagram = PyDatagram()
         # Add message type
-        datagram.addUint16(97) # CLIENT_ADD_INTEREST
+        datagram.addUint16(CLIENT_ADD_INTEREST)
         datagram.addUint16(handle)
         datagram.addUint32(contextId)
         datagram.addUint32(parentId)
@@ -574,7 +574,7 @@ class DoInterestManager(DirectObject.DirectObject):
         assert handle in DoInterestManager._interests
         datagram = PyDatagram()
         # Add message type
-        datagram.addUint16(99) # CLIENT_REMOVE_INTEREST
+        datagram.addUint16(CLIENT_REMOVE_INTEREST)
         datagram.addUint16(handle)
         if contextId != 0:
             datagram.addUint32(contextId)
