@@ -290,14 +290,14 @@ class AstronInternalRepository(ConnectionRepository):
     def handleObjLocationAck(self, di):
         doId = di.getUint32()
         zoneId = di.getUint32()
-        
+
         # Tell the StateServer that we have acknowledged the location change.
         dg = PyDatagram()
         dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_LOCATION_ACK)
         dg.addUint32(doId)
         dg.addUint32(zoneId)
         self.send(dg)
-        
+
     def handleObjGetAIResp(self, di):
         context = di.getUint32()
         doId = di.getUint32()
@@ -308,7 +308,7 @@ class AstronInternalRepository(ConnectionRepository):
         dg.addUint32(self.GameGlobalsId)
         dg.addUint64(self.ourChannel)
         self.send(dg)
-        
+
     def handleObjEntry(self, di, other):
         doId = di.getUint32()
         parentId = di.getUint32()
@@ -577,9 +577,9 @@ class AstronInternalRepository(ConnectionRepository):
             dg.addUint32(0)
             dg.addUint32(0)
             self.send(dg)
-            # DEFAULTS_OTHER isn't implemented yet, so we chase it with a SET_FIELDS
+            # DEFAULTS_OTHER isn't implemented yet, so we chase it with a UPDATE_FIELD_MULTIPLE
             dg = PyDatagram()
-            dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_SET_FIELDS)
+            dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_UPDATE_FIELD_MULTIPLE)
             dg.addUint32(doId)
             dg.addUint16(fieldCount)
             dg.appendData(fieldPacker.getBytes())
@@ -803,7 +803,7 @@ class AstronInternalRepository(ConnectionRepository):
         dg.add_uint32(zoneId)
         self.send(dg)
 
-    def setOwner(self, doId, newOwner):
+    def setOwner(self, doId, newOwner, sendEntry):
         """
         Sets the owner of a DistributedObject. This will enable the new owner to send "ownsend" fields,
         and will generate an OwnerView.
@@ -812,6 +812,7 @@ class AstronInternalRepository(ConnectionRepository):
         dg = PyDatagram()
         dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_SET_OWNER)
         dg.add_uint64(newOwner)
+        dg.add_bool(sendEntry)
         self.send(dg)
 
     def setAllowClientSend(self, avId, dObj, fieldNameList = []):

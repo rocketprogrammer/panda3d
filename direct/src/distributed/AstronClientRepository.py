@@ -37,8 +37,8 @@ class AstronClientRepository(ClientRepositoryBase):
                                  CLIENT_ENTER_OBJECT_REQUIRED_OTHER: self.handleEnterObjectRequiredOther,
                                  CLIENT_ENTER_OBJECT_REQUIRED_OWNER: self.handleEnterObjectRequiredOwner,
                                  CLIENT_ENTER_OBJECT_REQUIRED_OTHER_OWNER: self.handleEnterObjectRequiredOtherOwner,
-                                 CLIENT_OBJECT_SET_FIELD: self.handleUpdateField,
-                                 CLIENT_OBJECT_SET_FIELDS: self.handleUpdateFields,
+                                 CLIENT_OBJECT_UPDATE_FIELD: self.handleUpdateField,
+                                 CLIENT_OBJECT_UPDATE_FIELDS: self.handleUpdateFields,
                                  CLIENT_OBJECT_LEAVING: self.handleObjectLeaving,
                                  CLIENT_OBJECT_LOCATION: self.handleObjectLocation,
                                  CLIENT_ADD_INTEREST: self.handleAddInterest,
@@ -146,7 +146,7 @@ class AstronClientRepository(ClientRepositoryBase):
 
     def handleUpdateFields(self, di):
         # Can't test this without the server actually sending it.
-        self.notify.error("CLIENT_OBJECT_SET_FIELDS not implemented!")
+        self.notify.error("CLIENT_OBJECT_UPDATE_FIELDS not implemented!")
         # # Here's some tentative code and notes:
         # do_id = di.getUint32()
         # field_count = di.getUint16()
