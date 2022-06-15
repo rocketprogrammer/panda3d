@@ -302,6 +302,7 @@ class AstronInternalRepository(ConnectionRepository):
         context = di.getUint32()
         doId = di.getUint32()
         aiChannel = di.getUint64()
+
         dg = PyDatagram()
         dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_GET_AI_RESP)
         dg.addUint32(context)
@@ -627,7 +628,7 @@ class AstronInternalRepository(ConnectionRepository):
 
         do.doId = doId
         self.addDOToTables(do, location=(parentId, zoneId))
-        do.sendGenerateWithRequired(self, parentId, zoneId, optionalFields)
+        do.sendGenerateWithRequired(self, parentId or 1, zoneId, optionalFields)
 
     def requestDelete(self, do):
         """
