@@ -12,9 +12,9 @@ MsgName2Id = {
     'CLIENT_DISCONNECT':                             3,
 
     # Sent by the server when it is dropping the connection deliberately.
-    'CLIENT_EJECT':                                  4,
+    'CLIENT_GO_GET_LOST':                            4,
 
-    'CLIENT_HEARTBEAT':                              5,
+    'CLIENT_HEARTBEAT':                              52,
 
     'CLIENT_OBJECT_DISABLE':                         25,
     'CLIENT_OBJECT_DISABLE_RESP':                    25,
@@ -34,12 +34,12 @@ MsgName2Id = {
     'CLIENT_CREATE_OBJECT_REQUIRED_OTHER_OWNER':     36,
     'CLIENT_CREATE_OBJECT_REQUIRED_OTHER_OWNER_RESP': 36,
 
-    'CLIENT_DONE_INTEREST_RESP':                     204,
+    'CLIENT_DONE_INTEREST_RESP':                     48,
 
-    'CLIENT_ADD_INTEREST':                           200,
+    'CLIENT_ADD_INTEREST':                           97,
     'CLIENT_ADD_INTEREST_MULTIPLE':                  201,
-    'CLIENT_REMOVE_INTEREST':                        203,
-    'CLIENT_OBJECT_LOCATION':                        140,
+    'CLIENT_REMOVE_INTEREST':                        99,
+    'CLIENT_OBJECT_LOCATION':                        102,
 
     # These are sent internally inside the Astron cluster.
 
