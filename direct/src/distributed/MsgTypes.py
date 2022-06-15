@@ -9,7 +9,7 @@ MsgName2Id = {
     'CLIENT_SYSTEM_MESSAGE':                         78,
 
     # Sent by the client when it's leaving.
-    'CLIENT_DISCONNECT':                             3,
+    'CLIENT_DISCONNECT':                             37,
 
     # Sent by the server when it is dropping the connection deliberately.
     'CLIENT_GO_GET_LOST':                            4,
