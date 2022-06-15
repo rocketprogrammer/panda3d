@@ -650,7 +650,7 @@ ai_format_generate(PyObject *distobj, DOID_TYPE do_id,
 }
 
 Datagram Extension<DCClass>::
-ai_database_generate_context(unsigned int context_id, DOID_TYPE parent_id, 
+ai_database_generate_context(unsigned int context_id, DOID_TYPE parent_id,
                              ZONEID_TYPE zone_id, CHANNEL_TYPE owner_channel,
                              CHANNEL_TYPE database_server_id, CHANNEL_TYPE from_channel_id) const {
   DCPacker packer;
@@ -680,8 +680,8 @@ ai_database_generate_context(unsigned int context_id, DOID_TYPE parent_id,
 }
 
 Datagram Extension<DCClass>::
-ai_database_generate_context_old(unsigned int context_id, DOID_TYPE parent_id, 
-                                 ZONEID_TYPE zone_id, CHANNEL_TYPE database_server_id, 
+ai_database_generate_context_old(unsigned int context_id, DOID_TYPE parent_id,
+                                 ZONEID_TYPE zone_id, CHANNEL_TYPE database_server_id,
                                  CHANNEL_TYPE from_channel_id) const {
   DCPacker packer;
   packer.raw_pack_uint8(1);
