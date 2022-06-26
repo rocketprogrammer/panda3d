@@ -30,8 +30,10 @@ PUBLISHED:
 
   int add_grid_cell(float x, float y,
                      float screen_left, float screen_right,
-                     float screen_bottom, float screen_top);
-  int add_cell(float left, float right, float bottom, float top);
+                     float screen_bottom, float screen_top,
+                     NodePath new_parent, LVector3f new_pos);
+  int add_cell(float left, float right, float bottom, float top,
+               NodePath new_parent, LVector3f new_pos);
 
   void set_cell_available(int cell_index, bool available);
   bool get_cell_available(int cell_index) const;
@@ -94,6 +96,10 @@ private:
 
     // This represents the time at which the cell last became vacant.
     double _hide_time;
+
+    // This is used for widescreen support.
+    NodePath _new_parent;
+    LVector3f _new_pos;
   };
 
   LVecBase3f _cell_scale;
