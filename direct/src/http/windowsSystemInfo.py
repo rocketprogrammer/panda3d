@@ -34,19 +34,23 @@ def get_registry_value(key, subkey, value):
     (value, type) = winreg.QueryValueEx(handle, value)
     return value
 
-c_ulong = ctypes.c_ulong
+class MEMORYSTATUSEX(ctypes.Structure):
+    _fields_ = [
+        ('dwLength', ctypes.c_long),
+        ('dwMemoryLoad', ctypes.c_long),
+        ('ullTotalPhys', ctypes.c_ulonglong),
+        ('ullAvailPhys', ctypes.c_ulonglong),
+        ('ullTotalPageFile', ctypes.c_ulonglong),
+        ('ullAvailPageFile', ctypes.c_ulonglong),
+        ('ullTotalVirtual', ctypes.c_ulonglong),
+        ('ullAvailVirtual', ctypes.c_ulonglong),
+        ('ullExtendedVirtual', ctypes.c_ulonglong)
+    ]
 
-class MEMORYSTATUS(ctypes.Structure):
-            _fields_ = [
-                ('dwLength', c_ulong),
-                ('dwMemoryLoad', c_ulong),
-                ('dwTotalPhys', c_ulong),
-                ('dwAvailPhys', c_ulong),
-                ('dwTotalPageFile', c_ulong),
-                ('dwAvailPageFile', c_ulong),
-                ('dwTotalVirtual', c_ulong),
-                ('dwAvailVirtual', c_ulong)
-            ]
+    def __init__(self):
+        # have to initialize this to the size of MEMORYSTATUSEX
+        self.dwLength = ctypes.sizeof(self)
+        super(MEMORYSTATUSEX, self).__init__()
 
 class SystemInformation:
     def __init__(self):
@@ -112,10 +116,9 @@ class SystemInformation:
         kernel32 = ctypes.windll.kernel32
 
 
-        memoryStatus = MEMORYSTATUS()
-        memoryStatus.dwLength = ctypes.sizeof(MEMORYSTATUS)
-        kernel32.GlobalMemoryStatus(ctypes.byref(memoryStatus))
-        return (memoryStatus.dwTotalPhys, memoryStatus.dwAvailPhys, memoryStatus.dwTotalPageFile, memoryStatus.dwAvailPageFile, memoryStatus.dwMemoryLoad, memoryStatus.dwTotalVirtual, memoryStatus.dwAvailVirtual)
+        memoryStatusEx = MEMORYSTATUSEX()
+        kernel32.GlobalMemoryStatusEx(ctypes.byref(memoryStatusEx))
+        return (memoryStatusEx.ullTotalPhys, memoryStatusEx.ullAvailPhys, memoryStatusEx.ullTotalPageFile, memoryStatusEx.ullAvailPageFile, memoryStatusEx.dwMemoryLoad, memoryStatusEx.ullTotalVirtual, memoryStatusEx.ullAvailVirtual)
 
 # To test, execute the script standalone.
 
