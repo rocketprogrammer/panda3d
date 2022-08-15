@@ -17,9 +17,9 @@ from pirates.quest.QuestDB import QuestDict
 
 # Need to figure out which systeminfo module to import
 if platform == 'win32':
-    from windowsSystemInfo import SystemInformation
+    from .windowsSystemInfo import SystemInformation
 else:
-    from linuxSystemInfo import SystemInformation
+    from .linuxSystemInfo import SystemInformation
 
 class aiWebServer(SystemInformation):
     def __init__(self, air, listenPort=8080):
@@ -42,7 +42,7 @@ class aiWebServer(SystemInformation):
         self.web.registerGETHandler('magicWord', self.magicWord)
         self.startCheckingIncomingHTTP()
 
-        self.air.setConnectionURL("http://%s:%s/" % (socket.gethostbyname(socket.gethostname()),self.HTTPListenPort))
+        self.air.setConnectionURL("http://%s:%s/" % (socket.gethostbyname(socket.gethostname()),self.listenPort))
 
     def magicWord(self, replyTo, **kw):
         # This will process Magic Word requests
@@ -179,7 +179,7 @@ class aiWebServer(SystemInformation):
     def genQuestSelect(self):
         # Will generate an HTML select widget, with the Key vals from the QuestDB
         selectWidget = '<select name="questId">\n'
-        for k, v in QuestDict.iteritems():
+        for k, v in QuestDict.items():
             selectWidget = '%s<option>%s</option>\n' % (selectWidget, k)
         selectWidget = '%s</select><br>\n' % selectWidget
         return selectWidget
@@ -199,7 +199,7 @@ class aiWebServer(SystemInformation):
         foot = '</ul></body></HTML>'
         body = ''
         doIdRequested = ''
-        for j, k in kw.iteritems():
+        for j, k in kw.items():
             doIdRequested = int(k)
             #print j,k
         try:
@@ -275,7 +275,7 @@ class aiWebServer(SystemInformation):
         # looks at the simbase.air.doID2do dict, and returns a list
         # sorted by alpha order.
         IDlist = []
-        for key, val in simbase.air.doId2do.iteritems():
+        for key, val in simbase.air.doId2do.items():
             IDlist.append([val,key])
         IDlist.sort()
         return IDlist

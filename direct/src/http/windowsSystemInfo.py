@@ -1,7 +1,7 @@
 import sys
 import os
 import ctypes
-import _winreg
+import winreg
 
 """Class to extract system information from a MS-Windows Box:
 
@@ -28,10 +28,10 @@ s.refresh() # if you need to refresh the dynamic data (i.e. Memory stats, etc)
 def get_registry_value(key, subkey, value):
     if sys.platform != 'win32':
         raise OSError("get_registry_value is only supported on Windows")
-        
-    key = getattr(_winreg, key)
-    handle = _winreg.OpenKey(key, subkey)
-    (value, type) = _winreg.QueryValueEx(handle, value)
+
+    key = getattr(winreg, key)
+    handle = winreg.OpenKey(key, subkey)
+    (value, type) = winreg.QueryValueEx(handle, value)
     return value
 
 c_ulong = ctypes.c_ulong
@@ -55,12 +55,12 @@ class SystemInformation:
         # check to make sure the OS is MS-Windows before continuing.
 
         assert sys.platform == 'win32', "Not an MS-Windows Computer. This class should not be called"
-        
+
         # os contains the Operating System Name with Service Pack and Build
         # Example: Microsoft Windows XP Service Pack 2 (build 2600)
-        
+
         self.os = self._os_version().strip()
-        
+
         # cpu contains the CPU model and speed
         # Example: Intel Core(TM)2 CPU 6700 @ 2.66GHz
 
@@ -73,15 +73,15 @@ class SystemInformation:
         self.totalRAM = self.totalRAM / 1024
 
         # totalVM contains the total amount of VM available to the system
-        
+
         self.totalVM = self.totalVM / 1024
 
         # availableVM contains the amount of VM that is free
-        
+
         self.availableVM = self.availableVM / 1024
 
         # availableRam: Ammount of available RAM in the system
-        
+
         self.availableRAM = self.availableRAM / 1024
 
     def refresh(self):
@@ -94,23 +94,23 @@ class SystemInformation:
     def _os_version(self):
         def get(key):
             return get_registry_value(
-                "HKEY_LOCAL_MACHINE", 
+                "HKEY_LOCAL_MACHINE",
                 "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
                 key)
         os = get("ProductName")
-        sp = get("CSDVersion")
+        sp = get("ReleaseId")
         build = get("CurrentBuildNumber")
         return "%s %s (build %s)" % (os, sp, build)
-            
+
     def _cpu(self):
         return get_registry_value(
-            "HKEY_LOCAL_MACHINE", 
+            "HKEY_LOCAL_MACHINE",
             "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
             "ProcessorNameString")
-            
+
     def _ram(self):
         kernel32 = ctypes.windll.kernel32
-        
+
 
         memoryStatus = MEMORYSTATUS()
         memoryStatus.dwLength = ctypes.sizeof(MEMORYSTATUS)
