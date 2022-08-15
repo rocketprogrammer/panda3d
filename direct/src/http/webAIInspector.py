@@ -275,9 +275,8 @@ class aiWebServer(SystemInformation):
         # looks at the simbase.air.doID2do dict, and returns a list
         # sorted by alpha order.
         IDlist = []
-        for key, val in simbase.air.doId2do.items():
+        for key, val in sorted(simbase.air.doId2do.items()):
             IDlist.append([val,key])
-        IDlist.sort()
         return IDlist
 
 
