@@ -42,7 +42,7 @@ class aiWebServer(SystemInformation):
         self.web.registerGETHandler('magicWord', self.magicWord)
         self.startCheckingIncomingHTTP()
 
-        self.air.setConnectionURL("http://%s:%s/" % (socket.gethostbyname(socket.gethostname()),self.HTTPListenPort))        
+        self.air.setConnectionURL("http://%s:%s/" % (socket.gethostbyname(socket.gethostname()),self.HTTPListenPort))
 
     def magicWord(self, replyTo, **kw):
         # This will process Magic Word requests
@@ -52,7 +52,7 @@ class aiWebServer(SystemInformation):
         # ~aijobmgr
         # ~assignQuest
         # ~money
-        
+
         # First we need to figure out which magic word is being called
         try:
             theMagicWord = kw['magicWord']
@@ -73,7 +73,7 @@ class aiWebServer(SystemInformation):
 
         elif theMagicWord == 'money':
             # First, generate the Avatar HTML Select widget.
-            
+
             selectWidget = self.genAvSelect()
 
             # Now that we've built the avatar list, we can repond with the HTML
@@ -91,11 +91,11 @@ class aiWebServer(SystemInformation):
                 # This being the case, the transaction mut be stopped.
                 # The most likely cause is the input of a non num type into
                 # the amount field
-                
+
                 print('Incorrect value entered.')
                 replyTo.respond('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">\n<TITLE>Money Error</title>\n</head><body>Please check the Amount field. Transaction could not be completed.</BODY>\n</HTML>')
                 return
-                
+
             try:
                 av = simbase.air.doId2do[av]
             except KeyError:
@@ -194,7 +194,7 @@ class aiWebServer(SystemInformation):
         # the object selected in the left frame
 
         #print "%s|oInst Frame Accessed, Request ID %s" % (self.timeStamp(), str(kw))
-        
+
         head = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n<html>\n<head>\n<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">\n<title>member List</title>\n</head>\n<body>\n<UL>'
         foot = '</ul></body></HTML>'
         body = ''
@@ -214,7 +214,7 @@ class aiWebServer(SystemInformation):
              if (type(tempMember[1]) == str or type(tempMember[1]) == int or type(tempMember[1]) == float or type(tempMember[1]) == dict):
                  body = '%s<LI>%s\n' % (body, str(tempMember))
         replyTo.respond('%s%s%s' % (head,body,foot))
-        
+
 
     def oType(self, replyTo, **kw):
         # This will populate the left frame with a alpha sorted list of
@@ -235,7 +235,7 @@ class aiWebServer(SystemInformation):
             # tempObjElement[0].replace('>','')
             # if str(tempObjElement[0]).find('render') == -1:
             body = '%s<LI><A HREF="oInst?id=%s" target="oInst">%s:%s</A>\n' % (body, tempObjElement[1], tempObjElement[1], str(tempObjElement[0]).replace('<','').replace('>',''))
-        replyTo.respond('%s%s%s' % (head,body,foot))    
+        replyTo.respond('%s%s%s' % (head,body,foot))
 
     def inspect(self, replyTo, **kw):
         # This is the index. Basically, it will generate the frames for the
@@ -314,7 +314,7 @@ def initializeInspectorMap():
         'DictionaryType': 'DictionaryInspector',
         'DictType': 'DictionaryInspector',
         'FileType': 'Inspector',
-        'FloatType': 'Inspector', 
+        'FloatType': 'Inspector',
         'FunctionType': 'FunctionInspector',
         'Instance methodType': 'InstanceMethodInspector',
         'InstanceType': 'InstanceInspector',
@@ -352,7 +352,7 @@ class Inspector:
         for each in keys:
             self._partsList.append(each)
             #if not callable(getattr(self.object, each)):
-            #    self._partsList.append(each)  
+            #    self._partsList.append(each)
 
     def initializePartNames(self):
         self._partNames = ['up'] + [str(each) for each in self._partsList]
@@ -366,7 +366,7 @@ class Inspector:
 
     def selectedPart(self):
         return self.partNumber(self.getLastPartNumber())
-        
+
     def namedParts(self):
         return dir(self.object)
 
@@ -395,16 +395,16 @@ class Inspector:
         return inspectorFor(part)
 
     def privatePartNumber(self, partNumber):
-        return self._partsList[partNumber - 1]        
+        return self._partsList[partNumber - 1]
 
     def partNames(self):
         return self._partNames
-    
+
     def objectType(self):
         return type(self.object)
 
 ###
-    
+
 class ModuleInspector(Inspector):
     def namedParts(self):
         return ['__dict__']
@@ -423,7 +423,7 @@ class InstanceInspector(Inspector):
         return ['__class__'] + dir(self.object)
 
 ###
-    
+
 class FunctionInspector(Inspector):
     def title(self):
         return self.object.__name__ + "()"
@@ -462,7 +462,7 @@ class DictionaryInspector(Inspector):
             return self.object[key]
         else:
             return getattr(self.object, key)
-        
+
 class SequenceInspector(Inspector):
     def initializePartsList(self):
         Inspector.initializePartsList(self)
@@ -478,7 +478,7 @@ class SequenceInspector(Inspector):
             return self.object[index]
         else:
             return getattr(self.object, index)
-    
+
 class SliceInspector(Inspector):
     def namedParts(self):
         return ['start', 'stop', 'step']
