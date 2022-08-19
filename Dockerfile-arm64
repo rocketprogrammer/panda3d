@@ -1,0 +1,13 @@
+FROM arm64v8/ubuntu:bionic
+
+# Extend the system environments
+ENV LD_LIBRARY_PATH /lib:/usr/lib:/usr/local/lib
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install all the required packages
+RUN apt update && apt upgrade -y
+RUN apt install -y python3-pip build-essential pkg-config fakeroot python3-dev libpng-dev libjpeg-dev libtiff-dev zlib1g-dev libssl-dev libx11-dev libgl1-mesa-dev libxrandr-dev libxxf86dga-dev libxcursor-dev bison flex libfreetype6-dev libvorbis-dev libeigen3-dev libopenal-dev libode-dev libbullet-dev libgtk2.0-dev libassimp-dev libopenexr-dev git
+
+RUN git clone https://github.com/rocketprogrammer/panda3d -b otp-with-decompile /panda3d
+
+CMD ls && cd /panda3d && python3 makepanda/makepanda.py --everything --installer --no-miles --no-egl --no-gles --no-gles2 --no-opencv --threads $(grep -c ^processor /proc/cpuinfo)
