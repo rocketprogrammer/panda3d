@@ -10,7 +10,6 @@ from direct.showbase.MessengerGlobal import messenger
 from .PyDatagramIterator import PyDatagramIterator
 from dcimporter import import_module
 
-import inspect
 import gc
 
 __all__ = ["ConnectionRepository", "GCTrigger"]
@@ -312,6 +311,8 @@ class ConnectionRepository(
 
         # Now get the class definition for the classes named in the DC
         # file.
+        import inspect
+
         for i in range(dcFile.getNumClasses()):
             dclass = dcFile.getClass(i)
             number = dclass.getNumber()
