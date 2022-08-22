@@ -51,6 +51,7 @@ from panda3d.core import ConfigVariableBool, ClockObject
 from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 from __pypperoni__ import describeException
+import unicodedata
 
 ## with one integer positional arg, this uses about 4/5 of the memory of the Functor class below
 #def Functor(function, *args, **kArgs):
