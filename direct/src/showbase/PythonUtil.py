@@ -3422,8 +3422,6 @@ def clampScalar(value, a, b):
         else:
             return value
 
-def cmp(a, b):
-    return (a > b) - (a < b)
 #set up bpdb
 bpdb = BpDb.BpDb()
 def bpdbGetEnabled():
