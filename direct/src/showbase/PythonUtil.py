@@ -45,7 +45,6 @@ import importlib
 import bisect
 import functools
 from . import BpDb
-import unicodedata
 
 __report_indent = 3
 
