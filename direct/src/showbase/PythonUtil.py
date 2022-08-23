@@ -3591,7 +3591,6 @@ builtins.DestructiveScratchPad = DestructiveScratchPad
 builtins.clampScalar = clampScalar
 builtins.isClient = isClient
 builtins.triglerp = triglerp
-builtins.cmp = cmp
 builtins.bpdb = bpdb
 builtins.describeException = describeException
 builtins.u2ascii = u2ascii
