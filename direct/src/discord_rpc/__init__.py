@@ -39,7 +39,7 @@ if is_windows():
         import _winreg as winreg
 
 
-VERSION = "1.2.2"
+VERSION = "1.3.0"
 PROJECT_URL = "https://gitlab.com/somberdemise/discord-rpc.py"
 
 DISCORD_REPLY_NO = 0
@@ -617,7 +617,7 @@ def initialize(app_id, pid=None, callbacks=None, pipe_no=0, time_call=None, auto
     global _discord_rpc
     global _auto_update_connection
     global _update_thread
-    # TODO: auto register/steam auto register here
+
     if _discord_rpc is not None:
         # don't initialize more than once
         return
@@ -721,28 +721,37 @@ def respond(user_id, response):
         _discord_rpc.respond(user_id, response)
 
 
-def download_profile_picture(user_id, avatar_hash=None, cache_dir="cache", game_name=None, game_version=None,
-                             game_url=None, cert_file=None):
+def download_profile_picture(user_id, discriminator, avatar_hash=None, cache_dir="cache", default_dir="default",
+                             cert_file=None, game_name=None, game_version=None, game_url=None):
     """
     Download a discord user's profile picture.
     :param user_id:         The discord user's ID
-    :param avatar_hash:     (optional) The discord user's avatar hash. NOTE: if None, returns None
+    :param discriminator:   The discord user's discriminator; required and used for when avatar_hash is None
+    :param avatar_hash:     (optional) The discord user's avatar hash. NOTE: if None, defaults to a default avatar image
     :param cache_dir:       (optional) Path to store the profile picture
+    :param default_dir:     (optional) The path within the cache_dir to use for default avatars
+    param cert_file:        (optional) The path to the cacert file to use
     :param game_name:       (optional) The name of the game that is running
     :param game_version:    (optional) The game's version number
     :param game_url:        (optional) The game's website
-    :param cert_file:       (optional) The path to the cacert file to use (python 2 requests only so far)
     :return:                Path to profile picture, or None
     """
     global _http_rate_limit
     if avatar_hash is None:
-        return None
-    url = "https://cdn.discordapp.com/avatars/{}/{}.jpg?size=2048".format(user_id, avatar_hash)
-    # NOTE: we default to "./cache" if no path specified
-    download_folder = path.join(cache_dir, user_id)
+        url = "https://cdn.discordapp.com/embed/avatars/{}.png".format(int(discriminator) % 5)
+        # NOTE: we default to "./cache/default/" if no path specified
+        # NOTE 2: we use a "default" directory to save disk space and download calls in the long run
+        download_folder = path.join(cache_dir, default_dir)
+    else:
+        url = "https://cdn.discordapp.com/avatars/{}/{}.jpg?size=2048".format(user_id, avatar_hash)
+        # NOTE: we default to "./cache/user_id/" if no path specified
+        download_folder = path.join(cache_dir, user_id)
     if not path.exists(download_folder):
         makedirs(download_folder, 0o755)
-    avatar_file = path.join(download_folder, avatar_hash) + '.jpg'
+    if avatar_hash is not None:
+        avatar_file = path.join(download_folder, avatar_hash) + '.jpg'
+    else:
+        avatar_file = path.join(download_folder, str(int(discriminator) % 5)) + '.png'
     if path.exists(avatar_file):
         # technically, we downloaded it, so no need to worry about downloading
         return avatar_file
@@ -761,15 +770,23 @@ def download_profile_picture(user_id, avatar_hash=None, cache_dir="cache", game_
             ua_str += " ({url}, {version}".format(url=game_url, version=game_version)
     headers = {'User-Agent': ua_str}
     if is_python3():
-        r = Request(
-            url,
-            data=None,
-            headers=headers
-        )
+        if cert_file is not None:
+            r = Request(
+                url,
+                data=None,
+                headers=headers,
+                cafile=cert_file
+            )
+        else:
+            r = Request(
+                url,
+                data=None,
+                headers=headers
+            )
         req = urlopen(r)
         status_code = req.getcode()
     else:
-        if cert_file:
+        if cert_file is not None:
             req = requests.get(url, headers=headers, verify=cert_file)
         else:
             req = requests.get(url, headers=headers)
@@ -788,7 +805,7 @@ def download_profile_picture(user_id, avatar_hash=None, cache_dir="cache", game_
                 else:
                     json_data = req.json()
                 if 'retry_after' in json_data:
-                    _http_rate_limit = time.time() + (int(json_data['retry_after']) / 1000)
+                    _http_rate_limit = time.time() + (int(json_data['retry_after']) / 1000.0)
             except Exception:
                 pass
         if _http_rate_limit is None:
@@ -876,7 +893,8 @@ def register_game(app_id, steam_id=None, command=None):
     else:
         # assume Mac OSX here
         def register_url(aid):
-            print("Url registration under Mac OSX unimplemented. Cannot create for app ID {}".format(id), file=stderr)
+            # TODO: figure out a feasable way to get this to work
+            print("Url registration under Mac OSX unimplemented. Cannot create for app ID {}".format(aid), file=stderr)
 
         def register_command(aid, cmd):
             home = path.expanduser("~")

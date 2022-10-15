@@ -210,6 +210,8 @@ EXPCL_INTERROGATEDB const char *interrogate_function_prototype(FunctionIndex fun
 // if the function is a class method.
 EXPCL_INTERROGATEDB bool interrogate_function_is_method(FunctionIndex function);
 EXPCL_INTERROGATEDB TypeIndex interrogate_function_class(FunctionIndex function);
+EXPCL_INTERROGATEDB bool interrogate_function_is_unary_op(FunctionIndex function);
+EXPCL_INTERROGATEDB bool interrogate_function_is_operator_typecast(FunctionIndex function);
 EXPCL_INTERROGATEDB bool interrogate_function_is_constructor(FunctionIndex function);
 EXPCL_INTERROGATEDB bool interrogate_function_is_destructor(FunctionIndex function);
 
@@ -348,7 +350,8 @@ EXPCL_INTERROGATEDB const char *interrogate_make_seq_comment(ElementIndex elemen
 EXPCL_INTERROGATEDB const char *interrogate_make_seq_num_name(MakeSeqIndex make_seq);
 // The name of the real method that returns the nth element, e.g.  "get_thing"
 EXPCL_INTERROGATEDB const char *interrogate_make_seq_element_name(MakeSeqIndex make_seq);
-
+EXPCL_INTERROGATEDB FunctionIndex interrogate_make_seq_num_getter(MakeSeqIndex make_seq);
+EXPCL_INTERROGATEDB FunctionIndex interrogate_make_seq_element_getter(MakeSeqIndex make_seq);
 
 // Types
 
@@ -422,6 +425,10 @@ EXPCL_INTERROGATEDB bool interrogate_type_is_pointer(TypeIndex type);
 EXPCL_INTERROGATEDB bool interrogate_type_is_const(TypeIndex type);
 EXPCL_INTERROGATEDB bool interrogate_type_is_typedef(TypeIndex type);
 EXPCL_INTERROGATEDB TypeIndex interrogate_type_wrapped_type(TypeIndex type);
+
+// If interrogate_type_is_array() returns true, this is an array type.
+EXPCL_INTERROGATEDB bool interrogate_type_is_array(TypeIndex type);
+EXPCL_INTERROGATEDB int interrogate_type_array_size(TypeIndex type);
 
 // If interrogate_type_is_enum() returns true, this is an enumerated type,
 // which means it may take any one of a number of named integer values.

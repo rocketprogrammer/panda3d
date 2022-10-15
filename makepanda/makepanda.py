@@ -101,6 +101,7 @@ PkgListSet(["PYTHON", "DIRECT",                        # Python support
   "SSE2", "NEON",                                      # Compiler features
   "NAMETAG", "MOVEMENT", "NAVIGATION",                 # libotp
   "DNA", "SUIT", "PETS",                               # libtoontown
+  "MIMALLOC",                                          # Memory allocators
 ])
 
 CheckPandaSourceTree()
@@ -6335,7 +6336,7 @@ if PkgSkip("PYTHON") == 0:
 
     if GetTarget() == 'linux' or GetTarget() == 'freebsd':
         # Setup rpath so libs can be found in the same directory as the deployed game
-        LibName('DEPLOYSTUB', "-Wl,-rpath,\\$ORIGIN")
+        LibName('DEPLOYSTUB', "-Wl,--disable-new-dtags,-rpath,\\$ORIGIN")
         LibName('DEPLOYSTUB', "-Wl,-z,origin")
         LibName('DEPLOYSTUB', "-rdynamic")
     PyTargetAdd('deploy-stub.exe', input='deploy-stub.obj')

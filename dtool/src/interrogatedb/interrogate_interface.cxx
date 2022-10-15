@@ -267,6 +267,19 @@ interrogate_function_class(FunctionIndex function) {
 }
 
 bool
+interrogate_function_is_unary_op(FunctionIndex function) {
+  // cerr << "interrogate_function_is_unary_op(" << function << ")\n";
+  return InterrogateDatabase::get_ptr()->get_function(function).is_unary_op();
+}
+
+bool
+interrogate_function_is_operator_typecast(FunctionIndex function) {
+  // cerr << "interrogate_function_is_operator_typecast(" << function <<
+  // ")\n";
+  return InterrogateDatabase::get_ptr()->get_function(function).is_operator_typecast();
+}
+
+bool
 interrogate_function_is_constructor(FunctionIndex function) {
   // cerr << "interrogate_function_is_constructor(" << function << ")\n";
   return InterrogateDatabase::get_ptr()->get_function(function).is_constructor();
@@ -494,9 +507,20 @@ interrogate_make_seq_num_name(MakeSeqIndex make_seq) {
 const char *
 interrogate_make_seq_element_name(MakeSeqIndex make_seq) {
   // cerr << "interrogate_make_seq_element_name(" << make_seq << ")\n";
-  static string result;
   FunctionIndex function = InterrogateDatabase::get_ptr()->get_make_seq(make_seq).get_element_getter();
   return interrogate_function_name(function);
+}
+
+FunctionIndex
+interrogate_make_seq_num_getter(MakeSeqIndex make_seq) {
+  // cerr << "interrogate_make_seq_num_getter(" << make_seq << ")\n";
+  return InterrogateDatabase::get_ptr()->get_make_seq(make_seq).get_length_getter();
+}
+
+FunctionIndex
+interrogate_make_seq_element_getter(MakeSeqIndex make_seq) {
+  // cerr << "interrogate_make_seq_element_getter(" << make_seq << ")\n";
+  return InterrogateDatabase::get_ptr()->get_make_seq(make_seq).get_element_getter();
 }
 
 int
@@ -684,6 +708,18 @@ TypeIndex
 interrogate_type_wrapped_type(TypeIndex type) {
   // cerr << "interrogate_type_wrapped_type(" << type << ")\n";
   return InterrogateDatabase::get_ptr()->get_type(type).get_wrapped_type();
+}
+
+bool
+interrogate_type_is_array(TypeIndex type) {
+  // cerr << "interrogate_type_is_array(" << type << ")\n";
+  return InterrogateDatabase::get_ptr()->get_type(type).is_array();
+}
+
+int
+interrogate_type_array_size(TypeIndex type) {
+  // cerr << "interrogate_type_array_size(" << type << ")\n";
+  return InterrogateDatabase::get_ptr()->get_type(type).get_array_size();
 }
 
 bool
