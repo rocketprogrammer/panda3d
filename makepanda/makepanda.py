@@ -2379,7 +2379,7 @@ DTOOL_CONFIG=[
     ("HAVE_PROC_SELF_CMDLINE",         'UNDEF',                  '1'),
     ("HAVE_PROC_CURPROC_FILE",         'UNDEF',                  'UNDEF'),
     ("HAVE_PROC_CURPROC_MAP",          'UNDEF',                  'UNDEF'),
-    ("HAVE_PROC_SELF_CMDLINE",         'UNDEF',                  'UNDEF'),
+    ("HAVE_PROC_CURPROC_CMDLINE",      'UNDEF',                  'UNDEF'),
     ("HAVE_GLOBAL_ARGV",               '1',                      'UNDEF'),
     ("PROTOTYPE_GLOBAL_ARGV",          'UNDEF',                  'UNDEF'),
     ("GLOBAL_ARGV",                    '__argv',                 'UNDEF'),
@@ -3317,6 +3317,7 @@ if not PkgSkip("DIRECT"):
     CopyAllHeaders('direct/src/distributed')
     CopyAllHeaders('direct/src/interval')
     CopyAllHeaders('direct/src/showbase')
+    CopyAllHeaders('direct/src/motiontrail')
     CopyAllHeaders('direct/src/dcparse')
 
 if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"):
