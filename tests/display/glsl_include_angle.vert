@@ -1,6 +1,6 @@
 #version 150
 
-#pragma include "glsl_include_inputs.glsl"
+#pragma include <glsl_include_inputs.glsl>
 
 // Vertex inputs
 in vec4 p3d_Vertex;
