@@ -1,8 +1,8 @@
 """AstronClientRepository module: contains the AstronClientRepository class"""
 
 from direct.directnotify import DirectNotifyGlobal
-from ClientRepositoryBase import ClientRepositoryBase
-from MsgTypes import *
+from .ClientRepositoryBase import ClientRepositoryBase
+from .MsgTypes import *
 from direct.distributed.PyDatagram import PyDatagram
 from panda3d.direct import STUint16, STUint32
 
@@ -289,6 +289,6 @@ class AstronClientRepository(ClientRepositoryBase):
         """
         This implicitly deletes all objects from the repository.
         """
-        for do_id in self.doId2do.keys():
+        for do_id in list(self.doId2do.keys()):
             self.deleteObject(do_id)
         ClientRepositoryBase.disconnect(self)
