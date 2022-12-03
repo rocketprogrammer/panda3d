@@ -292,6 +292,8 @@ def parseopts(args):
         OSX_ARCHS.append("arm64")
     elif target_archs:
         OSX_ARCHS = target_archs
+    elif GetTarget() == 'darwin':
+        OSX_ARCHS = (GetTargetArch(),)
 
     try:
         SetOptimize(int(optimize))
@@ -969,6 +971,9 @@ if (COMPILER=="GCC"):
         if not PkgSkip("ARTOOLKIT"):
             LibName("ARTOOLKIT", "-Wl,--exclude-libs,libAR.a")
             LibName("ARTOOLKIT", "-Wl,--exclude-libs,libARMulti.a")
+
+        if not PkgSkip("HARFBUZZ"):
+            LibName("HARFBUZZ", "-Wl,--exclude-libs,libharfbuzz.a")
 
         if not PkgSkip("MIMALLOC"):
             LibName("MIMALLOC", "-Wl,--exclude-libs,libmimalloc.a")
@@ -2895,6 +2900,9 @@ Author-email: etc-panda3d@lists.andrew.cmu.edu
 ENTRY_POINTS = """[distutils.commands]
 build_apps = direct.dist.commands:build_apps
 bdist_apps = direct.dist.commands:bdist_apps
+
+[setuptools.finalize_distribution_options]
+build_apps = direct.dist.commands:finalize_distribution_options
 """
 
 if not PkgSkip("DIRECT"):
@@ -3264,7 +3272,6 @@ if not PkgSkip("PANDAPHYSICS"):
     CopyAllHeaders('panda/src/physics')
     if not PkgSkip("PANDAPARTICLESYSTEM"):
         CopyAllHeaders('panda/src/particlesystem')
-CopyAllHeaders('panda/src/dxml')
 CopyAllHeaders('panda/metalibs/panda')
 CopyAllHeaders('panda/src/audiotraits')
 CopyAllHeaders('panda/src/audiotraits')
@@ -3844,6 +3851,7 @@ IGATEFILES=GetDirectoryContents('panda/src/pstatclient', ["*.h", "*_composite*.c
 IGATEFILES.remove("config_pstats.h")
 TargetAdd('libp3pstatclient.in', opts=OPTS, input=IGATEFILES)
 TargetAdd('libp3pstatclient.in', opts=['IMOD:panda3d.core', 'ILIB:libp3pstatclient', 'SRCDIR:panda/src/pstatclient'])
+PyTargetAdd('p3pstatclient_pStatClient_ext.obj', opts=OPTS, input='pStatClient_ext.cxx')
 
 #
 # DIRECTORY: panda/src/gobj/
@@ -4102,24 +4110,6 @@ TargetAdd('libp3recorder.in', opts=OPTS, input=IGATEFILES)
 TargetAdd('libp3recorder.in', opts=['IMOD:panda3d.core', 'ILIB:libp3recorder', 'SRCDIR:panda/src/recorder'])
 
 #
-# DIRECTORY: panda/src/dxml/
-#
-
-DefSymbol("TINYXML", "TIXML_USE_STL", "")
-
-OPTS=['DIR:panda/src/dxml', 'TINYXML']
-TargetAdd('tinyxml_composite1.obj', opts=OPTS, input='tinyxml_composite1.cxx')
-TargetAdd('libp3tinyxml.ilb', input='tinyxml_composite1.obj')
-
-OPTS=['DIR:panda/src/dxml', 'BUILDING:PANDA', 'TINYXML']
-TargetAdd('p3dxml_composite1.obj', opts=OPTS, input='p3dxml_composite1.cxx')
-
-OPTS=['DIR:panda/src/dxml', 'TINYXML']
-IGATEFILES=GetDirectoryContents('panda/src/dxml', ["*.h", "p3dxml_composite1.cxx"])
-TargetAdd('libp3dxml.in', opts=OPTS, input=IGATEFILES)
-TargetAdd('libp3dxml.in', opts=['IMOD:panda3d.core', 'ILIB:libp3dxml', 'SRCDIR:panda/src/dxml'])
-
-#
 # DIRECTORY: panda/metalibs/panda/
 #
 
@@ -4194,7 +4184,6 @@ TargetAdd('libpanda.dll', input='p3net_composite2.obj')
 TargetAdd('libpanda.dll', input='p3nativenet_composite1.obj')
 TargetAdd('libpanda.dll', input='p3pandabase_pandabase.obj')
 TargetAdd('libpanda.dll', input='libpandaexpress.dll')
-TargetAdd('libpanda.dll', input='p3dxml_composite1.obj')
 TargetAdd('libpanda.dll', input='libp3dtoolconfig.dll')
 TargetAdd('libpanda.dll', input='libp3dtool.dll')
 
@@ -4239,7 +4228,6 @@ PyTargetAdd('core_module.obj', input='libp3nativenet.in')
 PyTargetAdd('core_module.obj', input='libp3net.in')
 PyTargetAdd('core_module.obj', input='libp3pgui.in')
 PyTargetAdd('core_module.obj', input='libp3movies.in')
-PyTargetAdd('core_module.obj', input='libp3dxml.in')
 
 if PkgSkip("FREETYPE")==0:
     PyTargetAdd('core_module.obj', input='libp3pnmtext.in')
@@ -4284,7 +4272,6 @@ PyTargetAdd('core.pyd', input='libp3audio_igate.obj')
 PyTargetAdd('core.pyd', input='libp3pgui_igate.obj')
 PyTargetAdd('core.pyd', input='libp3net_igate.obj')
 PyTargetAdd('core.pyd', input='libp3nativenet_igate.obj')
-PyTargetAdd('core.pyd', input='libp3dxml_igate.obj')
 
 if PkgSkip("FREETYPE")==0:
     PyTargetAdd('core.pyd', input="libp3pnmtext_igate.obj")
@@ -4294,14 +4281,13 @@ PyTargetAdd('core.pyd', input='p3putil_ext_composite.obj')
 PyTargetAdd('core.pyd', input='p3pnmimage_pfmFile_ext.obj')
 PyTargetAdd('core.pyd', input='p3event_asyncFuture_ext.obj')
 PyTargetAdd('core.pyd', input='p3event_pythonTask.obj')
+PyTargetAdd('core.pyd', input='p3pstatclient_pStatClient_ext.obj')
 PyTargetAdd('core.pyd', input='p3gobj_ext_composite.obj')
 PyTargetAdd('core.pyd', input='p3pgraph_ext_composite.obj')
 PyTargetAdd('core.pyd', input='p3display_ext_composite.obj')
 PyTargetAdd('core.pyd', input='p3collide_ext_composite.obj')
 
 PyTargetAdd('core.pyd', input='core_module.obj')
-if not GetLinkAllStatic() and GetTarget() != 'emscripten':
-    PyTargetAdd('core.pyd', input='libp3tinyxml.ilb')
 PyTargetAdd('core.pyd', input='libp3interrogatedb.dll')
 PyTargetAdd('core.pyd', input=COMMON_PANDA_LIBS)
 PyTargetAdd('core.pyd', opts=['WINSOCK2'])
@@ -6024,7 +6010,7 @@ if not PkgSkip("PANDATOOL") and not PkgSkip("EGG"):
     TargetAdd('libp3ptloader.dll', input='libp3lwo.lib')
     TargetAdd('libp3ptloader.dll', input='libp3dxfegg.lib')
     TargetAdd('libp3ptloader.dll', input='libp3dxf.lib')
-    TargetAdd('libp3ptloader.dll', input='libp3objegg.lib')
+    #TargetAdd('libp3ptloader.dll', input='libp3objegg.lib')
     TargetAdd('libp3ptloader.dll', input='libp3vrmlegg.lib')
     TargetAdd('libp3ptloader.dll', input='libp3vrml.lib')
     TargetAdd('libp3ptloader.dll', input='libp3xfileegg.lib')
