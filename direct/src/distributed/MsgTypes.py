@@ -1,6 +1,7 @@
 """MsgTypes module: contains distributed object message types"""
 
 from direct.showbase.PythonUtil import invertDictLossless
+from .DisneyMessageTypes import *
 
 MsgName2Id = {
     'CLIENT_HELLO':                                  1,
