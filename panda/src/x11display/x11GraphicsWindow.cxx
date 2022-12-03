@@ -120,6 +120,7 @@ x11GraphicsWindow(GraphicsEngine *engine, GraphicsPipe *pipe,
   _raw_mouse_enabled = false;
   _override_redirect = False;
   _wm_delete_window = x11_pipe->_wm_delete_window;
+  _net_wm_ping = x11_pipe->_net_wm_ping;
 
   PT(GraphicsWindowInputDevice) device = GraphicsWindowInputDevice::pointer_and_keyboard(this, "keyboard_mouse");
   add_input_device(device);
@@ -512,6 +513,12 @@ process_events() {
           properties.set_open(false);
           system_changed_properties(properties);
         }
+      }
+      else if ((Atom)(event.xclient.data.l[0]) == _net_wm_ping &&
+               event.xclient.window == _xwindow) {
+        DCAST_INTO_V(x11_pipe, _pipe);
+        event.xclient.window = x11_pipe->get_root();
+        XSendEvent(_display, x11_pipe->get_root(), False, SubstructureRedirectMask | SubstructureNotifyMask, &event);
       }
       break;
 
@@ -1253,6 +1260,15 @@ open_window() {
     XDefineCursor(_display, _xwindow, cursor);
   }
 
+  // Set _NET_STARTUP_ID if we've got it, so that the window manager knows
+  // this window belongs to a particular launch request.
+  const std::string &startup_id = x11_pipe->get_startup_id();
+  if (!startup_id.empty() && _parent_window_handle == nullptr) {
+    XChangeProperty(_display, _xwindow, x11_pipe->_net_startup_id,
+                    x11_pipe->_utf8_string, 8, PropModeReplace,
+                    (unsigned char *)startup_id.c_str(), startup_id.size());
+  }
+
   XMapWindow(_display, _xwindow);
 
   if (_properties.get_raw_mice()) {
@@ -1270,6 +1286,12 @@ open_window() {
   // And tell our parent window that we're now its child.
   if (_parent_window_handle != nullptr) {
     _parent_window_handle->attach_child(_window_handle);
+  }
+
+  // Now that we've opened a window, tell the window manager that the
+  // application has finished starting up.
+  if (!startup_id.empty() && x_send_startup_notification) {
+    x11_pipe->send_startup_notification();
   }
 
   return true;
@@ -1480,9 +1502,6 @@ set_wm_properties(const WindowProperties &properties, bool already_mapped) {
     // mapped.  To do this, we need to send a client message to the root
     // window for each change.
 
-    x11GraphicsPipe *x11_pipe;
-    DCAST_INTO_V(x11_pipe, _pipe);
-
     for (int i = 0; i < next_set_data; ++i) {
       XClientMessageEvent event;
       memset(&event, 0, sizeof(event));
@@ -1519,6 +1538,7 @@ set_wm_properties(const WindowProperties &properties, bool already_mapped) {
   // X server if the user requests a window close.
   Atom protocols[] = {
     _wm_delete_window,
+    _net_wm_ping,
   };
 
   XSetWMProtocols(_display, _xwindow, protocols,
