@@ -230,6 +230,18 @@ update_bars(int thread_index, int frame_number) {
            << format_number(delta, GBU_show_units | GBU_ms)
            << " in frame " << frame_number << " of thread "
            << thread_index << "\n";
+
+      // Move all bars after this frame to the right by this amount.
+      for (ThreadRow &thread_row : _threads) {
+        for (Row &row : thread_row._rows) {
+          for (ColorBar &bar : row) {
+            if (bar._frame_number > frame_number) {
+              bar._start += delta;
+              bar._end += delta;
+            }
+          }
+        }
+      }
     }
     prev = time;
 
@@ -381,7 +393,11 @@ get_bar_tooltip(int row, int x) const {
     if (client_data != nullptr && client_data->has_collector(bar._collector_index)) {
       std::ostringstream text;
       text << client_data->get_collector_fullname(bar._collector_index);
-      text << " (" << format_number(bar._end - bar._start, GBU_show_units | GBU_ms) << ")";
+      text << " (";
+      if (bar._open_begin || bar._open_end) {
+        text << "at least ";
+      }
+      text << format_number(bar._end - bar._start, GBU_show_units | GBU_ms) << ")";
       return text.str();
     }
   }
@@ -669,9 +685,17 @@ draw_row(int thread_index, int row_index, double start_time, double end_time) {
 
     if (to_x >= 0 && to_x > from_x && from_x < get_xsize()) {
       if (bar._collector_index != 0) {
-        draw_bar(thread_row._row_offset + row_index, from_x, to_x,
-                 bar._collector_index,
-                 client_data->get_collector_name(bar._collector_index));
+        const PStatCollectorDef &def = client_data->get_collector_def(bar._collector_index);
+        if (to_x - from_x >= 32 && def._parent_index > 0) {
+          // Try including the parent name.
+          const PStatCollectorDef &parent_def = client_data->get_collector_def(def._parent_index);
+          std::string long_name = parent_def._name + ":" + def._name;
+          draw_bar(thread_row._row_offset + row_index, from_x, to_x,
+                   bar._collector_index, long_name);
+        } else {
+          draw_bar(thread_row._row_offset + row_index, from_x, to_x,
+                   bar._collector_index, def._name);
+        }
       } else {
         draw_bar(thread_row._row_offset + row_index, from_x, to_x,
                  bar._collector_index,
