@@ -384,8 +384,9 @@ MAJOR_VERSION = '.'.join(VERSION.split('.')[:2])
 
 # Now determine the distutils-style platform tag for the target system.
 target = GetTarget()
+target_arch = GetTargetArch()
 if target == 'windows':
-    if GetTargetArch() == 'x64':
+    if target_arch == 'x64':
         PLATFORM = 'win-amd64'
     else:
         PLATFORM = 'win32'
@@ -393,7 +394,7 @@ if target == 'windows':
 elif target == 'darwin':
     arch_tag = None
     if not OSX_ARCHS:
-        arch_tag = GetTargetArch()
+        arch_tag = target_arch
     elif len(OSX_ARCHS) == 1:
         arch_tag = OSX_ARCHS[0]
     elif frozenset(OSX_ARCHS) == frozenset(('i386', 'ppc')):
@@ -418,45 +419,53 @@ elif target == 'darwin':
 
 elif target == 'linux' and (os.path.isfile("/lib/libc-2.5.so") or os.path.isfile("/lib64/libc-2.5.so")) and os.path.isdir("/opt/python"):
     # This is manylinux1.  A bit of a sloppy check, though.
-    if GetTargetArch() in ('x86_64', 'amd64'):
+    if target_arch in ('x86_64', 'amd64'):
         PLATFORM = 'manylinux1-x86_64'
-    elif GetTargetArch() in ('arm64', 'aarch64'):
+    elif target_arch in ('arm64', 'aarch64'):
         PLATFORM = 'manylinux1-aarch64'
     else:
         PLATFORM = 'manylinux1-i686'
 
 elif target == 'linux' and (os.path.isfile("/lib/libc-2.12.so") or os.path.isfile("/lib64/libc-2.12.so")) and os.path.isdir("/opt/python"):
     # Same sloppy check for manylinux2010.
-    if GetTargetArch() in ('x86_64', 'amd64'):
+    if target_arch in ('x86_64', 'amd64'):
         PLATFORM = 'manylinux2010-x86_64'
-    elif GetTargetArch() in ('arm64', 'aarch64'):
+    elif target_arch in ('arm64', 'aarch64'):
         PLATFORM = 'manylinux2010-aarch64'
     else:
         PLATFORM = 'manylinux2010-i686'
 
 elif target == 'linux' and (os.path.isfile("/lib/libc-2.17.so") or os.path.isfile("/lib64/libc-2.17.so")) and os.path.isdir("/opt/python"):
     # Same sloppy check for manylinux2014.
-    if GetTargetArch() in ('x86_64', 'amd64'):
+    if target_arch in ('x86_64', 'amd64'):
         PLATFORM = 'manylinux2014-x86_64'
-    elif GetTargetArch() in ('arm64', 'aarch64'):
+    elif target_arch in ('arm64', 'aarch64'):
         PLATFORM = 'manylinux2014-aarch64'
     else:
         PLATFORM = 'manylinux2014-i686'
 
 elif target == 'linux' and (os.path.isfile("/lib/i386-linux-gnu/libc-2.24.so") or os.path.isfile("/lib/x86_64-linux-gnu/libc-2.24.so")) and os.path.isdir("/opt/python"):
     # Same sloppy check for manylinux_2_24.
-    if GetTargetArch() in ('x86_64', 'amd64'):
+    if target_arch in ('x86_64', 'amd64'):
         PLATFORM = 'manylinux_2_24-x86_64'
-    elif GetTargetArch() in ('arm64', 'aarch64'):
+    elif target_arch in ('arm64', 'aarch64'):
         PLATFORM = 'manylinux_2_24-aarch64'
     else:
         PLATFORM = 'manylinux_2_24-i686'
+
+elif target == 'linux' and os.path.isfile("/lib64/libc-2.28.so") and os.path.isfile('/etc/almalinux-release') and os.path.isdir("/opt/python"):
+    # Same sloppy check for manylinux_2_28.
+    if target_arch in ('x86_64', 'amd64'):
+        PLATFORM = 'manylinux_2_28-x86_64'
+    elif target_arch in ('arm64', 'aarch64'):
+        PLATFORM = 'manylinux_2_28-aarch64'
+    else:
+        raise RuntimeError('Unhandled arch %s, please file a bug report!' % (target_arch))
 
 elif not CrossCompiling():
     if HasTargetArch():
         # Replace the architecture in the platform string.
         platform_parts = get_platform().rsplit('-', 1)
-        target_arch = GetTargetArch()
         if target_arch == 'amd64':
             target_arch = 'x86_64'
         PLATFORM = platform_parts[0] + '-' + target_arch
@@ -465,7 +474,6 @@ elif not CrossCompiling():
         PLATFORM = get_platform()
 
 else:
-    target_arch = GetTargetArch()
     if target_arch == 'amd64':
         target_arch = 'x86_64'
     PLATFORM = '{0}-{1}'.format(target, target_arch)
@@ -2900,6 +2908,9 @@ Author-email: etc-panda3d@lists.andrew.cmu.edu
 ENTRY_POINTS = """[distutils.commands]
 build_apps = direct.dist.commands:build_apps
 bdist_apps = direct.dist.commands:bdist_apps
+
+[setuptools.finalize_distribution_options]
+build_apps = direct.dist.commands:finalize_distribution_options
 """
 
 if not PkgSkip("DIRECT"):
@@ -3848,6 +3859,7 @@ IGATEFILES=GetDirectoryContents('panda/src/pstatclient', ["*.h", "*_composite*.c
 IGATEFILES.remove("config_pstats.h")
 TargetAdd('libp3pstatclient.in', opts=OPTS, input=IGATEFILES)
 TargetAdd('libp3pstatclient.in', opts=['IMOD:panda3d.core', 'ILIB:libp3pstatclient', 'SRCDIR:panda/src/pstatclient'])
+PyTargetAdd('p3pstatclient_pStatClient_ext.obj', opts=OPTS, input='pStatClient_ext.cxx')
 
 #
 # DIRECTORY: panda/src/gobj/
@@ -4277,6 +4289,7 @@ PyTargetAdd('core.pyd', input='p3putil_ext_composite.obj')
 PyTargetAdd('core.pyd', input='p3pnmimage_pfmFile_ext.obj')
 PyTargetAdd('core.pyd', input='p3event_asyncFuture_ext.obj')
 PyTargetAdd('core.pyd', input='p3event_pythonTask.obj')
+PyTargetAdd('core.pyd', input='p3pstatclient_pStatClient_ext.obj')
 PyTargetAdd('core.pyd', input='p3gobj_ext_composite.obj')
 PyTargetAdd('core.pyd', input='p3pgraph_ext_composite.obj')
 PyTargetAdd('core.pyd', input='p3display_ext_composite.obj')
