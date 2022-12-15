@@ -52,6 +52,10 @@ public:
 
   virtual void cleanup();
 
+  // loop_start: 0 = beginning.  expressed in seconds.  inits to 0.
+  void set_loop_start(PN_stdfloat loop_start=0);
+  PN_stdfloat get_loop_start() const;
+
 protected:
   PT(MilesAudioManager) _manager;
   std::string _file_name;
@@ -60,6 +64,7 @@ protected:
   PN_stdfloat _balance; // -1..1
   PN_stdfloat _play_rate; // 0..1.0
   unsigned long _loop_count;
+  PN_stdfloat _loop_start;
 
   // _active is for things like a 'turn off sound effects' in a preferences
   // pannel.  _active is not about whether a sound is currently playing.  Use

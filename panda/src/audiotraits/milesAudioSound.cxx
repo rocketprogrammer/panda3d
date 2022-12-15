@@ -35,10 +35,12 @@ TypeHandle MilesAudioSound::_type_handle;
 MilesAudioSound::
 MilesAudioSound(MilesAudioManager *manager,
                 const string &file_name) :
+  AudioSound(false),
   _manager(manager),
   _file_name(file_name),
   _volume(1.0f), _balance(0), _play_rate(1.0f),
   _loop_count(1),
+  _loop_start(0),
   _active(true),
   _paused(false),
   _start_time(0.0f),
@@ -113,6 +115,14 @@ get_balance() const {
 PN_stdfloat MilesAudioSound::
 get_play_rate() const {
   return _play_rate;
+}
+
+void MilesAudioSound::set_loop_start(PN_stdfloat) {
+  // Intentionally blank.
+}
+
+PN_stdfloat MilesAudioSound::get_loop_start() const {
+  return _loop_start;
 }
 
 /**
