@@ -43,34 +43,11 @@
 #import <OpenGL/OpenGL.h>
 #import <Carbon/Carbon.h>
 
-#include <sys/sysctl.h>
-
 TypeHandle CocoaGraphicsWindow::_type_handle;
 
 #ifndef MAC_OS_X_VERSION_10_15
 #define NSAppKitVersionNumber10_14 1671
 #endif
-
-/**
- * Returns true if this is an arm64-based mac.
- */
-static int is_arm64_mac() {
-#ifdef __aarch64__
-  return 1;
-#elif defined(__x86_64__)
-  // Running in Rosetta 2?
-  static int ret = -1;
-  if (ret < 0) {
-    size_t size = sizeof(ret);
-    if (sysctlbyname("sysctl.proc_translated", &ret, &size, nullptr, 0) == -1) {
-      ret = 0;
-    }
-  }
-  return ret;
-#else
-  return 0;
-#endif
-}
 
 /**
  *
@@ -209,29 +186,17 @@ begin_frame(FrameMode mode, Thread *current_thread) {
   cocoagsg->lock_context();
 
   // Set the drawable.
-  if (_properties.get_fullscreen() && !is_arm64_mac()) {
-    // Fullscreen.  Note that this call doesn't work with the newer
-    // Metal-based OpenGL drivers.
-    CGLError err = CGLSetFullScreenOnDisplay((CGLContextObj) [cocoagsg->_context CGLContextObj], CGDisplayIDToOpenGLDisplayMask(_display));
-    if (err != kCGLNoError) {
-      cocoadisplay_cat.error()
-        << "Failed call to CGLSetFullScreenOnDisplay with display mask "
-        << CGDisplayIDToOpenGLDisplayMask(_display) << ": " << CGLErrorString(err) << "\n";
-      return false;
-    }
-  } else {
-    // Although not recommended, it is technically possible to use the same
-    // context with multiple different-sized windows.  If that happens, the
-    // context needs to be updated accordingly.
-    if ([cocoagsg->_context view] != _view) {
-      // XXX I'm not 100% sure that changing the view requires it to update.
-      _context_needs_update = true;
-      [cocoagsg->_context setView:_view];
+  // Although not recommended, it is technically possible to use the same
+  // context with multiple different-sized windows.  If that happens, the
+  // context needs to be updated accordingly.
+  if ([cocoagsg->_context view] != _view) {
+    // XXX I'm not 100% sure that changing the view requires it to update.
+    _context_needs_update = true;
+    [cocoagsg->_context setView:_view];
 
-      if (cocoadisplay_cat.is_spam()) {
-        cocoadisplay_cat.spam()
-          << "Switching context to view " << _view << "\n";
-      }
+    if (cocoadisplay_cat.is_spam()) {
+      cocoadisplay_cat.spam()
+        << "Switching context to view " << _view << "\n";
     }
   }
 
@@ -849,7 +814,12 @@ set_properties_now(WindowProperties &properties) {
           if (switched) {
             if (_window != nil) {
               // For some reason, setting the style mask makes it give up its
-              // first-responder status.
+              // first-responder status.  And for some reason, we need to first
+              // restore the window to normal level before we switch fullscreen,
+              // otherwise we may get a black bar if we're currently on Z_top.
+              if (_properties.get_z_order() != WindowProperties::Z_normal) {
+                [_window setLevel: NSNormalWindowLevel];
+              }
               if ([_window respondsToSelector:@selector(setStyleMask:)]) {
                 [_window setStyleMask:NSBorderlessWindowMask];
               }
@@ -882,8 +852,12 @@ set_properties_now(WindowProperties &properties) {
         _properties.set_fullscreen(false);
 
         // Force properties to be reset to their actual values
-        properties.set_undecorated(_properties.get_undecorated());
-        properties.set_z_order(_properties.get_z_order());
+        if (!properties.has_undecorated()) {
+          properties.set_undecorated(_properties.get_undecorated());
+        }
+        if (!properties.has_z_order()) {
+          properties.set_z_order(_properties.get_z_order());
+        }
         properties.clear_fullscreen();
       }
     }
@@ -898,6 +872,58 @@ set_properties_now(WindowProperties &properties) {
       [_window deminiaturize:nil];
     }
     properties.clear_minimized();
+  }
+
+  if (properties.has_title() && _window != nil) {
+    _properties.set_title(properties.get_title());
+    [_window setTitle:[NSString stringWithUTF8String:properties.get_title().c_str()]];
+    properties.clear_title();
+  }
+
+  if (properties.has_fixed_size() && _window != nil) {
+    _properties.set_fixed_size(properties.get_fixed_size());
+    [_window setShowsResizeIndicator:!properties.get_fixed_size()];
+
+    if (!_properties.get_fullscreen()) {
+      // If our window is decorated, change the style mask to show or hide the
+      // resize button appropriately.  However, if we're specifying the
+      // 'undecorated' property also, then we'll be setting the style mask
+      // about 25 LOC further down, so we won't need to bother setting it
+      // here.
+      if (!properties.has_undecorated() && !_properties.get_undecorated() &&
+          [_window respondsToSelector:@selector(setStyleMask:)]) {
+        if (properties.get_fixed_size()) {
+          [_window setStyleMask:NSTitledWindowMask | NSClosableWindowMask |
+                                NSMiniaturizableWindowMask ];
+        } else {
+          [_window setStyleMask:NSTitledWindowMask | NSClosableWindowMask |
+                                NSMiniaturizableWindowMask | NSResizableWindowMask ];
+        }
+        [_window makeFirstResponder:_view];
+      }
+    }
+
+    properties.clear_fixed_size();
+  }
+
+  if (properties.has_undecorated() && _window != nil && [_window respondsToSelector:@selector(setStyleMask:)]) {
+    _properties.set_undecorated(properties.get_undecorated());
+
+    if (!_properties.get_fullscreen()) {
+      if (properties.get_undecorated()) {
+        [_window setStyleMask: NSBorderlessWindowMask];
+      } else if (_properties.get_fixed_size()) {
+        // Fixed size windows should not show the resize button.
+        [_window setStyleMask: NSTitledWindowMask | NSClosableWindowMask |
+                               NSMiniaturizableWindowMask ];
+      } else {
+        [_window setStyleMask: NSTitledWindowMask | NSClosableWindowMask |
+                               NSMiniaturizableWindowMask | NSResizableWindowMask ];
+      }
+      [_window makeFirstResponder:_view];
+    }
+
+    properties.clear_undecorated();
   }
 
   if (properties.has_size()) {
@@ -959,10 +985,19 @@ set_properties_now(WindowProperties &properties) {
     NSRect frame;
     NSRect container;
     if (_window != nil) {
-      frame = [_window contentRectForFrameRect:[_window frame]];
+      NSRect window_frame = [_window frame];
+      frame = [_window contentRectForFrameRect:window_frame];
       NSScreen *screen = [_window screen];
       nassertv(screen != nil);
       container = [screen frame];
+
+      // Prevent the centering from overlapping the Dock
+      if (y < 0) {
+        NSRect visible_frame = [screen visibleFrame];
+        if (window_frame.size.height == visible_frame.size.height) {
+          y = 0;
+        }
+      }
     } else {
       frame = [_view frame];
       container = [[_view superview] frame];
@@ -1002,58 +1037,6 @@ set_properties_now(WindowProperties &properties) {
       [_window zoom:nil];
     }
     properties.clear_maximized();
-  }
-
-  if (properties.has_title() && _window != nil) {
-    _properties.set_title(properties.get_title());
-    [_window setTitle:[NSString stringWithUTF8String:properties.get_title().c_str()]];
-    properties.clear_title();
-  }
-
-  if (properties.has_fixed_size() && _window != nil) {
-    _properties.set_fixed_size(properties.get_fixed_size());
-    [_window setShowsResizeIndicator:!properties.get_fixed_size()];
-
-    if (!_properties.get_fullscreen()) {
-      // If our window is decorated, change the style mask to show or hide the
-      // resize button appropriately.  However, if we're specifying the
-      // 'undecorated' property also, then we'll be setting the style mask
-      // about 25 LOC further down, so we won't need to bother setting it
-      // here.
-      if (!properties.has_undecorated() && !_properties.get_undecorated() &&
-          [_window respondsToSelector:@selector(setStyleMask:)]) {
-        if (properties.get_fixed_size()) {
-          [_window setStyleMask:NSTitledWindowMask | NSClosableWindowMask |
-                                NSMiniaturizableWindowMask ];
-        } else {
-          [_window setStyleMask:NSTitledWindowMask | NSClosableWindowMask |
-                                NSMiniaturizableWindowMask | NSResizableWindowMask ];
-        }
-        [_window makeFirstResponder:_view];
-      }
-    }
-
-    properties.clear_fixed_size();
-  }
-
-  if (properties.has_undecorated() && _window != nil && [_window respondsToSelector:@selector(setStyleMask:)]) {
-    _properties.set_undecorated(properties.get_undecorated());
-
-    if (!_properties.get_fullscreen()) {
-      if (properties.get_undecorated()) {
-        [_window setStyleMask: NSBorderlessWindowMask];
-      } else if (_properties.get_fixed_size()) {
-        // Fixed size windows should not show the resize button.
-        [_window setStyleMask: NSTitledWindowMask | NSClosableWindowMask |
-                               NSMiniaturizableWindowMask ];
-      } else {
-        [_window setStyleMask: NSTitledWindowMask | NSClosableWindowMask |
-                               NSMiniaturizableWindowMask | NSResizableWindowMask ];
-      }
-      [_window makeFirstResponder:_view];
-    }
-
-    properties.clear_undecorated();
   }
 
   if (properties.has_foreground() && !_properties.get_fullscreen() && _window != nil) {

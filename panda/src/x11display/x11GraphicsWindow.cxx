@@ -121,6 +121,7 @@ x11GraphicsWindow(GraphicsEngine *engine, GraphicsPipe *pipe,
   _override_redirect = False;
   _wm_delete_window = x11_pipe->_wm_delete_window;
   _net_wm_ping = x11_pipe->_net_wm_ping;
+  _net_wm_state = x11_pipe->_net_wm_state;
 
   PT(GraphicsWindowInputDevice) device = GraphicsWindowInputDevice::pointer_and_keyboard(this, "keyboard_mouse");
   add_input_device(device);
@@ -132,12 +133,6 @@ x11GraphicsWindow(GraphicsEngine *engine, GraphicsPipe *pipe,
  */
 x11GraphicsWindow::
 ~x11GraphicsWindow() {
-  if (!_cursor_filenames.empty()) {
-    LightReMutexHolder holder(x11GraphicsPipe::_x_mutex);
-    for (auto item : _cursor_filenames) {
-      XFreeCursor(_display, item.second);
-    }
-  }
 }
 
 /**
@@ -368,9 +363,7 @@ process_events() {
 
     case PropertyNotify:
       //std::cout << "PropertyNotify event: atom = " << event.xproperty.atom << std::endl;
-      x11GraphicsPipe *x11_pipe;
-      DCAST_INTO_V(x11_pipe, _pipe);
-      if (event.xproperty.atom == x11_pipe->_net_wm_state) {
+      if (event.xproperty.atom == _net_wm_state) {
         // currently we're only interested in the net_wm_state type of
         // changes and only need to gather property informations once at
         // the end after the while loop
@@ -516,6 +509,7 @@ process_events() {
       }
       else if ((Atom)(event.xclient.data.l[0]) == _net_wm_ping &&
                event.xclient.window == _xwindow) {
+        x11GraphicsPipe *x11_pipe;
         DCAST_INTO_V(x11_pipe, _pipe);
         event.xclient.window = x11_pipe->get_root();
         XSendEvent(_display, x11_pipe->get_root(), False, SubstructureRedirectMask | SubstructureNotifyMask, &event);
@@ -1121,6 +1115,11 @@ close_window() {
     _XRRSetScreenConfig(_display, conf, root, _orig_size_id, _orig_rotation, CurrentTime);
     _orig_size_id = -1;
   }
+
+  for (auto item : _cursor_filenames) {
+    XFreeCursor(_display, item.second);
+  }
+  _cursor_filenames.clear();
 
   GraphicsWindow::close_window();
 }
