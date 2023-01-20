@@ -47,6 +47,11 @@ PStatTimeline(PStatMonitor *monitor, int xsize, int ysize) :
       ThreadRow &thread_row = _threads.back();
       thread_row._row_offset = row_offset;
 
+      if (!client_data->has_thread(thread_index)) {
+        continue;
+      }
+      thread_row._visible = true;
+
       const PStatThreadData *thread_data = client_data->get_thread_data(thread_index);
       if (thread_data != nullptr) {
         _threads_changed = true;
@@ -135,8 +140,11 @@ new_data(int thread_index, int frame_number) {
         } else {
           _threads.resize(_threads.size() + 1);
           _threads[_threads.size() - 1]._row_offset =
-            _threads[_threads.size() - 2]._row_offset +
-            _threads[_threads.size() - 2]._rows.size() + 1;
+            _threads[_threads.size() - 2]._row_offset;
+          if (_threads[_threads.size() - 2]._visible) {
+            _threads[_threads.size() - 1]._row_offset +=
+              _threads[_threads.size() - 2]._rows.size() + 1;
+          }
         }
       }
 
@@ -147,7 +155,9 @@ new_data(int thread_index, int frame_number) {
         size_t offset = thread_row._row_offset + thread_row._rows.size() + 1;
         for (size_t ti = (size_t)(thread_index + 1); ti < _threads.size(); ++ti) {
           _threads[ti]._row_offset = offset;
-          offset += _threads[ti]._rows.size() + 1;
+          if (_threads[ti]._visible) {
+            offset += _threads[ti]._rows.size() + 1;
+          }
         }
         _threads_changed = true;
         normal_guide_bars();
@@ -178,6 +188,11 @@ update_bars(int thread_index, int frame_number) {
   ThreadRow &thread_row = _threads[thread_index];
   thread_row._label = client_data->get_thread_name(thread_index);
   bool changed_num_rows = false;
+
+  if (!thread_row._visible) {
+    thread_row._visible = true;
+    changed_num_rows = true;
+  }
 
   // pair<int collector_index, double start_time>
   pvector<std::pair<int, double> > stack;
@@ -230,6 +245,18 @@ update_bars(int thread_index, int frame_number) {
            << format_number(delta, GBU_show_units | GBU_ms)
            << " in frame " << frame_number << " of thread "
            << thread_index << "\n";
+
+      // Move all bars after this frame to the right by this amount.
+      for (ThreadRow &thread_row : _threads) {
+        for (Row &row : thread_row._rows) {
+          for (ColorBar &bar : row) {
+            if (bar._frame_number > frame_number) {
+              bar._start += delta;
+              bar._end += delta;
+            }
+          }
+        }
+      }
     }
     prev = time;
 
@@ -381,7 +408,11 @@ get_bar_tooltip(int row, int x) const {
     if (client_data != nullptr && client_data->has_collector(bar._collector_index)) {
       std::ostringstream text;
       text << client_data->get_collector_fullname(bar._collector_index);
-      text << " (" << format_number(bar._end - bar._start, GBU_show_units | GBU_ms) << ")";
+      text << " (";
+      if (bar._open_begin || bar._open_end) {
+        text << "at least ";
+      }
+      text << format_number(bar._end - bar._start, GBU_show_units | GBU_ms) << ")";
       return text.str();
     }
   }
@@ -464,11 +495,13 @@ force_redraw() {
 
   for (size_t ti = 0; ti < _threads.size(); ++ti) {
     ThreadRow &thread_row = _threads[ti];
-    for (size_t ri = 0; ri < thread_row._rows.size(); ++ri) {
-      draw_row((int)ti, (int)ri, start_time, end_time);
-      ++num_rows;
+    if (thread_row._visible) {
+      for (size_t ri = 0; ri < thread_row._rows.size(); ++ri) {
+        draw_row((int)ti, (int)ri, start_time, end_time);
+        ++num_rows;
+      }
+      draw_separator(num_rows++);
     }
-    draw_separator(num_rows++);
   }
 
   end_draw();
@@ -487,7 +520,7 @@ force_redraw(int row, int from_x, int to_x) {
 
   for (size_t ti = 0; ti < _threads.size(); ++ti) {
     ThreadRow &thread_row = _threads[ti];
-    if ((int)thread_row._row_offset > row) {
+    if (!thread_row._visible || (int)thread_row._row_offset > row) {
       break;
     }
 
@@ -638,8 +671,10 @@ draw_thread(int thread_index, double start_time, double end_time) {
   }
 
   ThreadRow &thread_row = _threads[(size_t)thread_index];
-  for (size_t ri = 0; ri < thread_row._rows.size(); ++ri) {
-    draw_row(thread_index, (int)ri, start_time, end_time);
+  if (thread_row._visible) {
+    for (size_t ri = 0; ri < thread_row._rows.size(); ++ri) {
+      draw_row(thread_index, (int)ri, start_time, end_time);
+    }
   }
 }
 
@@ -669,9 +704,17 @@ draw_row(int thread_index, int row_index, double start_time, double end_time) {
 
     if (to_x >= 0 && to_x > from_x && from_x < get_xsize()) {
       if (bar._collector_index != 0) {
-        draw_bar(thread_row._row_offset + row_index, from_x, to_x,
-                 bar._collector_index,
-                 client_data->get_collector_name(bar._collector_index));
+        const PStatCollectorDef &def = client_data->get_collector_def(bar._collector_index);
+        if (to_x - from_x >= 32 && def._parent_index > 0) {
+          // Try including the parent name.
+          const PStatCollectorDef &parent_def = client_data->get_collector_def(def._parent_index);
+          std::string long_name = parent_def._name + ":" + def._name;
+          draw_bar(thread_row._row_offset + row_index, from_x, to_x,
+                   bar._collector_index, long_name);
+        } else {
+          draw_bar(thread_row._row_offset + row_index, from_x, to_x,
+                   bar._collector_index, def._name);
+        }
       } else {
         draw_bar(thread_row._row_offset + row_index, from_x, to_x,
                  bar._collector_index,
