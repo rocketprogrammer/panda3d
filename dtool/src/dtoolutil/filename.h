@@ -66,11 +66,9 @@ PUBLISHED:
   INLINE Filename();
   explicit Filename(const Filename &dirname, const Filename &basename);
 
-#ifdef HAVE_PYTHON
-  EXTENSION(Filename(PyObject *path));
+  PY_EXTENSION(Filename(PyObject *path));
 
-  EXTENSION(PyObject *__reduce__(PyObject *self) const);
-#endif
+  PY_EXTENSION(PyObject *__reduce__(PyObject *self) const);
 
   // Static constructors to explicitly create a filename that refers to a text
   // or binary file.  This is in lieu of calling set_text() or set_binary() or
@@ -114,8 +112,8 @@ PUBLISHED:
   INLINE size_t length() const;
   INLINE char operator [] (size_t n) const;
 
-  EXTENSION(PyObject *__repr__() const);
-  EXTENSION(PyObject *__fspath__() const);
+  PY_EXTENSION(PyObject *__repr__() const);
+  PY_EXTENSION(PyObject *__fspath__() const);
 
   INLINE std::string substr(size_t begin) const;
   INLINE std::string substr(size_t begin, size_t end) const;
@@ -200,9 +198,7 @@ PUBLISHED:
   int find_on_searchpath(const DSearchPath &searchpath);
 
   bool scan_directory(vector_string &contents) const;
-#ifdef HAVE_PYTHON
-  EXTENSION(PyObject *scan_directory() const);
-#endif
+  PY_EXTENSION(PyObject *scan_directory() const);
 
   bool open_read(std::ifstream &stream) const;
   bool open_write(std::ofstream &stream, bool truncate = true) const;
@@ -274,7 +270,7 @@ protected:
 #ifdef ANDROID
 public:
   static std::string _internal_data_dir;
-#endif
+#endif // ANDROID
 
 public:
   static TypeHandle get_class_type() {
@@ -295,4 +291,4 @@ INLINE std::ostream &operator << (std::ostream &out, const Filename &n) {
 
 #include "filename.I"
 
-#endif
+#endif // !FILENAME_H
