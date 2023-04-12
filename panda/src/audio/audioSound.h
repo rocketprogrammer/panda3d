@@ -133,9 +133,6 @@ PUBLISHED:
   virtual PN_stdfloat get_speaker_mix(int speaker);
   virtual void set_speaker_mix(PN_stdfloat frontleft, PN_stdfloat frontright, PN_stdfloat center, PN_stdfloat sub, PN_stdfloat backleft, PN_stdfloat backright, PN_stdfloat sideleft, PN_stdfloat  sideright);
 
-  virtual PN_stdfloat get_speaker_level(int index);
-  virtual void set_speaker_levels(PN_stdfloat level1, PN_stdfloat level2=-1.0f, PN_stdfloat level3=-1.0f, PN_stdfloat level4=-1.0f, PN_stdfloat level5=-1.0f, PN_stdfloat level6=-1.0f, PN_stdfloat level7=-1.0f, PN_stdfloat level8=-1.0f, PN_stdfloat level9=-1.0f);
-
   virtual int get_priority();
   virtual void set_priority(int priority);
 
