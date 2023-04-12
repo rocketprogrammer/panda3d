@@ -147,7 +147,7 @@ MsgName2Id = {
     'CLIENTAGENT_ADD_INTEREST_MULTIPLE':            1201,
     'CLIENTAGENT_REMOVE_INTEREST':                  1203,
     'CLIENTAGENT_DONE_INTEREST_RESP':               1204,
-    }
+}
 
 # create id->name table for debugging
 MsgId2Names = invertDictLossless(MsgName2Id)
@@ -167,7 +167,7 @@ QUIET_ZONE_IGNORED_LIST = [
     #CLIENT_CREATE_OBJECT_REQUIRED,
     #CLIENT_CREATE_OBJECT_REQUIRED_OTHER,
 
-    ]
+]
 
 # The following is a different set of numbers from above.
 # These are the sub-message types for CLIENT_LOGIN_2.

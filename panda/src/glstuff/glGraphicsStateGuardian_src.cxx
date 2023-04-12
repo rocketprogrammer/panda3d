@@ -98,7 +98,7 @@ PStatCollector CLP(GraphicsStateGuardian)::_copy_texture_finish_pcollector("Draw
 
 #if defined(HAVE_CG) && !defined(OPENGLES)
 AtomicAdjust::Integer CLP(GraphicsStateGuardian)::_num_gsgs_with_cg_contexts = 0;
-pvector<CGcontext> CLP(GraphicsStateGuardian)::_destroyed_cg_contexts;
+small_vector<CGcontext> CLP(GraphicsStateGuardian)::_destroyed_cg_contexts;
 #endif
 
 // The following noop functions are assigned to the corresponding glext
@@ -848,7 +848,7 @@ reset() {
 
   _supported_geom_rendering =
 #ifndef OPENGLES
-    Geom::GR_render_mode_wireframe | Geom::GR_render_mode_point |
+    Geom::GR_render_mode_point |
 #endif
     Geom::GR_indexed_point |
     Geom::GR_point | Geom::GR_point_uniform_size |
@@ -856,6 +856,16 @@ reset() {
     Geom::GR_triangle_strip | Geom::GR_triangle_fan |
     Geom::GR_line_strip |
     Geom::GR_flat_last_vertex;
+
+#ifndef OPENGLES
+  // Observed bug on PINEBOOK Pro: regular OpenGL 3.3 driver doesn't support
+  // wireframe mode, it just renders the solid mesh
+  // GL_RENDERER = Mali-T860 (Panfrost)
+  // GL_VERSION = 3.3 (Compatibility Profile) Mesa 22.3.6
+  if (_gl_vendor != "Panfrost") {
+    _supported_geom_rendering |= Geom::GR_render_mode_wireframe;
+  }
+#endif
 
   _supports_point_parameters = false;
 
@@ -1861,9 +1871,9 @@ reset() {
         _shader_caps._active_gprofile = (int)CG_PROFILE_GLSLG;
       }
     }
-    _shader_caps._ultimate_vprofile = (int)CG_PROFILE_GLSLV;
-    _shader_caps._ultimate_fprofile = (int)CG_PROFILE_GLSLF;
-    _shader_caps._ultimate_gprofile = (int)CG_PROFILE_GLSLG;
+    _shader_caps._ultimate_vprofile = (int)CG_PROFILE_GP5VP;
+    _shader_caps._ultimate_fprofile = (int)CG_PROFILE_GP5FP;
+    _shader_caps._ultimate_gprofile = (int)CG_PROFILE_GP5GP;
 
     // Bug workaround for radeons.
     if (_shader_caps._active_fprofile == CG_PROFILE_ARBFP1) {
@@ -3521,6 +3531,43 @@ reset() {
     }
   }
 #endif
+
+#if !defined(OPENGLES_1) && !defined(__EMSCRIPTEN__)
+  _max_vertex_attrib_stride = -1;
+#ifdef OPENGLES
+  if (is_at_least_gles_version(3, 1))
+#else
+  if (is_at_least_gl_version(4, 4))
+#endif
+  {
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIB_STRIDE, &_max_vertex_attrib_stride);
+
+    if (_max_vertex_attrib_stride < 0) {
+      GLCAT.warning()
+        << "Failed to query GL_MAX_VERTEX_ATTRIB_STRIDE.\n";
+    }
+    else if (GLCAT.is_debug()) {
+      GLCAT.debug()
+        << "max vertex attrib stride = " << _max_vertex_attrib_stride << "\n";
+    }
+  }
+  if (_max_vertex_attrib_stride < 0) {
+    // OpenGL doesn't specify a maximum before version 4.4 / ES 3.1, but
+    // drivers really do have one.  Make an educated guess.
+#ifdef OPENGLES
+    _max_vertex_attrib_stride = (_gl_vendor == "Qualcomm") ? INT_MAX : 2048;
+#elif defined(_WIN32)
+    _max_vertex_attrib_stride = (_gl_vendor == "Intel") ? 4095 : 2048;
+#else
+    _max_vertex_attrib_stride = 2048;
+#endif
+    if (GLCAT.is_debug()) {
+      GLCAT.debug()
+        << "max vertex attrib stride = " << _max_vertex_attrib_stride
+        << " (guessed)\n";
+    }
+  }
+#endif  // !OPENGLES_1
 
   _current_vbuffer_index = 0;
   _current_ibuffer_index = 0;
@@ -6919,6 +6966,16 @@ setup_array_data(const unsigned char *&client_pointer,
     client_pointer = array_reader->get_read_pointer(force);
     return (client_pointer != nullptr);
   }
+
+#ifndef OPENGLES_1
+  int stride = array_reader->get_array_format()->get_stride();
+  if (stride > _max_vertex_attrib_stride) {
+    GLCAT.error()
+      << "Vertex array stride " << stride << " exceeds supported maximum "
+      << _max_vertex_attrib_stride << "!\n";
+    return false;
+  }
+#endif
 
   // Prepare the buffer object and bind it.
   CLP(VertexBufferContext) *gvbc = DCAST(CLP(VertexBufferContext),
