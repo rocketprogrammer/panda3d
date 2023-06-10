@@ -8,6 +8,7 @@ from panda3d.core import *
 from panda3d.direct import *
 #from PyDatagram import PyDatagram
 #from PyDatagramIterator import PyDatagramIterator
+import os
 
 class DistributedObjectAI(DistributedObjectBase):
     notify = directNotify.newCategory("DistributedObjectAI")
@@ -310,7 +311,10 @@ class DistributedObjectAI(DistributedObjectBase):
         # setLocation destroys self._zoneData if we move away to
         # a different zone
         if self._zoneData is None:
-            from otp.ai.AIZoneData import AIZoneData
+            if os.path.isdir("otp/ai"):
+                from otp.ai.AIZoneData import AIZoneData
+            else:
+                from game.otp.ai.AIZoneData import AIZoneData
             self._zoneData = AIZoneData(self.air, self.parentId, self.zoneId)
         return self._zoneData
 
@@ -500,7 +504,10 @@ class DistributedObjectAI(DistributedObjectBase):
         # simultaneously on different lists of avatars, although they
         # should have different names.
 
-        from otp.ai import Barrier
+        if os.path.isdir("otp/ai"):
+            from otp.ai.AIZoneData import AIZoneData
+        else:
+            from game.otp.ai.AIZoneData import AIZoneData
         context = self.__nextBarrierContext
         # We assume the context number is passed as a uint16.
         self.__nextBarrierContext = (self.__nextBarrierContext + 1) & 0xffff
