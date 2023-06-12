@@ -505,9 +505,9 @@ class DistributedObjectAI(DistributedObjectBase):
         # should have different names.
 
         if os.path.isdir("otp/ai"):
-            from otp.ai.AIZoneData import AIZoneData
+            from otp.ai import Barrier
         else:
-            from game.otp.ai.AIZoneData import AIZoneData
+            from game.otp.ai import Barrier
         context = self.__nextBarrierContext
         # We assume the context number is passed as a uint16.
         self.__nextBarrierContext = (self.__nextBarrierContext + 1) & 0xffff
