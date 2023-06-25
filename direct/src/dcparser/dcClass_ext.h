@@ -64,6 +64,12 @@ public:
                               CHANNEL_TYPE district_channel_id,
                               CHANNEL_TYPE from_channel_id,
                               PyObject *optional_fields) const;
+  Datagram ai_database_generate_context(unsigned int context_id, DOID_TYPE parent_id,
+                                        ZONEID_TYPE zone_id, CHANNEL_TYPE owner_channel,
+                                        CHANNEL_TYPE database_server_id, CHANNEL_TYPE from_channel_id) const;
+  Datagram ai_database_generate_context_old(unsigned int context_id, DOID_TYPE parent_id,
+                                            ZONEID_TYPE zone_id, CHANNEL_TYPE database_server_id,
+                                            CHANNEL_TYPE from_channel_id) const;
   Datagram client_format_generate_CMU(PyObject *distobj, DOID_TYPE do_id,
                                       ZONEID_TYPE zone_id,
                                       PyObject *optional_fields) const;

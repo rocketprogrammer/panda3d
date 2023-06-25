@@ -6,6 +6,7 @@ from direct.showbase.MessengerGlobal import messenger
 from direct.showbase import PythonUtil
 #from PyDatagram import PyDatagram
 #from PyDatagramIterator import PyDatagramIterator
+import os
 
 class DistributedObjectAI(DistributedObjectBase):
     notify = directNotify.newCategory("DistributedObjectAI")
@@ -142,6 +143,8 @@ class DistributedObjectAI(DistributedObjectBase):
                     barrier.cleanup()
                 self.__barriers = {}
 
+                self.air.stopTrackRequestDeletedDO(self)
+
                 # DCR: I've re-enabled this block of code so that Toontown's
                 # AI won't leak channels.
                 # Let me know if it causes trouble.
@@ -149,9 +152,10 @@ class DistributedObjectAI(DistributedObjectBase):
                 ### block until a solution is thought out of how to prevent
                 ### this delete message or to handle this message better
                 # TODO: do we still need this check?
-                if not getattr(self, "doNotDeallocateChannel", False):
-                    if self.air:
-                        self.air.deallocateChannel(self.doId)
+                if not hasattr(self, "doNotDeallocateChannel"):
+                    if self.air and not hasattr(self.air, "doNotDeallocateChannel"):
+                        if self.air.minChannel <= self.doId <= self.air.maxChannel:
+                            self.air.deallocateChannel(self.doId)
                 self.air = None
 
                 self.parentId = None
@@ -191,6 +195,9 @@ class DistributedObjectAI(DistributedObjectBase):
         Called after the object has been generated and all
         of its required fields filled in. Overwrite when needed.
         """
+
+    def addInterest(self, zoneId, note="", event=None):
+        self.air.addInterest(self.doId, zoneId, note, event)
 
     def b_setLocation(self, parentId, zoneId):
         self.d_setLocation(parentId, zoneId)
@@ -262,6 +269,9 @@ class DistributedObjectAI(DistributedObjectBase):
 
         dclass.receiveUpdateOther(self, di)
 
+    def sendSetZone(self, zoneId):
+        self.air.sendSetZone(self, zoneId)
+
     def startMessageBundle(self, name):
         self.air.startMessageBundle(name)
     def sendMessageBundle(self):
@@ -299,7 +309,10 @@ class DistributedObjectAI(DistributedObjectBase):
         # setLocation destroys self._zoneData if we move away to
         # a different zone
         if self._zoneData is None:
-            from otp.ai.AIZoneData import AIZoneData
+            if os.path.isdir("otp/ai"):
+                from otp.ai.AIZoneData import AIZoneData
+            else:
+                from game.otp.ai.AIZoneData import AIZoneData
             self._zoneData = AIZoneData(self.air, self.parentId, self.zoneId)
         return self._zoneData
 
@@ -334,10 +347,10 @@ class DistributedObjectAI(DistributedObjectBase):
             self.air.sendUpdate(self, fieldName, args)
 
     def GetPuppetConnectionChannel(self, doId):
-        return doId + (1001 << 32)
+        return doId + (1 << 32)
 
     def GetAccountConnectionChannel(self, doId):
-        return doId + (1003 << 32)
+        return doId + (3 << 32)
 
     def GetAccountIDFromChannelCode(self, channel):
         return channel >> 32
@@ -489,7 +502,10 @@ class DistributedObjectAI(DistributedObjectBase):
         # simultaneously on different lists of avatars, although they
         # should have different names.
 
-        from otp.ai import Barrier
+        if os.path.isdir("otp/ai"):
+            from otp.ai import Barrier
+        else:
+            from game.otp.ai import Barrier
         context = self.__nextBarrierContext
         # We assume the context number is passed as a uint16.
         self.__nextBarrierContext = (self.__nextBarrierContext + 1) & 0xffff
@@ -564,5 +580,3 @@ class DistributedObjectAI(DistributedObjectBase):
     def _retrieveCachedData(self):
         """ This is a no-op on the AI. """
 
-    def setAI(self, aiChannel):
-        self.air.setAI(self.doId, aiChannel)

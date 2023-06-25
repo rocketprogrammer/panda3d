@@ -152,6 +152,9 @@ def exitfunc():
     if getattr(builtins, 'base', None) is not None:
         builtins.base.destroy()
 
+builtins.FADE_SORT_INDEX = 1000
+builtins.NO_FADE_SORT_INDEX = 2000
+
 # Now ShowBase is a DirectObject.  We need this so ShowBase can hang
 # hooks on messages, particularly on window-event.  This doesn't
 # *seem* to cause anyone any problems.
@@ -1116,6 +1119,11 @@ class ShowBase(DirectObject.DirectObject):
 
         return self.win is not None
 
+    def isMainWindowOpen(self):
+        if self.win != None:
+            return self.win.isValid()
+        return 0
+
     def openMainWindow(self, *args, **kw):
         """
         Creates the initial, main window for the application, and sets
@@ -1685,6 +1693,7 @@ class ShowBase(DirectObject.DirectObject):
         self.trackball = NodePath(Trackball('trackball'))
         self.drive = NodePath(DriveInterface('drive'))
         self.mouse2cam = NodePath(Transform2SG('mouse2cam'))
+        self.dataUnused = NodePath('dataUnused')
 
     # [gjeon] now you can create multiple mouse watchers to support multiple windows
     def setupMouse(self, win, fMultiWin=False):

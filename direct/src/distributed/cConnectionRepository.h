@@ -113,6 +113,12 @@ PUBLISHED:
 #endif
 
   BLOCKING bool check_datagram();
+#ifdef HAVE_PYTHON
+#ifdef WANT_NATIVE_NET
+  BLOCKING bool check_datagram_ai(PyObject *PycallBackFunction);
+  BLOCKING bool network_based_reader_and_yielder(PyObject *PycallBackFunction, ClockObject &clock, float returnBy);
+#endif
+#endif
 
   BLOCKING INLINE void get_datagram(Datagram &dg);
   BLOCKING INLINE void get_datagram_iterator(DatagramIterator &di);
@@ -157,6 +163,11 @@ PUBLISHED:
   INLINE float get_time_warning() const;
 
 private:
+#ifdef HAVE_PYTHON
+#ifdef WANT_NATIVE_NET
+  bool handle_update_field_ai(PyObject *doId2do);
+#endif
+#endif
   bool do_check_datagram();
   bool handle_update_field();
   bool handle_update_field_owner();
@@ -169,6 +180,7 @@ private:
 
 #ifdef HAVE_PYTHON
   PyObject *_python_repository;
+  PyObject *_python_ai_datagramiterator;
 #endif
 
 #ifdef HAVE_OPENSSL
