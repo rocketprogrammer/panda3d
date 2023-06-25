@@ -6,7 +6,6 @@ on how to use these commands.
 
 import os
 import plistlib
-import pkg_resources
 import sys
 import subprocess
 import zipfile
@@ -58,6 +57,7 @@ def _register_python_loaders():
 
     registry = p3d.LoaderFileTypeRegistry.getGlobalPtr()
 
+    import pkg_resources
     for entry_point in pkg_resources.iter_entry_points('panda3d.loaders'):
         registry.register_deferred_type(entry_point)
 
@@ -125,7 +125,7 @@ PACKAGE_LIB_DIRS = {
     'PyQt5':  [('PyQt5/Qt5/bin', 'PyQt5_Qt5')],
 }
 
-SITE_PY = u"""
+SITE_PY = """
 import sys
 from _frozen_importlib import _imp, FrozenImporter
 
@@ -592,7 +592,7 @@ class build_apps(setuptools.Command):
 
         whlcache = os.path.join(self.build_base, '__whl_cache__')
 
-        pip_version = int(pip.__version__.split('.')[0])
+        pip_version = int(pip.__version__.split('.', 1)[0])
         if pip_version < 9:
             raise RuntimeError("pip 9.0 or greater is required, but found {}".format(pip.__version__))
 
@@ -634,7 +634,20 @@ class build_apps(setuptools.Command):
         for index in self.pypi_extra_indexes:
             pip_args += ['--extra-index-url', index]
 
-        subprocess.check_call([sys.executable, '-m', 'pip'] + pip_args)
+        try:
+            subprocess.check_call([sys.executable, '-m', 'pip'] + pip_args)
+        except:
+            # Display a more helpful message for these common issues.
+            if platform.startswith('manylinux2010_') and sys.version_info >= (3, 11):
+                new_platform = platform.replace('manylinux2010_', 'manylinux2014_')
+                self.announce('This error likely occurs because {} is not a supported target as of Python 3.11.\nChange the target platform to {} instead.'.format(platform, new_platform), distutils.log.ERROR)
+            elif platform.startswith('manylinux1_') and sys.version_info >= (3, 10):
+                new_platform = platform.replace('manylinux1_', 'manylinux2014_')
+                self.announce('This error likely occurs because {} is not a supported target as of Python 3.10.\nChange the target platform to {} instead.'.format(platform, new_platform), distutils.log.ERROR)
+            elif platform.startswith('macosx_10_6_') and sys.version_info >= (3, 8):
+                new_platform = platform.replace('macosx_10_6_', 'macosx_10_9_')
+                self.announce('This error likely occurs because {} is not a supported target as of Python 3.8.\nChange the target platform to {} instead.'.format(platform, new_platform), distutils.log.ERROR)
+            raise
 
         # Return a list of paths to the downloaded whls
         return [
@@ -1121,7 +1134,7 @@ class build_apps(setuptools.Command):
 
                 # Remove python version string
                 parts = basename.split('.')
-                if len(parts) >= 3 and '-' in parts[-2]:
+                if len(parts) >= 3 and ('-' in parts[-2] or parts[-2] == 'abi' + str(sys.version_info[0])):
                     parts = parts[:-2] + parts[-1:]
                     basename = '.'.join(parts)
 
@@ -1494,7 +1507,8 @@ class build_apps(setuptools.Command):
         for idx in string_tables.keys():
             elf.seek(shoff + idx * shentsize)
             type, offset, size, link, entsize = struct.unpack_from(section_struct, elf.read(shentsize))
-            if type != 3: continue
+            if type != 3:
+                continue
             elf.seek(offset)
             string_tables[idx] = elf.read(size)
 
@@ -1688,6 +1702,8 @@ class bdist_apps(setuptools.Command):
             setattr(self, opt, None)
 
     def finalize_options(self):
+        import pkg_resources
+
         # We need to massage the inputs a bit in case they came from a
         # setup.cfg file.
         self.installers = {

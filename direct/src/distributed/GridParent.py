@@ -1,3 +1,5 @@
+from panda3d.core import NodePath
+
 #
 # GridParent.py
 # Any object that can be parented to the ocean grid
