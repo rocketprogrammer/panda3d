@@ -11,6 +11,7 @@ __all__ = [
     'boolEqual', 'lineupPos', 'formatElapsedSeconds', 'solveQuadratic',
     'findPythonModule', 'mostDerivedLast', 'clampScalar', 'weightedChoice',
     'randFloat', 'normalDistrib', 'weightedRand', 'randUint31', 'randInt32',
+    'randUint32',
     'SerialNumGen', 'SerialMaskedGen', 'serialNum', 'uniqueName', 'Singleton',
     'SingletonError', 'printListEnum', 'safeRepr', 'fastRepr',
     'isDefaultValue', 'ScratchPad', 'Sync', 'itype', 'getNumberedTypedString',
@@ -43,6 +44,8 @@ import builtins
 import importlib
 import bisect
 import functools
+import unicodedata
+import xml.etree.ElementTree as ET
 from . import BpDb
 
 __report_indent = 3
@@ -50,6 +53,7 @@ __report_indent = 3
 from panda3d.core import ConfigVariableBool, ConfigVariableString, ConfigFlags
 from panda3d.core import ClockObject
 
+from html.parser import HTMLParser
 
 ## with one integer positional arg, this uses about 4/5 of the memory of the Functor class below
 #def Functor(function, *args, **kArgs):
