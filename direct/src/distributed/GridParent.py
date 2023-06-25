@@ -10,8 +10,6 @@ from panda3d.core import NodePath
 # that the object is broadcasting its position relative to the gridCell
 # it lies in.
 
-from panda3d.core import NodePath
-
 class GridParent:
 
     # this lets GridParents share CellOrigins
