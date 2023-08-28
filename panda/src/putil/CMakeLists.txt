@@ -48,7 +48,7 @@ set(P3PUTIL_HEADERS
   load_prc_file.h
   loaderOptions.I loaderOptions.h
   modifierButtons.I modifierButtons.h
-  mouseButton.h mouseData.h
+  mouseButton.h
   nameUniquifier.I nameUniquifier.h
   nodeCachedReferenceCount.h nodeCachedReferenceCount.I
   paramValue.I paramValue.h
@@ -162,4 +162,4 @@ if(NOT BUILD_METALIBS)
     ARCHIVE COMPONENT CoreDevel)
 endif()
 install(FILES ${P3PUTIL_HEADERS} COMPONENT CoreDevel DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/panda3d)
-install(FILES config_util.h COMPONENT CoreDevel DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/panda3d)
+install(FILES config_putil.h COMPONENT CoreDevel DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/panda3d)
