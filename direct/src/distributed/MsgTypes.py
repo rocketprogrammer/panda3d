@@ -1,5 +1,7 @@
 """MsgTypes module: contains distributed object message types"""
 
+from __future__ import annotations
+
 from direct.showbase.PythonUtil import invertDictLossless
 
 MsgName2Id = {
@@ -112,7 +114,7 @@ for name, value in MsgName2Id.items():
 del name, value
 
 # These messages are ignored when the client is headed to the quiet zone
-QUIET_ZONE_IGNORED_LIST = [
+QUIET_ZONE_IGNORED_LIST: list[int] = [
 
     # We mustn't ignore updates, because some updates for localToon
     # are always important.
@@ -125,15 +127,13 @@ QUIET_ZONE_IGNORED_LIST = [
 
 ]
 
+# ExtAgent messages.
+CLIENTAGENT_EXTAGENT_MESSAGE = 1205
+CLIENTAGENT_EXTAGENT_RESPONSE = 1206
+
 # The following is a different set of numbers from above.
 # These are the sub-message types for CLIENT_LOGIN_2.
 CLIENT_LOGIN_2_GREEN = 1       # Disney's GoReg subscription token, not used.
 CLIENT_LOGIN_2_PLAY_TOKEN = 2  # VR Studio PlayToken.
 CLIENT_LOGIN_2_BLUE = 3        # The international GoReg token.
 CLIENT_LOGIN_3_DISL_TOKEN = 4  # SSL encoded blob from DISL system.
-
-# ExtAgent messages.
-CLIENTAGENT_EXTAGENT_MESSAGE = 1205
-CLIENTAGENT_EXTAGENT_RESPONSE = 1206
-
-MSG_TO_NAME_DICT = {v: k for k, v in locals().items() if type(v) == int}

@@ -310,9 +310,9 @@ class DistributedObjectAI(DistributedObjectBase):
         # a different zone
         if self._zoneData is None:
             if os.path.isdir("otp/ai"):
-                from otp.ai.AIZoneData import AIZoneData
+                from otp.ai.AIZoneData import AIZoneData  # type: ignore[import]
             else:
-                from game.otp.ai.AIZoneData import AIZoneData
+                from game.otp.ai.AIZoneData import AIZoneData  # type: ignore[import]
             self._zoneData = AIZoneData(self.air, self.parentId, self.zoneId)
         return self._zoneData
 
@@ -503,9 +503,9 @@ class DistributedObjectAI(DistributedObjectBase):
         # should have different names.
 
         if os.path.isdir("otp/ai"):
-            from otp.ai import Barrier
+            from otp.ai import Barrier  # type: ignore[import]
         else:
-            from game.otp.ai import Barrier
+            from game.otp.ai import Barrier  # type: ignore[import]
         context = self.__nextBarrierContext
         # We assume the context number is passed as a uint16.
         self.__nextBarrierContext = (self.__nextBarrierContext + 1) & 0xffff
