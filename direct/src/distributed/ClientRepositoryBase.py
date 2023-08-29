@@ -12,7 +12,7 @@ from direct.distributed.CRDataCache import CRDataCache
 from direct.distributed.ConnectionRepository import ConnectionRepository
 from direct.showbase.PythonUtil import safeRepr, itype, makeList
 from direct.showbase.MessengerGlobal import messenger
-from .MsgTypes import CLIENT_ENTER_OBJECT_REQUIRED_OTHER, MsgId2Names
+from .MsgTypes import CLIENT_CREATE_OBJECT_REQUIRED_OTHER, MsgId2Names
 from . import CRCache
 from . import ParentMgr
 from . import RelatedObjectMgr
@@ -181,7 +181,7 @@ class ClientRepositoryBase(ConnectionRepository):
         "generate" messages when they are replayed().
         """
 
-        if msgType == CLIENT_ENTER_OBJECT_REQUIRED_OTHER:
+        if msgType == CLIENT_CREATE_OBJECT_REQUIRED_OTHER:
             # It's a generate message.
             doId = extra
             if doId in self.deferredDoIds:
