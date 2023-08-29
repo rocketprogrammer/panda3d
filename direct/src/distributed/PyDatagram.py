@@ -27,8 +27,12 @@ from panda3d.direct import (
 )
 # Import the type numbers
 
-from direct.distributed.MsgTypes import CONTROL_CHANNEL
+import os
 
+if os.path.isdir("otp/ai"):
+    from otp.ai.AIMsgTypes import CONTROL_MESSAGE
+else:
+    from game.otp.ai.AIMsgTypes import CONTROL_MESSAGE
 
 class PyDatagram(Datagram):
 
@@ -66,7 +70,7 @@ class PyDatagram(Datagram):
 
     def addServerControlHeader(self, code):
         self.addInt8(1)
-        self.addChannel(CONTROL_CHANNEL)
+        self.addChannel(CONTROL_MESSAGE)
         self.addUint16(code)
 
     def putArg(self, arg, subatomicType, divisor=1):
