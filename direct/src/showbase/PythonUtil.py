@@ -22,7 +22,7 @@ __all__ = [
     'nullGen', 'loopGen', 'makeFlywheelGen', 'flywheel', 'listToIndex2item',
     'listToItem2index', 'formatTimeCompact', 'deeptype', 'StdoutCapture',
     'StdoutPassthrough', 'Averager', 'getRepository', 'formatTimeExact',
-    'startSuperLog', 'endSuperLog', 'typeName', 'safeTypeName',
+    'typeName', 'safeTypeName',
     'histogramDict', 'unescapeHtmlString', 'describeException', 'repeatableRepr',
     'HotkeyBreaker', 'pivotScalar', 'DestructiveScratchPad', 'clampScalar', 'cmp',
     'ParamObj'
