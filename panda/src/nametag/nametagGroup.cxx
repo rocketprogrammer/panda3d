@@ -312,8 +312,9 @@ set_chat(const std::string &chat, int chat_flags, int page_number) {
     // Chat flags 0, or empty chat message: no chat message.
     _chat_pages.clear();
     _chat_flags = 0;
+    _chat_stomp_accum = 0;
 
-  } 
+  }
   else {
     _chat_pages.clear();
     _chat_stomp_accum++;
@@ -328,10 +329,10 @@ set_chat(const std::string &chat, int chat_flags, int page_number) {
       _chat_pages.clear();
       _chat_flags = 0;
     }
-    
+
   }
 
-  
+
 
   if (((_chat_flags & CF_timeout) != 0) && (_chat_timeblock < now)) {
     // If we requested a timeout, determine when that will happen.
@@ -494,8 +495,8 @@ update_regions() {
   if((_chat_timeblock < now) && _chat_stomp_accum > 1){
       _chat_stomp_accum = 0;
       set_chat(_chat_block_hold, _chat_flags_hold, _page_number);
-  }      
-  
+  }
+
   if ((_chat_flags & CF_timeout) != 0) {
     if (now >= _chat_timeout) {
       clear_chat();
