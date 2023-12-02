@@ -45,6 +45,8 @@ import builtins
 import importlib
 import bisect
 import functools
+import unicodedata
+import xml.etree.ElementTree as ET
 from . import BpDb
 from typing import Callable
 
