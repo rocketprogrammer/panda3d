@@ -53,6 +53,7 @@ __report_indent = 3
 from panda3d.core import ConfigVariableBool, ConfigVariableString, ConfigFlags
 from panda3d.core import ClockObject
 
+from html.parser import HTMLParser
 
 ## with one integer positional arg, this uses about 4/5 of the memory of the Functor class below
 #def Functor(function, *args, **kArgs):
