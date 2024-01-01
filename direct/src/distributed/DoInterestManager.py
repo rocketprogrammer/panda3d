@@ -138,35 +138,6 @@ class DoInterestManager(DirectObject.DirectObject):
     def getAllInterestsCompleteEvent(self):
         return 'allInterestsComplete-%s' % DoInterestManager._SerialNum
 
-    def cleanupWaitAllInterestsComplete(self):
-        if self._completeDelayedCallback is not None:
-            self._completeDelayedCallback.destroy()
-            self._completeDelayedCallback = None
-
-    def queueAllInterestsCompleteEvent(self, frames=5):
-        # wait for N frames, if no new interests, send out all-done event
-        # calling this is OK even if there are no pending interest completes
-        def checkMoreInterests():
-            # if there are new interests, cancel this delayed callback, another
-            # will automatically be scheduled when all interests complete
-            # print 'checkMoreInterests(',self._completeEventCount.num,'):',globalClock.getFrameCount()
-            return self._completeEventCount.num > 0
-        def sendEvent():
-            messenger.send(self.getAllInterestsCompleteEvent())
-            callbacks = self._allInterestsCompleteCallbacks[:]
-            self._allInterestsCompleteCallbacks = []
-            for callback in callbacks:
-                callback()
-                pass
-        self.cleanupWaitAllInterestsComplete()
-        self._completeDelayedCallback = FrameDelayedCall(
-            'waitForAllInterestCompletes',
-            callback=sendEvent,
-            frames=frames,
-            cancelFunc=checkMoreInterests)
-        checkMoreInterests = None
-        sendEvent = None
-
     def resetInterestStateForConnectionLoss(self):
         DoInterestManager._interests.clear()
         self._completeEventCount = ScratchPad(num=0)
@@ -611,9 +582,11 @@ class DoInterestManager(DirectObject.DirectObject):
             return self._completeEventCount.num > 0
         def sendEvent():
             messenger.send(self.getAllInterestsCompleteEvent())
-            for callback in self._allInterestsCompleteCallbacks:
-                callback()
+            callbacks = self._allInterestsCompleteCallbacks[:]
             self._allInterestsCompleteCallbacks = []
+            for callback in callbacks:
+                callback()
+                pass
         self.cleanupWaitAllInterestsComplete()
         self._completeDelayedCallback = FrameDelayedCall(
             'waitForAllInterestCompletes',
