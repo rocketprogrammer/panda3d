@@ -71,9 +71,9 @@ class NetMessenger(Messenger):
         messageType=MESSAGE_STRINGS.get(message, 0)
         datagram.addUint16(messageType)
         if messageType:
-            datagram.addString(str(dumps(sentArgs)))
+            datagram.addBlob(dumps(sentArgs))
         else:
-            datagram.addString(str(dumps((message, sentArgs))))
+            datagram.addBlob(dumps((message, sentArgs)))
         self.air.send(datagram)
 
     def handle(self, pickleData):
@@ -90,4 +90,3 @@ class NetMessenger(Messenger):
         else:
             (message, sentArgs) = loads(pickleData)
         Messenger.send(self, message, sentArgs=sentArgs)
-
