@@ -274,6 +274,7 @@ class DistributedObjectAI(DistributedObjectBase):
 
     def startMessageBundle(self, name):
         self.air.startMessageBundle(name)
+
     def sendMessageBundle(self):
         self.air.sendMessageBundle(self.doId)
 
@@ -480,6 +481,7 @@ class DistributedObjectAI(DistributedObjectBase):
                 (self.__class__, doId))
             return
         self.air.requestDelete(self)
+        self.air.startTrackRequestDeletedDO(self)
         self._DOAI_requestedDelete = True
 
     def taskName(self, taskString):
@@ -579,4 +581,4 @@ class DistributedObjectAI(DistributedObjectBase):
 
     def _retrieveCachedData(self):
         """ This is a no-op on the AI. """
-
+        pass
