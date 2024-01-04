@@ -144,6 +144,8 @@ class DistributedObjectAI(DistributedObjectBase):
                     barrier.cleanup()
                 self.__barriers = {}
 
+                self.air.stopTrackRequestDeletedDO(self)
+
                 # DCR: I've re-enabled this block of code so that Toontown's
                 # AI won't leak channels.
                 # Let me know if it causes trouble.
@@ -151,9 +153,10 @@ class DistributedObjectAI(DistributedObjectBase):
                 ### block until a solution is thought out of how to prevent
                 ### this delete message or to handle this message better
                 # TODO: do we still need this check?
-                if not getattr(self, "doNotDeallocateChannel", False):
-                    if self.air:
-                        self.air.deallocateChannel(self.doId)
+                if not hasattr(self, "doNotDeallocateChannel"):
+                    if self.air and not hasattr(self.air, "doNotDeallocateChannel"):
+                        if self.air.minChannel <= self.doId <= self.air.maxChannel:
+                            self.air.deallocateChannel(self.doId)
                 self.air = None
 
                 self.parentId = None
@@ -193,6 +196,9 @@ class DistributedObjectAI(DistributedObjectBase):
         Called after the object has been generated and all
         of its required fields filled in. Overwrite when needed.
         """
+
+    def addInterest(self, zoneId, note="", event=None):
+        self.air.addInterest(self.doId, zoneId, note, event)
 
     def b_setLocation(self, parentId, zoneId):
         self.d_setLocation(parentId, zoneId)
@@ -264,8 +270,12 @@ class DistributedObjectAI(DistributedObjectBase):
 
         dclass.receiveUpdateOther(self, di)
 
+    def sendSetZone(self, zoneId):
+        self.air.sendSetZone(self, zoneId)
+
     def startMessageBundle(self, name):
         self.air.startMessageBundle(name)
+
     def sendMessageBundle(self):
         self.air.sendMessageBundle(self.doId)
 
@@ -479,6 +489,7 @@ class DistributedObjectAI(DistributedObjectBase):
                 (self.__class__, doId))
             return
         self.air.requestDelete(self)
+        self.air.startTrackRequestDeletedDO(self)
         self._DOAI_requestedDelete = True
 
     def taskName(self, taskString):
@@ -579,6 +590,3 @@ class DistributedObjectAI(DistributedObjectBase):
     def printDoTree(self):
         self.air.printDoTree(self.doId)
         pass
-
-    def setAI(self, aiChannel):
-        self.air.setAI(self.doId, aiChannel)
