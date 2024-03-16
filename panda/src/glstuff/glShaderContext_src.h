@@ -107,12 +107,12 @@ private:
 
   struct ImageInput {
     CPT(InternalName) _name;
-    CLP(TextureContext) *_gtc;
-    bool _writable;
+    CLP(TextureContext) *_gtc = nullptr;
+    bool _writable = false;
   };
   pvector<ImageInput> _glsl_img_inputs;
 
-  LMatrix4 *_mat_part_cache = nullptr;
+  LVecBase4f *_mat_part_cache = nullptr;
 
   CLP(GraphicsStateGuardian) *_glgsg;
 

@@ -2,6 +2,7 @@
 # missing imports.  It is useful for a quick and dirty test to make sure
 # that there are no obvious build issues.
 import pytest
+import sys
 
 # This will print out imports on the command line.
 #import direct.showbase.VerboseImport
@@ -9,7 +10,7 @@ import pytest
 
 
 def test_imports_panda3d():
-    import importlib, os, sys
+    import importlib, os
     import panda3d
 
     # Look for panda3d.* modules in builtins - pfreeze might put them there.
@@ -33,6 +34,13 @@ def test_imports_panda3d():
 
             if ext in extensions:
                 importlib.import_module('panda3d.%s' % (module))
+
+
+def test_imports_panda3d_net():
+    from panda3d import core
+    from panda3d import net
+    assert core.ConnectionWriter == net.ConnectionWriter
+    assert core.ConnectionWriter.__module__ == 'panda3d.net'
 
 
 def test_imports_direct():
@@ -165,7 +173,8 @@ def test_imports_direct():
     import direct.showbase.TaskThreaded
     import direct.showbase.ThreeUpShow
     import direct.showbase.Transitions
-    import direct.showbase.VFSImporter
+    if sys.version_info < (3, 12):
+        import direct.showbase.VFSImporter
     import direct.showbase.WxGlobal
     import direct.showutil.BuildGeometry
     import direct.showutil.Effects

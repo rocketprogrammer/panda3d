@@ -95,8 +95,6 @@ MsgName2Id = {
     'CLIENT_LOGIN_TOONTOWN':                         125,
     'CLIENT_LOGIN_TOONTOWN_RESP':                    126,
 
-
-
     'STATESERVER_OBJECT_GENERATE_WITH_REQUIRED':           2001,
     'STATESERVER_OBJECT_GENERATE_WITH_REQUIRED_OTHER':     2003,
     'STATESERVER_OBJECT_UPDATE_FIELD':                     2004,
