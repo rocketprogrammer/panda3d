@@ -108,9 +108,9 @@ class RandomNumGen:
         if istep != step:
             raise ValueError("non-integer step for randrange()")
         if istep > 0:
-            n = (istop - istart + istep - 1) // istep
+            n = (istop - istart + istep - 1) / istep
         elif istep < 0:
-            n = (istop - istart + istep + 1) // istep
+            n = (istop - istart + istep + 1) / istep
         else:
             raise ValueError("zero step for randrange()")
 
@@ -130,4 +130,4 @@ class RandomNumGen:
     # synchronicity is critical
     def random(self):
         """returns random float in [0.0, 1.0)"""
-        return float(self.__rng.getUint31()) // float(1 << 31)
+        return float(self.__rng.getUint31()) / float(1 << 31)
