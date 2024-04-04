@@ -124,10 +124,10 @@ init() {
         << _bam_major_ver << "." << _bam_first_minor_ver << " through "
         << _bam_major_ver << "." << _bam_last_minor_ver << " bams.\n";
     }
-  */
 
     return false;
   }
+  */
 
   _file_endian = (BamEndian)scan.get_uint8();
 
