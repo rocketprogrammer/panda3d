@@ -103,6 +103,8 @@ init() {
   _file_major = scan.get_uint16();
   _file_minor = scan.get_uint16();
 
+  // Mewtwo needs to load older BAM models on the AI server.
+  /*
   // If the major version is different, or the minor version is *newer*, we
   // can't safely load the file.
   if (_file_major != _bam_major_ver ||
@@ -122,6 +124,7 @@ init() {
         << _bam_major_ver << "." << _bam_first_minor_ver << " through "
         << _bam_major_ver << "." << _bam_last_minor_ver << " bams.\n";
     }
+  */
 
     return false;
   }
