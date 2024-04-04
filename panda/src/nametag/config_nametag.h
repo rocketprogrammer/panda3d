@@ -14,7 +14,7 @@
 #define NAMETAG_REFCOUNT_HACK \
   INLINE virtual int get_ref_count() const final { return ReferenceCount::get_ref_count(); }; \
   INLINE virtual void ref() const final { ReferenceCount::ref(); }; \
-  INLINE virtual bool unref() const final { return ReferenceCount::unref(); };
+  INLINE virtual bool unref() const { return ReferenceCount::unref(); };
 
 NotifyCategoryDecl(nametag, EXPCL_OTP, EXPTP_OTP);
 
