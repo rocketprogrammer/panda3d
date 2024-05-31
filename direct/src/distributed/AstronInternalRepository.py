@@ -795,7 +795,7 @@ class AstronInternalRepository(ConnectionRepository):
         dg.add_uint32(zoneId)
         self.send(dg)
 
-    def setOwner(self, doId, newOwner, sendEntry):
+    def setOwner(self, doId, newOwner, sendEntry=True):
         """
         Sets the owner of a DistributedObject. This will enable the new owner to send "ownsend" fields,
         and will generate an OwnerView.
