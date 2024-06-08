@@ -381,8 +381,8 @@ def SetTarget(target, arch=None):
         elif arch == 'amd64':
             arch = 'x64'
 
-        if arch is not None and arch != 'x86' and arch != 'x64' and arch != 'arm64':
-            exit("Windows architecture must be x86, x64 or arm64")
+        if arch is not None and arch != 'x86' and arch != 'x64':
+            exit("Windows architecture must be x86 or x64")
 
     elif target == 'darwin':
         DEFAULT_CC = "clang"
