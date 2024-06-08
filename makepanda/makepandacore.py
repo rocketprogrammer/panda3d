@@ -380,6 +380,8 @@ def SetTarget(target, arch=None):
             arch = 'x86'
         elif arch == 'amd64':
             arch = 'x64'
+        elif arch == 'arm64':
+            arch = 'arm64'
 
         if arch is not None and arch != 'x86' and arch != 'x64' and arch != 'arm64':
             exit("Windows architecture must be x86, x64 or arm64")

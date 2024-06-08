@@ -3,9 +3,10 @@ title - Panda3D Builder
 color 4
 
 set MAKEPANDA_THIRDPARTY=thirdparty_arm64
+set PYTHONEXEC="%localappdata%\Programs\Python\Python312-arm64\python.exe"
 
 :main
-"thirdparty/win-python3.11-arm64/python.exe" makepanda\makepanda.py --everything --wheel --msvc-version=14.3 --no-eigen --windows-sdk 10 --threads=16 --arch arm64
+python.exe makepanda\makepanda.py --everything --wheel --msvc-version=14.3 --no-eigen --windows-sdk 10 --threads=16 --arch arm64 --python-libdir=%PYTHONEXEC% --no-nvidiacg
 echo Done!
 pause
 goto :main
