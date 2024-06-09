@@ -761,10 +761,10 @@ if (COMPILER == "MSVC"):
             # Link OpenAL Soft statically.
             DefSymbol("OPENAL", "AL_LIBTYPE_STATIC")
     if (PkgSkip("ODE")==0):
-        if not os.path.isfile(GetThirdpartyDir() + "ode/lib/ode_single.lib") and os.path.isfile(GetThirdpartyDir() + "ode/lib/ode_double.lib"):
+        if not os.path.isfile(GetThirdpartyDir() + "ode/lib/ode_single.lib") and os.path.isfile(GetThirdpartyDir() + "ode/lib/ode_doubles.lib"):
             # Use double precision.
             print("ODE: Using double precision.")
-            LibName("ODE",      GetThirdpartyDir() + "ode/lib/ode_double.lib")
+            LibName("ODE",      GetThirdpartyDir() + "ode/lib/ode_doubles.lib")
             DefSymbol("ODE",    "dDOUBLE", "")
         else:
             # Use single precision.
