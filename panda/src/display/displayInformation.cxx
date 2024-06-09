@@ -23,17 +23,6 @@
 #endif
 #endif
 
-#if defined(__M_ARM64)
-// Adapted from: https://github.com/cloudius-systems/osv/blob/master/arch/aarch64/arm-clock.cc
-uint64_t rdtsc() {
-    //Please note we read CNTVCT cpu system register which provides
-    //the accross-system consistent value of the virtual system counter.
-    uint64_t cntvct;
-    asm volatile ("mrs %0, cntvct_el0; " : "=r"(cntvct) :: "memory");
-    return cntvct;
-}
-#endif
-
 /**
  * Returns true if these two DisplayModes are identical.
  */
@@ -550,7 +539,26 @@ get_cpu_frequency() {
  */
 uint64_t DisplayInformation::
 get_cpu_time() {
-#if defined(__i386) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+#if defined(__arm__)
+  uint32_t pmccntr, pmuseren, pmcntenset;
+
+  // Read the user mode perf monitor counter access permissions.
+  asm volatile ("mrc p15, 0, %0, c9, c14, 0" : "=r" (pmuseren));
+  if (pmuseren & 1) {  // Allows reading perfmon counters for user mode code.
+    asm volatile ("mrc p15, 0, %0, c9, c12, 1" : "=r" (pmcntenset));
+    if (pmcntenset & 0x80000000ul) {  // Is it counting?
+      asm volatile ("mrc p15, 0, %0, c9, c13, 0" : "=r" (pmccntr));
+      // The counter is set up to count every 64th cycle
+      return static_cast<uint64_t>(pmccntr) * 64;  // Should optimize to << 6
+    }
+  }
+
+  return 0;
+#elif defined(__aarch64__)
+  uint64_t val;
+  asm volatile("mrs %0, cntvct_el0" : "=r" (val));
+  return val;
+#elif defined(__i386) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
 #if defined(_MSC_VER) || (defined(__GNUC__) && !defined(__clang__))
   return __rdtsc();
 #else

@@ -444,12 +444,12 @@ lookup_cpu_data() {
   if (QueryPerformanceFrequency(&frequency)) {
     if (frequency.QuadPart > 0) {
       if (QueryPerformanceCounter (&counter)) {
-        time = __rdtsc();
+        time = _display_information->get_cpu_time();
         end.QuadPart = counter.QuadPart + frequency.QuadPart;
         while (QueryPerformanceCounter (&counter) && counter.QuadPart < end.QuadPart) {
 
         }
-        end_time = __rdtsc();
+        end_time = _display_information->get_cpu_time();
 
         _display_information->_cpu_frequency = end_time - time;
       }
