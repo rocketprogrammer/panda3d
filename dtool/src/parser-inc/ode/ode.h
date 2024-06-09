@@ -19,10 +19,7 @@
 #ifndef _ODE_CONFIG_H_
 #define _ODE_CONFIG_H_
 
-#if !defined(__M_ARM64)
 #define dSINGLE 1
-#endif
-
 #define ODE_PLATFORM_WINDOWS
 
 #if !defined(ODE_API)
