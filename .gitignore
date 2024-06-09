@@ -3,6 +3,7 @@
 /thirdparty/
 /thirdparty_x64/
 /thirdparty_x86/
+/thirdparty_arm64/
 thirdparty
 /targetroot/
 /dstroot/

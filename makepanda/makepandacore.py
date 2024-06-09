@@ -1385,6 +1385,8 @@ def GetThirdpartyDir():
 
         if target_arch == 'x64':
             THIRDPARTYDIR = base + "/win-libs-vc" + vc + "-x64/"
+        elif target_arch == 'arm64':
+            THIRDPARTYDIR = base + "/win-libs-vc" + vc + "-arm64/"
         else:
             THIRDPARTYDIR = base + "/win-libs-vc" + vc + "/"
 
@@ -2747,7 +2749,7 @@ def SetupVisualStudioEnviron():
     bindir = ""
     libdir = ""
     if ("VCTOOLSVERSION" in SDK):
-        bindir = "Host" + GetHostArch().upper() + "\\" + arch
+        bindir = "Host" + GetHostArch().upper() if arch != "arm64" else "Hostarm64" + "\\" + arch
         libdir = arch
     else:
         if (arch == 'x64'):
