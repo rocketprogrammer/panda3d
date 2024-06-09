@@ -392,6 +392,8 @@ target_arch = GetTargetArch()
 if target == 'windows':
     if target_arch == 'x64':
         PLATFORM = 'win-amd64'
+    elif target_arch == 'arm64':
+        PLATFORM = 'win-arm64'
     else:
         PLATFORM = 'win32'
 
@@ -1664,6 +1666,8 @@ def CompileIgate(woutd,wsrc,opts):
         cmd += ' -D_WIN32'
         if GetTargetArch() == 'x64':
             cmd += ' -D_WIN64 -D_M_X64 -D_M_AMD64'
+        if GetTargetArch() == 'arm64':
+            cmd += '-D_WIN64 -D_M_ARM64'
         else:
             cmd += ' -D_M_IX86'
         # NOTE: this 1600 value is the version number for VC2010.
