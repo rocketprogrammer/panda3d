@@ -3417,6 +3417,8 @@ def GetExtensionSuffix():
 
         if GetTargetArch() == 'x64':
             return dllext + '.cp%d%d-win_amd64.pyd' % (sys.version_info[:2])
+        elif GetTargetArch() == 'arm64':
+            return dllext + '.cp%d%d-win_arm64.pyd' % (sys.version_info[:2])
         else:
             return dllext + '.cp%d%d-win32.pyd' % (sys.version_info[:2])
     elif target == 'emscripten':
