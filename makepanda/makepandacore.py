@@ -2749,7 +2749,7 @@ def SetupVisualStudioEnviron():
     bindir = ""
     libdir = ""
     if ("VCTOOLSVERSION" in SDK):
-        bindir = "Host" + "Hostarm64" if arch == "arm64" else GetHostArch().upper() + "\\" + arch
+        bindir = "Host" + GetHostArch().upper() if arch != "arm64" else "Hostarm64" + "\\" + arch
         libdir = arch
     else:
         if (arch == 'x64'):
