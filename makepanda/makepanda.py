@@ -765,7 +765,6 @@ if (COMPILER == "MSVC"):
             # Use double precision.
             print("ODE: Using double precision.")
             LibName("ODE",      GetThirdpartyDir() + "ode/lib/ode_doubles.lib")
-            DefSymbol("ODE",    "dDOUBLE", "")
         else:
             # Use single precision.
             print("ODE: Using single precision.")
