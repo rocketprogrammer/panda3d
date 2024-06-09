@@ -6,7 +6,7 @@ set MAKEPANDA_THIRDPARTY=thirdparty_arm64
 set PYTHONEXEC="%localappdata%\Programs\Python\Python312-arm64\python.exe"
 
 :main
-python.exe makepanda\makepanda.py --everything --wheel --msvc-version=14.3 --no-eigen --windows-sdk 10 --threads=16 --arch arm64 --python-libdir=%PYTHONEXEC% --no-nvidiacg --threads=4 --outputdir built_arm64 --override "dSINGLE=0"
+python.exe makepanda\makepanda.py --everything --wheel --msvc-version=14.3 --no-eigen --windows-sdk 10 --threads=16 --arch arm64 --python-libdir=%PYTHONEXEC% --no-nvidiacg --threads=4 --outputdir built_arm64
 echo Done!
 pause
 goto :main
