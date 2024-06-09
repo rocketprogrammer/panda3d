@@ -23,6 +23,17 @@
 #endif
 #endif
 
+#if defined(__M_ARM64)
+// Adapted from: https://github.com/cloudius-systems/osv/blob/master/arch/aarch64/arm-clock.cc
+uint64_t rdtsc() {
+    //Please note we read CNTVCT cpu system register which provides
+    //the accross-system consistent value of the virtual system counter.
+    uint64_t cntvct;
+    asm volatile ("mrs %0, cntvct_el0; " : "=r"(cntvct) :: "memory");
+    return cntvct;
+}
+#endif
+
 /**
  * Returns true if these two DisplayModes are identical.
  */
