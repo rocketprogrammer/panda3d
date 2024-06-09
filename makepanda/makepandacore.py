@@ -380,9 +380,11 @@ def SetTarget(target, arch=None):
             arch = 'x86'
         elif arch == 'amd64':
             arch = 'x64'
+        elif arch == 'arm64':
+            arch = 'arm64'
 
-        if arch is not None and arch != 'x86' and arch != 'x64':
-            exit("Windows architecture must be x86 or x64")
+        if arch is not None and arch != 'x86' and arch != 'x64' and arch != 'arm64':
+            exit("Windows architecture must be x86, x64 or arm64")
 
     elif target == 'darwin':
         DEFAULT_CC = "clang"
@@ -1383,6 +1385,8 @@ def GetThirdpartyDir():
 
         if target_arch == 'x64':
             THIRDPARTYDIR = base + "/win-libs-vc" + vc + "-x64/"
+        elif target_arch == 'arm64':
+            THIRDPARTYDIR = base + "/win-libs-vc" + vc + "-arm64/"
         else:
             THIRDPARTYDIR = base + "/win-libs-vc" + vc + "/"
 
@@ -2745,7 +2749,7 @@ def SetupVisualStudioEnviron():
     bindir = ""
     libdir = ""
     if ("VCTOOLSVERSION" in SDK):
-        bindir = "Host" + GetHostArch().upper() + "\\" + arch
+        bindir = "Host" + GetHostArch().upper() if arch != "arm64" else "Hostarm64" + "\\" + arch
         libdir = arch
     else:
         if (arch == 'x64'):
@@ -3415,6 +3419,8 @@ def GetExtensionSuffix():
 
         if GetTargetArch() == 'x64':
             return dllext + '.cp%d%d-win_amd64.pyd' % (sys.version_info[:2])
+        elif GetTargetArch() == 'arm64':
+            return dllext + '.cp%d%d-win_arm64.pyd' % (sys.version_info[:2])
         else:
             return dllext + '.cp%d%d-win32.pyd' % (sys.version_info[:2])
     elif target == 'emscripten':
