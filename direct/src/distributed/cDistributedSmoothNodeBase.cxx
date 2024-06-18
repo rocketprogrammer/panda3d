@@ -73,9 +73,8 @@ initialize(const NodePath &node_path, DCClass *dclass, CHANNEL_TYPE do_id) {
  */
 void CDistributedSmoothNodeBase::
 send_everything() {
-  _currL[0] = _currL[1];
-  d_setSmPosHprL(_store_xyz[0], _store_xyz[1], _store_xyz[2],
-                 _store_hpr[0], _store_hpr[1], _store_hpr[2], _currL[0]);
+  d_setSmPosHpr(_store_xyz[0], _store_xyz[1], _store_xyz[2],
+                _store_hpr[0], _store_hpr[1], _store_hpr[2]);
 }
 
 /**
