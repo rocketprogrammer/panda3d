@@ -130,4 +130,4 @@ class RandomNumGen:
     # synchronicity is critical
     def random(self):
         """returns random float in [0.0, 1.0)"""
-        return float(self.__rng.getUint31()) // float(1 << 31)
+        return float(self.__rng.getUint31()) / float(1 << 31)
