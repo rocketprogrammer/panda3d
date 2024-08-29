@@ -310,7 +310,7 @@ class DistributedObjectAI(DistributedObjectBase):
         # setLocation destroys self._zoneData if we move away to
         # a different zone
         if self._zoneData is None:
-            if os.path.isdir("otp/ai"):
+            if os.path.isdir("otp/ai") or os.path.isdir("otp/src/ai"):
                 from otp.ai.AIZoneData import AIZoneData  # type: ignore[import]
             else:
                 from game.otp.ai.AIZoneData import AIZoneData  # type: ignore[import]
