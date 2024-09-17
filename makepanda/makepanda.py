@@ -5415,23 +5415,6 @@ if not PkgSkip("DNA") or not PkgSkip("SUIT") or not PkgSkip("PETS"):
     PyTargetAdd('toontown.pyd', input=COMMON_PANDA_LIBS)
 
 #
-# DIRECTORY: panda/src/pirates/
-#
-
-OPTS=['DIR:panda/src/pirates', 'BUILDING:PANDA']
-TargetAdd('p3pirates_composite1.obj', opts=OPTS, input='libpirates_composite.cxx')
-
-OPTS=['DIR:panda/src/pirates', 'PYTHON']
-IGATEFILES=GetDirectoryContents('panda/src/pirates', ["*.h", "*_composite.cxx"])
-TargetAdd('libp3pirates.in', opts=OPTS, input=IGATEFILES)
-TargetAdd('libp3pirates.in', opts=['IMOD:panda3d.core', 'ILIB:libp3pirates', 'SRCDIR:panda/src/pirates'])
-PyTargetAdd('libp3pirates_igate.obj', opts=OPTS, input='libp3pirates.in')
-
-TargetAdd('libpanda.dll', input='p3pirates_composite1.obj')
-PyTargetAdd('core_module.obj', input='libp3pirates.in')
-PyTargetAdd('core.pyd', input='libp3pirates_igate.obj')
-
-#
 # DIRECTORY: pandatool/src/pandatoolbase/
 #
 
