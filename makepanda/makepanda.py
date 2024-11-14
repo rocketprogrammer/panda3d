@@ -6073,6 +6073,19 @@ if not PkgSkip("PANDATOOL"):
         TargetAdd('x2egg.exe', input=COMMON_EGG2X_LIBS)
         TargetAdd('x2egg.exe', opts=['ADVAPI'])
 
+
+#
+# DIRECTORY: pandatool/src/dnaprogs/
+#
+
+if not PkgSkip("PANDATOOL") and not PkgSkip("DNA"):
+  OPTS=['DIR:pandatool/src/dnaprogs']
+  TargetAdd('dna-trans_dnaTrans.obj', opts=OPTS, input='dnaTrans.cxx')
+  TargetAdd('dna-trans.exe', input='dna-trans_dnaTrans.obj')
+  TargetAdd('dna-trans.exe', input=COMMON_PANDA_LIBS)
+  TargetAdd('dna-trans.exe', input='libp3toontown.dll')
+  TargetAdd('dna-trans.exe', opts=['ADVAPI'])
+
 #
 # DIRECTORY: contrib/src/ai/
 #

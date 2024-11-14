@@ -3418,6 +3418,8 @@ def GetExtensionSuffix():
         suffix = 't' if gil_disabled and int(gil_disabled) else ''
         if GetTargetArch() == 'x64':
             return dllext + '.cp%d%d%s-win_amd64.pyd' % (sys.version_info[0], sys.version_info[1], suffix)
+        elif GetTargetArch() == 'arm64':
+            return dllext + '.cp%d%d%s-win_arm64.pyd' % (sys.version_info[0], sys.version_info[1], suffix)
         else:
             return dllext + '.cp%d%d%s-win32.pyd' % (sys.version_info[0], sys.version_info[1], suffix)
     elif target == 'emscripten':
