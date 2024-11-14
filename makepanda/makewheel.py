@@ -28,13 +28,15 @@ def get_real_filepath(filename):
 
 
 def get_abi_tag():
-    soabi = get_config_var('SOABI')
-    if soabi and soabi.startswith('cpython-'):
-        return 'cp' + soabi.split('-')[1]
-    elif soabi:
-        return soabi.replace('.', '_').replace('-', '_')
+    ver = 'cp%d%d' % sys.version_info[:2]
+    if hasattr(sys, 'abiflags'):
+        return ver + sys.abiflags
 
-    return 'cp%d%d' % (sys.version_info[:2])
+    gil_disabled = get_config_var("Py_GIL_DISABLED")
+    if gil_disabled and int(gil_disabled):
+        return ver + 't'
+
+    return ver
 
 
 def is_exe_file(path):
@@ -103,6 +105,17 @@ IGNORE_UNIX_DEPS_OF = [
     "panda3d_tools/pstats",
 ]
 
+# Tools to exclude from the wheel.
+EXCLUDE_BINARIES = [
+    'eggcacher',
+    'packpanda',
+    'interrogate',
+    'interrogate_module',
+    'test_interrogate',
+    'parse_file',
+    'run_tests',
+]
+
 WHEEL_DATA = """Wheel-Version: 1.0
 Generator: makepanda
 Root-Is-Purelib: false
@@ -114,7 +127,7 @@ PROJECT_URLS = dict([line.split('=', 1) for line in GetMetadataValue('project_ur
 METADATA = {
     "license": GetMetadataValue('license'),
     "name": GetMetadataValue('name'),
-    "metadata_version": "2.0",
+    "metadata_version": "2.1",
     "generator": "makepanda",
     "summary": GetMetadataValue('description'),
     "extensions": {
@@ -496,7 +509,8 @@ class WheelFile(object):
                         self.consider_add_dependency(target_dep, dep_path)
                         continue
 
-                    elif dep.startswith('/Library/Frameworks/Python.framework/'):
+                    elif dep.startswith('/Library/Frameworks/Python.framework/') or \
+                         dep.startswith('/Library/Frameworks/PythonT.framework/'):
                         # Add this dependency if it's in the Python directory.
                         target_dep = os.path.dirname(target_path) + '/' + os.path.basename(dep)
                         target_dep = self.consider_add_dependency(target_dep, dep, loader_path)
@@ -638,10 +652,20 @@ def makewheel(version, output_dir, platform=None):
     if platform is None:
         # Determine the platform from the build.
         platform_dat = os.path.join(output_dir, 'tmp', 'platform.dat')
+        cmake_cache = os.path.join(output_dir, 'CMakeCache.txt')
         if os.path.isfile(platform_dat):
+            # This is written by makepanda.
             platform = open(platform_dat, 'r').read().strip()
+        elif os.path.isfile(cmake_cache):
+            # This variable is written to the CMake cache by Package.cmake.
+            for line in open(cmake_cache, 'r').readlines():
+                if line.startswith('PYTHON_PLATFORM_TAG:STRING='):
+                    platform = line[27:].strip()
+                    break
+            if not platform:
+                raise Exception("Could not find PYTHON_PLATFORM_TAG in CMakeCache.txt, specify --platform manually.")
         else:
-            print("Could not find platform.dat in build directory")
+            print("Could not find platform.dat or CMakeCache.txt in build directory")
             platform = get_platform()
             if platform.startswith("linux-") and os.path.isdir("/opt/python"):
                 # Is this manylinux?
@@ -729,11 +753,16 @@ def makewheel(version, output_dir, platform=None):
             whl.lib_path += ["/lib", "/usr/lib"]
 
     # Add libpython for deployment.
+    suffix = ''
+    gil_disabled = get_config_var("Py_GIL_DISABLED")
+    if gil_disabled and int(gil_disabled):
+        suffix = 't'
+
     if is_windows:
-        pylib_name = 'python{0}{1}.dll'.format(*sys.version_info)
+        pylib_name = 'python{0}{1}{2}.dll'.format(sys.version_info[0], sys.version_info[1], suffix)
         pylib_path = os.path.join(get_config_var('BINDIR'), pylib_name)
     elif is_macosx:
-        pylib_name = 'libpython{0}.{1}.dylib'.format(*sys.version_info)
+        pylib_name = 'libpython{0}.{1}{2}.dylib'.format(sys.version_info[0], sys.version_info[1], suffix)
         pylib_path = os.path.join(get_config_var('LIBDIR'), pylib_name)
     else:
         pylib_name = get_config_var('LDLIBRARY')
@@ -873,7 +902,7 @@ if __debug__:
     tools_init = ''
     for file in sorted(os.listdir(bin_dir)):
         basename = os.path.splitext(file)[0]
-        if basename in ('eggcacher', 'packpanda'):
+        if basename in EXCLUDE_BINARIES:
             continue
 
         source_path = os.path.join(bin_dir, file)
