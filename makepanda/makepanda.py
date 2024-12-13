@@ -5318,7 +5318,6 @@ if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"
     if not PkgSkip("NAVIGATION"):
         PyTargetAdd('otp.pyd', input='libp3navigation_igate.obj')
     PyTargetAdd('otp.pyd', input='libp3otp.dll')
-    PyTargetAdd('otp.pyd', input='libp3interrogatedb.dll')
     PyTargetAdd('otp.pyd', input=COMMON_PANDA_LIBS)
 
 #
@@ -5408,7 +5407,6 @@ if not PkgSkip("DNA") or not PkgSkip("SUIT") or not PkgSkip("PETS"):
         PyTargetAdd('toontown.pyd', input='libp3pets_igate.obj')
     PyTargetAdd('toontown.pyd', input='libp3otp.dll')
     PyTargetAdd('toontown.pyd', input='libp3toontown.dll')
-    PyTargetAdd('toontown.pyd', input='libp3interrogatedb.dll')
     PyTargetAdd('toontown.pyd', input=COMMON_PANDA_LIBS)
 
 #
