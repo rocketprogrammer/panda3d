@@ -4,7 +4,7 @@ from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.distributed.DistributedObjectBase import DistributedObjectBase
 from direct.showbase.MessengerGlobal import messenger
 from direct.showbase import PythonUtil
-#from PyDatagram import PyDatagram
+from .PyDatagram import PyDatagram
 #from PyDatagramIterator import PyDatagramIterator
 import os
 
