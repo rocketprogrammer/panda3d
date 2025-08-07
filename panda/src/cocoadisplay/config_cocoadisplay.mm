@@ -12,11 +12,8 @@
  */
 
 #include "config_cocoadisplay.h"
-#include "cocoaGraphicsBuffer.h"
 #include "cocoaGraphicsPipe.h"
-#include "cocoaGraphicsStateGuardian.h"
 #include "cocoaGraphicsWindow.h"
-#include "graphicsPipeSelection.h"
 #include "dconfig.h"
 #include "pandaSystem.h"
 
@@ -35,6 +32,11 @@ ConfigVariableBool cocoa_invert_wheel_x
 ("cocoa-invert-wheel-x", false,
  PRC_DESC("Set this to true to swap the wheel_left and wheel_right mouse "
           "button events, to restore to the pre-1.10.12 behavior."));
+ConfigVariableBool dpi_aware
+("dpi-aware", false,
+ PRC_DESC("The default behavior on macOS is for Panda3D to use upscaling on"
+          "high DPI screen. Set this to true to let the application use the"
+          "actual pixel density of the screen."));
 
 /**
  * Initializes the library.  This must be called at least once before any of
@@ -50,15 +52,6 @@ init_libcocoadisplay() {
   }
   initialized = true;
 
-  CocoaGraphicsBuffer::init_type();
   CocoaGraphicsPipe::init_type();
-  CocoaGraphicsStateGuardian::init_type();
   CocoaGraphicsWindow::init_type();
-
-  GraphicsPipeSelection *selection = GraphicsPipeSelection::get_global_ptr();
-  selection->add_pipe_type(CocoaGraphicsPipe::get_class_type(),
-                           CocoaGraphicsPipe::pipe_constructor);
-
-  PandaSystem *ps = PandaSystem::get_global_ptr();
-  ps->set_system_tag("OpenGL", "window_system", "Cocoa");
 }

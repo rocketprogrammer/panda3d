@@ -24,10 +24,13 @@
 
 #ifdef PHAVE_UTIME_H
 #include <utime.h>
+#endif
 
 // We assume we have these too.
+#ifndef _WIN32
 #include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 #endif
 
 #ifdef PHAVE_GLOB_H
@@ -433,7 +436,7 @@ Filename Filename::
 temporary(const string &dirname, const string &prefix, const string &suffix,
           Type type) {
   Filename fdirname = dirname;
-#if defined(_WIN32) || defined(ANDROID)
+#if defined(_WIN32) || defined(ANDROID) || defined(__wasi__)
   // The Windows tempnam() function doesn't do a good job of choosing a
   // temporary directory.  Choose one ourselves.
   if (fdirname.empty()) {
@@ -1046,7 +1049,7 @@ make_canonical() {
     return true;
   }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasi__)
   // Use realpath in order to resolve symlinks properly
   char newpath [PATH_MAX + 1];
   if (realpath(c_str(), newpath) != nullptr) {
@@ -1054,7 +1057,7 @@ make_canonical() {
     newpath_fn._flags = _flags;
     (*this) = newpath_fn;
   }
-#endif
+#endif  // _WIN32 __wasi__
 
   Filename cwd = ExecutionEnvironment::get_cwd();
   if (!r_make_canonical(cwd)) {
@@ -1286,9 +1289,12 @@ to_os_long_name() const {
 }
 
 /**
- * Returns true if the filename exists on the disk, false otherwise.  If the
- * type is indicated to be executable, this also tests that the file has
+ * Returns true if the filename exists on the physical disk, false otherwise.
+ * If the type is indicated to be executable, this also tests that the file has
  * execute permission.
+ *
+ * @see VirtualFileSystem::exists() for checking whether the filename exists in
+ * the virtual file system.
  */
 bool Filename::
 exists() const {
@@ -1317,8 +1323,11 @@ exists() const {
 }
 
 /**
- * Returns true if the filename exists and is the name of a regular file (i.e.
- * not a directory or device), false otherwise.
+ * Returns true if the filename exists on the physical disk and is the name of
+ * a regular file (i.e. not a directory or device), false otherwise.
+ *
+ * @see VirtualFileSystem::is_regular_file() for checking whether the filename
+ * exists and is a regular file in the virtual file system.
  */
 bool Filename::
 is_regular_file() const {
@@ -1347,8 +1356,8 @@ is_regular_file() const {
 }
 
 /**
- * Returns true if the filename exists and is either a directory or a regular
- * file that can be written to, or false otherwise.
+ * Returns true if the filename exists on the physical disk and is either a
+ * directory or a regular file that can be written to, or false otherwise.
  */
 bool Filename::
 is_writable() const {
@@ -1379,8 +1388,11 @@ is_writable() const {
 }
 
 /**
- * Returns true if the filename exists and is a directory name, false
- * otherwise.
+ * Returns true if the filename exists on the physical disk and is a directory
+ * name, false otherwise.
+ *
+ * @see VirtualFileSystem::is_directory() for checking whether the filename
+ * exists as a directory in the virtual file system.
  */
 bool Filename::
 is_directory() const {
@@ -2305,7 +2317,9 @@ touch() const {
         perror(os_specific.c_str());
         return false;
       }
-      close(fd);
+      if (close(fd) < 0) {
+        perror(os_specific.c_str());
+      }
       return true;
     }
     perror(os_specific.c_str());
@@ -2317,7 +2331,7 @@ touch() const {
   // time.  For these systems, we'll just temporarily open the file in append
   // mode, then close it again (it gets closed when the pfstream goes out of
   // scope).
-  pfstream file;
+  pofstream file;
   return open_append(file);
 #endif  // _WIN32, PHAVE_UTIME_H
 }
@@ -2754,7 +2768,9 @@ atomic_compare_and_exchange_contents(string &orig_contents,
   if (flock(fd, LOCK_EX) != 0) {
 #endif
     perror(os_specific.c_str());
-    close(fd);
+    if (close(fd) < 0) {
+      perror(os_specific.c_str());
+    }
     return false;
   }
 
@@ -2766,7 +2782,9 @@ atomic_compare_and_exchange_contents(string &orig_contents,
 
   if (bytes_read < 0) {
     perror(os_specific.c_str());
-    close(fd);
+    if (close(fd) < 0) {
+      perror(os_specific.c_str());
+    }
     return false;
   }
 
@@ -2777,7 +2795,9 @@ atomic_compare_and_exchange_contents(string &orig_contents,
     ssize_t bytes_written = write(fd, new_contents.data(), new_contents.size());
     if (bytes_written < 0) {
       perror(os_specific.c_str());
-      close(fd);
+      if (close(fd) < 0) {
+        perror(os_specific.c_str());
+      }
       return false;
     }
   }
@@ -2870,7 +2890,9 @@ atomic_read_contents(string &contents) const {
   if (flock(fd, LOCK_EX) != 0) {
 #endif
     perror(os_specific.c_str());
-    close(fd);
+    if (close(fd) < 0) {
+      perror(os_specific.c_str());
+    }
     return false;
   }
 
@@ -2882,11 +2904,15 @@ atomic_read_contents(string &contents) const {
 
   if (bytes_read < 0) {
     perror(os_specific.c_str());
-    close(fd);
+    if (close(fd) < 0) {
+      perror(os_specific.c_str());
+    }
     return false;
   }
 
-  close(fd);
+  if (close(fd) < 0) {
+    perror(os_specific.c_str());
+  }
   return true;
 #endif  // _WIN32
 }

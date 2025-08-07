@@ -63,6 +63,13 @@
   #include <sys/time.h>
 #endif
 
+#ifdef __APPLE__
+extern "C" {
+  void *objc_autoreleasePoolPush();
+  void objc_autoreleasePoolPop(void *);
+};
+#endif
+
 using std::string;
 
 PT(GraphicsEngine) GraphicsEngine::_global_ptr;
@@ -777,7 +784,7 @@ render_frame() {
         }
       }
     }
-    _windows.swap(new_windows);
+    _windows = std::move(new_windows);
 
     // Go ahead and release any textures' ram images for textures that were
     // drawn in the previous frame.
@@ -969,7 +976,7 @@ open_windows() {
 
   ReMutexHolder holder(_lock, current_thread);
 
-  pvector<PT(GraphicsOutput)> new_windows;
+  NewWindows new_windows;
   {
     MutexHolder new_windows_holder(_new_windows_lock, current_thread);
     if (_new_windows.empty()) {
@@ -1016,7 +1023,7 @@ open_windows() {
     }
 
     // Steal the list, since remove_window() may remove from _new_windows.
-    new_windows.swap(_new_windows);
+    new_windows = std::move(_new_windows);
   }
 
   do_resort_windows();
@@ -1185,14 +1192,15 @@ extract_texture_data(Texture *tex, GraphicsStateGuardian *gsg) {
  * The return value is true if the operation is successful, false otherwise.
  */
 void GraphicsEngine::
-dispatch_compute(const LVecBase3i &work_groups, const ShaderAttrib *sattr, GraphicsStateGuardian *gsg) {
+dispatch_compute(const LVecBase3i &work_groups, const RenderState *state, GraphicsStateGuardian *gsg) {
+  const ShaderAttrib *sattr;
+  DCAST_INTO_V(sattr, state->get_attrib(ShaderAttrib::get_class_slot()));
+
   const Shader *shader = sattr->get_shader();
   nassertv(shader != nullptr);
   nassertv(gsg != nullptr);
 
   ReMutexHolder holder(_lock);
-
-  CPT(RenderState) state = RenderState::make(sattr);
 
   string draw_name = gsg->get_threading_model().get_draw_name();
   if (draw_name.empty()) {
@@ -1220,7 +1228,7 @@ dispatch_compute(const LVecBase3i &work_groups, const ShaderAttrib *sattr, Graph
 
     // Now that the draw thread is idle, signal it to do the compute task.
     thread->_gsg = gsg;
-    thread->_state = state.p();
+    thread->_state = state;
     thread->_work_groups = work_groups;
     thread->_thread_state = TS_do_compute;
     thread->_cv_mutex.release();
@@ -2585,6 +2593,11 @@ void GraphicsEngine::WindowRenderer::
 do_frame(GraphicsEngine *engine, Thread *current_thread) {
   LightReMutexHolder holder(_wl_lock);
 
+#ifdef __APPLE__
+  // Enclose the entire frame in an autorelease pool.
+  void *pool = objc_autoreleasePoolPush();
+#endif
+
   if (!_cull.empty()) {
     engine->cull_to_bins(_cull, current_thread);
   }
@@ -2597,6 +2610,10 @@ do_frame(GraphicsEngine *engine, Thread *current_thread) {
   if (!_window.empty()) {
     engine->process_events(_window, current_thread);
   }
+
+#ifdef __APPLE__
+  objc_autoreleasePoolPop(pool);
+#endif
 
   // If any GSG's on the list have no more outstanding pointers, clean them
   // up.  (We are in the draw thread for all of these GSG's.)
@@ -2629,10 +2646,18 @@ void GraphicsEngine::WindowRenderer::
 do_windows(GraphicsEngine *engine, Thread *current_thread) {
   LightReMutexHolder holder(_wl_lock);
 
+#ifdef __APPLE__
+  void *pool = objc_autoreleasePoolPush();
+#endif
+
   engine->process_events(_window, current_thread);
 
   engine->make_contexts(_cdraw, current_thread);
   engine->make_contexts(_draw, current_thread);
+
+#ifdef __APPLE__
+  objc_autoreleasePoolPop(pool);
+#endif
 }
 
 /**

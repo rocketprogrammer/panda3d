@@ -2,10 +2,10 @@
 [![OpenCollective](https://opencollective.com/panda3d/backers/badge.svg)](https://opencollective.com/panda3d)
 [![OpenCollective](https://opencollective.com/panda3d/sponsors/badge.svg)](https://opencollective.com/panda3d)
 
-<img src="https://avatars2.githubusercontent.com/u/590956?v=3&s=500" align="right" width="200"/>
-
 Panda3D
 =======
+
+<img src="https://avatars2.githubusercontent.com/u/590956?v=3&s=500" align="right" width="200" />
 
 Panda3D is a game engine, a framework for 3D rendering and game development for
 Python and C++ programs.  Panda3D is open-source and free for any purpose,
@@ -24,7 +24,7 @@ Installing Panda3D
 ==================
 
 The latest Panda3D SDK can be downloaded from
-[this page](https://www.panda3d.org/download/sdk-1-10-13/).
+[this page](https://www.panda3d.org/download/sdk-1-10-15/).
 If you are familiar with installing Python packages, you can use
 the following command:
 
@@ -52,7 +52,7 @@ Building Panda3D
 Windows
 -------
 
-You can build Panda3D with the Microsoft Visual C++ 2015, 2017, 2019 or 2022
+You can build Panda3D with the Microsoft Visual C++ 2017, 2019 or 2022
 compiler, which can be downloaded for free from the [Visual Studio site](https://visualstudio.microsoft.com/downloads/).
 You will also need to install the [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk),
 and if you intend to target Windows Vista, you will also need the
@@ -64,8 +64,8 @@ depending on whether you are on a 32-bit or 64-bit system, or you can
 [click here](https://github.com/rdb/panda3d-thirdparty) for instructions on
 building them from source.
 
-- https://www.panda3d.org/download/panda3d-1.10.13/panda3d-1.10.13-tools-win64.zip
-- https://www.panda3d.org/download/panda3d-1.10.13/panda3d-1.10.13-tools-win32.zip
+- https://www.panda3d.org/download/panda3d-1.10.15/panda3d-1.10.15-tools-win64.zip
+- https://www.panda3d.org/download/panda3d-1.10.15/panda3d-1.10.15-tools-win32.zip
 
 After acquiring these dependencies, you can build Panda3D from the command
 prompt using the following command.  Change the `--msvc-version` option based
@@ -106,14 +106,14 @@ python3 makepanda/makepanda.py --everything --installer --no-egl --no-gles --no-
 You will probably see some warnings saying that it's unable to find several
 dependency packages.  You should determine which ones you want to include in
 your build and install the respective development packages.  You may visit
-[this manual page](https://www.panda3d.org/manual/?title=Third-party_dependencies_and_license_info)
+[this manual page](https://docs.panda3d.org/1.11/python/distribution/thirdparty-licenses)
 for an overview of the various dependencies.
 
 If you are on Ubuntu, this command should cover the most frequently
 used third-party packages:
 
 ```bash
-sudo apt-get install build-essential pkg-config fakeroot python3-dev libpng-dev libjpeg-dev libtiff-dev zlib1g-dev libssl-dev libx11-dev libgl1-mesa-dev libxrandr-dev libxxf86dga-dev libxcursor-dev bison flex libfreetype6-dev libvorbis-dev libeigen3-dev libopenal-dev libode-dev libbullet-dev nvidia-cg-toolkit libgtk2.0-dev libassimp-dev libopenexr-dev
+sudo apt-get install build-essential pkg-config fakeroot python3-dev libpng-dev libjpeg-dev libtiff-dev zlib1g-dev libssl-dev libx11-dev libgl1-mesa-dev libxrandr-dev libxxf86dga-dev libxcursor-dev bison flex libfreetype6-dev libvorbis-dev libeigen3-dev libopenal-dev libode-dev libbullet-dev nvidia-cg-toolkit libgtk-3-dev libassimp-dev libopenexr-dev
 ```
 
 Once Panda3D has built, you can either install the .deb or .rpm package that
@@ -136,7 +136,7 @@ macOS
 -----
 
 On macOS, you will need to download a set of precompiled thirdparty packages in order to
-compile Panda3D, which can be acquired from [here](https://www.panda3d.org/download/panda3d-1.10.13/panda3d-1.10.13-tools-mac.tar.gz).
+compile Panda3D, which can be acquired from [here](https://www.panda3d.org/download/panda3d-1.10.15/panda3d-1.10.15-tools-mac.tar.gz).
 
 After placing the thirdparty directory inside the panda3d source directory,
 you may build Panda3D using a command like the following:
@@ -168,7 +168,7 @@ Install the appropriate package for it (such as `python37` or `python38`) and
 run the makepanda script with your chosen Python version:
 
 ```bash
-python3.7 makepanda/makepanda.py --everything --installer --no-egl --no-gles --no-gles2
+python3.11 makepanda/makepanda.py --everything --installer --no-egl --no-gles --no-gles2
 ```
 
 If successful, this will produce a .pkg file in the root of the source

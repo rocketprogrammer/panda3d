@@ -24,7 +24,7 @@
 using std::string;
 
 static const char * const extensions_sgi[] = {
-  "rgb", "rgba", "sgi"
+  "rgb", "rgba", "sgi", "bw"
 };
 static const int num_extensions_sgi = sizeof(extensions_sgi) / sizeof(const char *);
 
@@ -123,7 +123,7 @@ make_writer(std::ostream *file, bool owns_file) {
 void PNMFileTypeSGI::
 register_with_read_factory() {
   BamReader::get_factory()->
-    register_factory(get_class_type(), make_PNMFileTypeSGI);
+    register_factory(get_class_type(), make_from_bam);
 }
 
 /**
@@ -135,7 +135,7 @@ register_with_read_factory() {
  * we just pull the object from the registry.
  */
 TypedWritable *PNMFileTypeSGI::
-make_PNMFileTypeSGI(const FactoryParams &params) {
+make_from_bam(const FactoryParams &params) {
   return PNMFileTypeRegistry::get_global_ptr()->get_type_by_handle(get_class_type());
 }
 

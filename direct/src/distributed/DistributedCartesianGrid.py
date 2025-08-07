@@ -5,13 +5,14 @@ from direct.directnotify.DirectNotifyGlobal import directNotify
 
 from direct.distributed.DistributedNode import DistributedNode
 from direct.task import Task
+from direct.task.TaskManagerGlobal import taskMgr
 from direct.gui import DirectGuiGlobals
 from direct.showbase.PythonUtil import report
 from direct.distributed.StagedObject import StagedObject
 
 if __debug__:
     # For grid drawing
-    from direct.directtools.DirectGeometry import *
+    from direct.directtools.DirectGeometry import LineNodePath
     from direct.showbase.PythonUtil import randFloat
 
 from .CartesianGridBase import CartesianGridBase
@@ -23,7 +24,7 @@ GRID_Z_OFFSET = 0.0
 class DistributedCartesianGrid(DistributedNode, CartesianGridBase, StagedObject):
     notify = directNotify.newCategory("DistributedCartesianGrid")
     notify.setDebug(0)
-    
+
     VisualizeGrid = ConfigVariableBool("visualize-cartesian-grid", False)
 
     def __init__(self, cr):
@@ -58,11 +59,11 @@ class DistributedCartesianGrid(DistributedNode, CartesianGridBase, StagedObject)
         DistributedNode.handleChildLeave(self, child, zoneId)
         CartesianGridBase.handleChildLeave(self, child, zoneId)
         pass
-            
+
     def handleOffStage(self):
         StagedObject.handleOffStage(self)
         pass
-    
+
     def handleOnStage(self, av = None):
         StagedObject.handleOnStage(self)
         if av:

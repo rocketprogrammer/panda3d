@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import wx
 from wx.lib.agw import fourwaysplitter as FWS
 
-from panda3d.core import *
-from direct.showbase.ShowBase import *
+from direct.showbase.ShowBase import ShowBase
 from direct.showbase import ShowBaseGlobal
-from direct.directtools.DirectGlobals import *
+from direct.directtools.DirectGlobals import SKIP_UNPICKABLE
+from direct.task.TaskManagerGlobal import taskMgr
 
-from .WxAppShell import *
-from .ViewPort import *
+from .WxAppShell import WxAppShell
+from .ViewPort import Viewport, ViewportManager
 
 ID_FOUR_VIEW = 401
 ID_TOP_VIEW = 402
@@ -25,13 +27,13 @@ class WxPandaShell(WxAppShell):
     copyright       = ('Copyright 2010 Disney Online Studios.' +
                        '\nAll Rights Reserved.')
 
-    MENU_TEXTS = {
-        ID_FOUR_VIEW : ("Four Views", None),
-        ID_TOP_VIEW : ("Top View", None),
-        ID_FRONT_VIEW : ("Front View", None),
-        ID_LEFT_VIEW : ("Left View", None),
-        ID_PERSP_VIEW : ("Persp View", None),
-        }
+    MENU_TEXTS: dict[int, tuple[str, str | None]] = {
+        ID_FOUR_VIEW: ("Four Views", None),
+        ID_TOP_VIEW: ("Top View", None),
+        ID_FRONT_VIEW: ("Front View", None),
+        ID_LEFT_VIEW: ("Left View", None),
+        ID_PERSP_VIEW: ("Persp View", None),
+    }
 
     def __init__(self, fStartDirect = False):
         base = getattr(ShowBaseGlobal, 'base', None)
@@ -114,44 +116,46 @@ class WxPandaShell(WxAppShell):
         self.wxStep()
         ViewportManager.initializeAll()
         # Position the camera
+        base = ShowBaseGlobal.base
         if base.trackball is not None:
             base.trackball.node().setPos(0, 30, 0)
             base.trackball.node().setHpr(0, 15, 0)
 
         # to make persp view as default
-        self.perspViewMenuItem.Toggle()
+        self.perspViewMenuItem.Check()
         self.onViewChange(None, 3)
 
         # initializing direct
         if self.fStartDirect:
             base.startDirect(fWantTk = 0, fWantWx = 0)
+            direct = ShowBaseGlobal.direct
 
-            base.direct.disableMouseEvents()
-            newMouseEvents = ["_le_per_%s"%x for x in base.direct.mouseEvents] +\
-                             ["_le_fro_%s"%x for x in base.direct.mouseEvents] +\
-                             ["_le_lef_%s"%x for x in base.direct.mouseEvents] +\
-                             ["_le_top_%s"%x for x in base.direct.mouseEvents]
-            base.direct.mouseEvents = newMouseEvents
-            base.direct.enableMouseEvents()
+            direct.disableMouseEvents()
+            newMouseEvents = ["_le_per_%s"%x for x in direct.mouseEvents] +\
+                             ["_le_fro_%s"%x for x in direct.mouseEvents] +\
+                             ["_le_lef_%s"%x for x in direct.mouseEvents] +\
+                             ["_le_top_%s"%x for x in direct.mouseEvents]
+            direct.mouseEvents = newMouseEvents
+            direct.enableMouseEvents()
 
-            base.direct.disableKeyEvents()
-            keyEvents = ["_le_per_%s"%x for x in base.direct.keyEvents] +\
-                             ["_le_fro_%s"%x for x in base.direct.keyEvents] +\
-                             ["_le_lef_%s"%x for x in base.direct.keyEvents] +\
-                             ["_le_top_%s"%x for x in base.direct.keyEvents]
-            base.direct.keyEvents = keyEvents
-            base.direct.enableKeyEvents()
+            direct.disableKeyEvents()
+            keyEvents = ["_le_per_%s"%x for x in direct.keyEvents] +\
+                             ["_le_fro_%s"%x for x in direct.keyEvents] +\
+                             ["_le_lef_%s"%x for x in direct.keyEvents] +\
+                             ["_le_top_%s"%x for x in direct.keyEvents]
+            direct.keyEvents = keyEvents
+            direct.enableKeyEvents()
 
-            base.direct.disableModifierEvents()
-            modifierEvents = ["_le_per_%s"%x for x in base.direct.modifierEvents] +\
-                             ["_le_fro_%s"%x for x in base.direct.modifierEvents] +\
-                             ["_le_lef_%s"%x for x in base.direct.modifierEvents] +\
-                             ["_le_top_%s"%x for x in base.direct.modifierEvents]
-            base.direct.modifierEvents = modifierEvents
-            base.direct.enableModifierEvents()
+            direct.disableModifierEvents()
+            modifierEvents = ["_le_per_%s"%x for x in direct.modifierEvents] +\
+                             ["_le_fro_%s"%x for x in direct.modifierEvents] +\
+                             ["_le_lef_%s"%x for x in direct.modifierEvents] +\
+                             ["_le_top_%s"%x for x in direct.modifierEvents]
+            direct.modifierEvents = modifierEvents
+            direct.enableModifierEvents()
 
-            base.direct.cameraControl.lockRoll = True
-            base.direct.setFScaleWidgetByCam(1)
+            direct.cameraControl.lockRoll = True
+            direct.setFScaleWidgetByCam(1)
 
             unpickables = [
                 "z-guide",
@@ -172,31 +176,31 @@ class WxPandaShell(WxAppShell):
                 "Sphere",]
 
             for unpickable in unpickables:
-                base.direct.addUnpickable(unpickable)
+                direct.addUnpickable(unpickable)
 
-            base.direct.manipulationControl.optionalSkipFlags |= SKIP_UNPICKABLE
-            base.direct.manipulationControl.fAllowMarquee = 1
-            base.direct.manipulationControl.supportMultiView()
-            base.direct.cameraControl.useMayaCamControls = 1
-            base.direct.cameraControl.perspCollPlane = self.perspView.collPlane
-            base.direct.cameraControl.perspCollPlane2 = self.perspView.collPlane2
+            direct.manipulationControl.optionalSkipFlags |= SKIP_UNPICKABLE
+            direct.manipulationControl.fAllowMarquee = 1
+            direct.manipulationControl.supportMultiView()
+            direct.cameraControl.useMayaCamControls = 1
+            direct.cameraControl.perspCollPlane = self.perspView.collPlane
+            direct.cameraControl.perspCollPlane2 = self.perspView.collPlane2
 
-            for widget in base.direct.manipulationControl.widgetList:
+            for widget in direct.manipulationControl.widgetList:
                 widget.setBin('gui-popup', 0)
                 widget.setDepthTest(0)
 
             # [gjeon] to intercept messages here
-            base.direct.ignore('DIRECT-delete')
-            base.direct.ignore('DIRECT-select')
-            base.direct.ignore('DIRECT-preDeselectAll')
-            base.direct.ignore('DIRECT-toggleWidgetVis')
-            base.direct.fIgnoreDirectOnlyKeyMap = 1
+            direct.ignore('DIRECT-delete')
+            direct.ignore('DIRECT-select')
+            direct.ignore('DIRECT-preDeselectAll')
+            direct.ignore('DIRECT-toggleWidgetVis')
+            direct.fIgnoreDirectOnlyKeyMap = 1
 
             # [gjeon] do not use the old way of finding current DR
-            base.direct.drList.tryToGetCurrentDr = False
+            direct.drList.tryToGetCurrentDr = False
 
         else:
-            base.direct=None
+            base.direct = None
         #base.closeWindow(base.win)
         base.win = base.winList[3]
 

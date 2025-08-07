@@ -32,6 +32,8 @@ PredictionLag = ConfigVariableDouble("smooth-prediction-lag", 0.0)
 
 GlobalSmoothing = 0
 GlobalPrediction = 0
+
+
 def globalActivateSmoothing(smoothing, prediction):
     """ Globally activates or deactivates smoothing and prediction on
     all DistributedSmoothNodes currently in existence, or yet to be
@@ -43,6 +45,7 @@ def globalActivateSmoothing(smoothing, prediction):
 
     for obj in base.cr.getAllOfType(DistributedSmoothNode):
         obj.activateSmoothing(smoothing, prediction)
+
 
 # For historical reasons, we temporarily define
 # DistributedSmoothNode.activateSmoothing() to be the global function.
@@ -81,7 +84,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         self.smoother = SmoothMover()
         self.smoothStarted = 0
         self.lastSuggestResync = 0
-        
+
         DistributedNode.DistributedNode.generate(self)
         DistributedSmoothNodeBase.DistributedSmoothNodeBase.generate(self)
         self.cnode.setRepository(self.cr, 0, 0)
@@ -167,7 +170,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
             self.smoother.applySmoothPosHprE(self, self, embeddedVal)
             self.cnode.setEmbeddedVal(embeddedVal.get())
             pass
-        
+
         self.smoother.clearPositions(1)
 
     @report(types = ['args'], dConfigParam = 'smoothnode')
@@ -210,48 +213,56 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
                 self.smoother.markPosition()
 
         self.stopped = False
-        
+
     # distributed set pos and hpr functions
     # 'send' versions are inherited from DistributedSmoothNodeBase
     def setSmStop(self, timestamp=None):
         self.setComponentTLive(timestamp)
         self.stopped = True
+
     def setSmH(self, h, timestamp=None):
         self._checkResume(timestamp)
         self.setComponentH(h)
         self.setComponentTLive(timestamp)
+
     def setSmZ(self, z, timestamp=None):
         self._checkResume(timestamp)
         self.setComponentZ(z)
         self.setComponentTLive(timestamp)
+
     def setSmXY(self, x, y, timestamp=None):
         self._checkResume(timestamp)
         self.setComponentX(x)
         self.setComponentY(y)
         self.setComponentTLive(timestamp)
+
     def setSmXZ(self, x, z, timestamp=None):
         self._checkResume(timestamp)
         self.setComponentX(x)
         self.setComponentZ(z)
         self.setComponentTLive(timestamp)
+
     def setSmPos(self, x, y, z, timestamp=None):
         self._checkResume(timestamp)
         self.setComponentX(x)
         self.setComponentY(y)
         self.setComponentZ(z)
         self.setComponentTLive(timestamp)
+
     def setSmHpr(self, h, p, r, timestamp=None):
         self._checkResume(timestamp)
         self.setComponentH(h)
         self.setComponentP(p)
         self.setComponentR(r)
         self.setComponentTLive(timestamp)
+
     def setSmXYH(self, x, y, h, timestamp):
         self._checkResume(timestamp)
         self.setComponentX(x)
         self.setComponentY(y)
         self.setComponentH(h)
         self.setComponentTLive(timestamp)
+
     def setSmXYZH(self, x, y, z, h, timestamp=None):
         self._checkResume(timestamp)
         self.setComponentX(x)
@@ -259,6 +270,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         self.setComponentZ(z)
         self.setComponentH(h)
         self.setComponentTLive(timestamp)
+
     def setSmPosHpr(self, x, y, z, h, p, r, timestamp=None):
         self._checkResume(timestamp)
         self.setComponentX(x)
@@ -297,7 +309,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         # used and we just received telemetry in the current
         # coordinate space.
         return x, y, z, h, p, r
-    
+
     ### component set pos and hpr functions ###
 
     ### These are the component functions that are invoked
@@ -306,32 +318,38 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def setComponentX(self, x):
         self.smoother.setX(x)
+
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def setComponentY(self, y):
         self.smoother.setY(y)
+
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def setComponentZ(self, z):
         self.smoother.setZ(z)
+
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def setComponentH(self, h):
         self.smoother.setH(h)
+
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def setComponentP(self, p):
         self.smoother.setP(p)
+
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def setComponentR(self, r):
         self.smoother.setR(r)
+
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def setComponentE(self, e):
-        
+
         self.smoother.setE(e)
 
         # In case we switch from a receiver to a broadcaster, we'll
         # need the latest data.
         self.cnode.setEmbeddedVal(e)
         pass
-        
-    
+
+
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def setComponentT(self, timestamp):
         # This is a little bit hacky.  If *this* function is called,
@@ -411,26 +429,31 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
             eVal = EmbeddedValue()
             self.smoother.applySmoothPosHprE(self, self, eVal)
             self.cnode.setEmbeddedVal(eVal.get())
-            
+
     # These are all required by the CMU server, which requires get* to
     # match set* in more cases than the Disney server does.
     def getComponentX(self):
         return self.getX()
+
     def getComponentY(self):
         return self.getY()
+
     def getComponentZ(self):
         return self.getZ()
+
     def getComponentH(self):
         return self.getH()
+
     def getComponentP(self):
         return self.getP()
+
     def getComponentR(self):
         return self.getR()
     def getComponentE(self):
         return self.cnode.getEmbeddedVal()
     def getComponentT(self):
         return 0
-                
+
     @report(types = ['args'], dConfigParam = 'smoothnode')
     def clearSmoothing(self, bogus = None):
         # Call this to invalidate all the old position reports
@@ -474,7 +497,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
         self.sendUpdate("suggestResync", [avId, timestampA, timestampB,
                                           serverTimeSec, serverTimeUSec,
                                           uncertainty])
-        
+
     def suggestResync(self, avId, timestampA, timestampB,
                       serverTimeSec, serverTimeUSec, uncertainty):
         """
@@ -494,6 +517,7 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
                     "Warning: couldn't find the avatar %d" % (avId))
             elif hasattr(other, "d_returnResync") and \
                  hasattr(self.cr, 'localAvatarDoId'):
+                globalClock = ClockObject.getGlobalClock()
                 realTime = globalClock.getRealTime()
                 serverTime = realTime - globalClockDelta.getDelta()
                 assert self.notify.info(
@@ -503,16 +527,15 @@ class DistributedSmoothNode(DistributedNode.DistributedNode,
                     self.cr.localAvatarDoId, timestampB,
                     serverTime,
                     globalClockDelta.getUncertainty())
-        
 
     def d_returnResync(self, avId, timestampB, serverTime, uncertainty):
         serverTimeSec = math.floor(serverTime)
         serverTimeUSec = (serverTime - serverTimeSec) * 10000.0
         self.sendUpdate("returnResync", [
             avId, timestampB, serverTimeSec, serverTimeUSec, uncertainty])
-        
+
     def returnResync(self, avId, timestampB, serverTimeSec, serverTimeUSec,
-            uncertainty):
+                     uncertainty):
         """
         A reply sent by a client whom we recently sent suggestResync
         to, this reports the client's new delta information so we can

@@ -4,7 +4,7 @@ a particular color."""
 
 __all__ = ['Transitions']
 
-from panda3d.core import *
+from panda3d.core import AsyncFuture, ConfigVariableBool, NodePath, TransparencyAttrib, Vec3, Vec4
 from direct.showbase import ShowBaseGlobal
 from direct.showbase.MessengerGlobal import messenger
 from direct.gui.DirectGui import DirectFrame
@@ -81,7 +81,7 @@ class Transitions:
                 image = self.fadeModel,
                 image_scale = (4, 2, 2),
                 state = DGG.NORMAL,
-                )
+            )
             if not self.fadeModel:
                 # No fade model was given, so we make this the fade model.
                 self.fade["relief"] = DGG.FLAT
@@ -255,7 +255,6 @@ class Transitions:
         self.alphaOn.set(r, g, b, 1)
         self.alphaOff.set(r, g, b, 0)
 
-
     ##################################################
     # Iris
     ##################################################
@@ -265,6 +264,54 @@ class Transitions:
             self.iris = base.loader.loadModel(self.IrisModelName)
             self.iris.setPos(0, 0, 0)
 
+    def getIrisInIval(self, t=0.5, finishIval=None, blendType='noBlend'):
+        """
+        Returns an interval without starting it.  This is particularly useful in
+        cutscenes, so when the cutsceneIval is escaped out of we can finish the iris immediately
+        """
+        self.noTransitions()
+        self.loadIris()
+
+        scale = 0.18 * max(base.a2dRight, base.a2dTop)
+        transitionIval = Sequence(Func(self.iris.reparentTo, ShowBaseGlobal.aspect2d, DGG.FADE_SORT_INDEX),
+                                  LerpScaleInterval(self.iris, t,
+                                                    scale = scale,
+                                                    startScale = 0.01,
+                                                    blendType=blendType),
+                                 Func(self.iris.detachNode),
+                                 Func(self.__finishTransition),
+                                 name = self.irisTaskName,
+                                 )
+        if finishIval:
+            transitionIval.append(finishIval)
+        return transitionIval
+
+    def getIrisOutIval(self, t=0.5, finishIval=None, blendType='noBlend'):
+        """
+        Create a sequence that lerps the iris out, then
+        parents the iris to hidden
+        """
+        self.noTransitions()
+        self.loadIris()
+        self.loadFade()  # we need this to cover up the hole.
+
+        scale = 0.18 * max(base.a2dRight, base.a2dTop)
+        transitionIval = Sequence(Func(self.iris.reparentTo, ShowBaseGlobal.aspect2d, DGG.FADE_SORT_INDEX),
+                                  LerpScaleInterval(self.iris, t,
+                                                    scale = 0.01,
+                                                    startScale = scale,
+                                                    blendType=blendType),
+                                 Func(self.iris.detachNode),
+                                 # Use the fade to cover up the hole that the iris would leave
+                                 Func(self.fadeOut, 0),
+                                 Func(self.__finishTransition),
+                                 name = self.irisTaskName,
+                                 )
+
+        if finishIval:
+            transitionIval.append(finishIval)
+        return transitionIval
+
     def irisIn(self, t=0.5, finishIval=None, blendType = 'noBlend'):
         """
         Play an iris in transition over t seconds.
@@ -272,28 +319,14 @@ class Transitions:
         of the iris polygon up so it looks like we iris in. When the
         scale lerp is finished, it parents the iris polygon to hidden.
         """
-        self.noTransitions()
-        self.loadIris()
         if t == 0:
             self.iris.detachNode()
             fut = AsyncFuture()
             fut.setResult(None)
             return fut
         else:
-            self.iris.reparentTo(ShowBaseGlobal.aspect2d, DGG.FADE_SORT_INDEX)
-
-            scale = 0.18 * max(base.a2dRight, base.a2dTop)
-            self.transitionIval = Sequence(LerpScaleInterval(self.iris, t,
-                                                   scale = scale,
-                                                   startScale = 0.01,
-                                                   blendType=blendType),
-                                 Func(self.iris.detachNode),
-                                 Func(self.__finishTransition),
-                                 name = self.irisTaskName,
-                                 )
+            self.transitionIval = self.getIrisInIval(t, finishIval, blendType)
             self.__transitionFuture = AsyncFuture()
-            if finishIval:
-                self.transitionIval.append(finishIval)
             self.transitionIval.start()
             return self.__transitionFuture
 
@@ -305,9 +338,6 @@ class Transitions:
         lerp is finished, it leaves the iris polygon covering the
         aspect2d plane until you irisIn or call noIris.
         """
-        self.noTransitions()
-        self.loadIris()
-        self.loadFade()  # we need this to cover up the hole.
         if t == 0:
             self.iris.detachNode()
             self.fadeOut(0)
@@ -315,22 +345,8 @@ class Transitions:
             fut.setResult(None)
             return fut
         else:
-            self.iris.reparentTo(ShowBaseGlobal.aspect2d, DGG.FADE_SORT_INDEX)
-
-            scale = 0.18 * max(base.a2dRight, base.a2dTop)
-            self.transitionIval = Sequence(LerpScaleInterval(self.iris, t,
-                                                   scale = 0.01,
-                                                   startScale = scale,
-                                                   blendType=blendType),
-                                 Func(self.iris.detachNode),
-                                 # Use the fade to cover up the hole that the iris would leave
-                                 Func(self.fadeOut, 0),
-                                 Func(self.__finishTransition),
-                                 name = self.irisTaskName,
-                                 )
+            self.transitionIval = self.getIrisOutIval(t, finishIval, blendType)
             self.__transitionFuture = AsyncFuture()
-            if finishIval:
-                self.transitionIval.append(finishIval)
             self.transitionIval.start()
             return self.__transitionFuture
 
@@ -403,7 +419,7 @@ class Transitions:
                 image_pos = (0,0,.1),
                 image_color = (0.3,0.3,0.3,1),
                 sortOrder = 0,
-                )
+            )
             self.letterboxBottom = DirectFrame(
                 parent = self.letterbox,
                 guiId = 'letterboxBottom',
@@ -418,7 +434,7 @@ class Transitions:
                 image_pos = (0,0,.1),
                 image_color = (0.3,0.3,0.3,1),
                 sortOrder = 0,
-                )
+            )
 
             # masad: always place these at the bottom of render
             self.letterboxTop.setBin('sorted',0)
@@ -472,7 +488,7 @@ class Transitions:
                                 # startPos = Vec3(0, 0, 1),
                                 blendType=blendType
                                 ),
-                ),
+            ),
                                           Func(self.__finishLetterbox),
                                           name = self.letterboxTaskName,
                                           )
@@ -508,7 +524,7 @@ class Transitions:
                                 # startPos = Vec3(0, 0, 0.8),
                                 blendType=blendType
                                 ),
-                ),
+            ),
                 Func(self.letterbox.stash),
                 Func(self.__finishLetterbox),
                 Func(messenger.send, 'letterboxOff'),

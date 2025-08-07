@@ -58,8 +58,8 @@ public:
     static void png_read_data(png_structp png_ptr, png_bytep data,
                               png_size_t length);
 
-    static void png_error(png_structp png_ptr, png_const_charp error_msg);
-    static void png_warning(png_structp png_ptr, png_const_charp warning_msg);
+    static void (png_error)(png_structp png_ptr, png_const_charp error_msg);
+    static void (png_warning)(png_structp png_ptr, png_const_charp warning_msg);
 
     png_structp _png;
     png_infop _info;
@@ -84,8 +84,8 @@ public:
                                png_size_t length);
     static void png_flush_data(png_structp png_ptr);
 
-    static void png_error(png_structp png_ptr, png_const_charp error_msg);
-    static void png_warning(png_structp png_ptr, png_const_charp warning_msg);
+    static void (png_error)(png_structp png_ptr, png_const_charp error_msg);
+    static void (png_warning)(png_structp png_ptr, png_const_charp warning_msg);
 
     png_structp _png;
     png_infop _info;
@@ -101,7 +101,7 @@ public:
   static void register_with_read_factory();
 
 protected:
-  static TypedWritable *make_PNMFileTypePNG(const FactoryParams &params);
+  static TypedWritable *make_from_bam(const FactoryParams &params);
 
 public:
   static TypeHandle get_class_type() {

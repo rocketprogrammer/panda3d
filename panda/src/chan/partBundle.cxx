@@ -632,7 +632,7 @@ do_bind_anim(AnimControl *control, AnimBundle *anim,
  */
 void PartBundle::
 add_node(PartBundleNode *node) {
-  nassertv(find(_nodes.begin(), _nodes.end(), node) == _nodes.end());
+  nassertv(std::find(_nodes.begin(), _nodes.end(), node) == _nodes.end());
   _nodes.push_back(node);
 }
 
@@ -643,7 +643,7 @@ add_node(PartBundleNode *node) {
  */
 void PartBundle::
 remove_node(PartBundleNode *node) {
-  Nodes::iterator ni = find(_nodes.begin(), _nodes.end(), node);
+  Nodes::iterator ni = std::find(_nodes.begin(), _nodes.end(), node);
   nassertv(ni != _nodes.end());
   _nodes.erase(ni);
 }
@@ -772,7 +772,7 @@ complete_pointers(TypedWritable **p_list, BamReader *manager) {
 /**
  * Factory method to generate a PartBundle object
  */
-TypedWritable* PartBundle::
+TypedWritable *PartBundle::
 make_from_bam(const FactoryParams &params) {
   PartBundle *me = new PartBundle;
   DatagramIterator scan;

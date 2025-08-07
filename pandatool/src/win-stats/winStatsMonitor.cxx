@@ -146,11 +146,6 @@ new_collector(int collector_index) {
   for (WinStatsGraph *graph : _graphs) {
     graph->new_collector(collector_index);
   }
-
-  // We might need to update our menus.
-  for (WinStatsChartMenu *chart_menu : _chart_menus) {
-    chart_menu->do_update();
-  }
 }
 
 /**
@@ -196,6 +191,8 @@ remove_thread(int thread_index) {
  */
 void WinStatsMonitor::
 new_data(int thread_index, int frame_number) {
+  PStatMonitor::new_data(thread_index, frame_number);
+
   for (WinStatsGraph *graph : _graphs) {
     graph->new_data(thread_index, frame_number);
   }
@@ -335,8 +332,8 @@ open_strip_chart(int thread_index, int collector_index, bool show_level) {
  * Opens a new flame graph showing the indicated data.
  */
 PStatGraph *WinStatsMonitor::
-open_flame_graph(int thread_index, int collector_index) {
-  WinStatsFlameGraph *graph = new WinStatsFlameGraph(this, thread_index, collector_index);
+open_flame_graph(int thread_index, int collector_index, int frame_number) {
+  WinStatsFlameGraph *graph = new WinStatsFlameGraph(this, thread_index, collector_index, frame_number);
   add_graph(graph);
   return graph;
 }

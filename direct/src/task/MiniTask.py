@@ -12,6 +12,8 @@ class MiniTask:
     done = 0
     cont = 1
 
+    name: str
+
     def __init__(self, callback):
         self.__call__ = callback
 
@@ -32,9 +34,6 @@ class MiniTaskManager:
             self.taskList.remove(task)
         except ValueError:
             pass
-
-    def __executeTask(self, task):
-        return task(task)
 
     def step(self):
         i = 0

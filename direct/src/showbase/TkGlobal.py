@@ -2,7 +2,6 @@
 
 import sys
 import Pmw
-from tkinter import *
 
 
 # This is required by the ihooks.py module used by Squeeze (used by
@@ -38,4 +37,5 @@ del bordercolors
 
 def spawnTkLoop():
     """Alias for :meth:`base.spawnTkLoop() <.ShowBase.spawnTkLoop>`."""
-    base.spawnTkLoop()
+    from direct.showbase import ShowBaseGlobal
+    ShowBaseGlobal.base.spawnTkLoop()

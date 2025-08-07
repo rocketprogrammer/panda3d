@@ -20,6 +20,12 @@
 #define _ODE_CONFIG_H_
 
 #define dSINGLE 1
+
+#if defined(__M_ARM64)
+#undef dSINGLE
+#define dDOUBLE
+#endif
+
 #define ODE_PLATFORM_WINDOWS
 
 #if !defined(ODE_API)

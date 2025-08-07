@@ -25,10 +25,10 @@ class GtkStatsLabel;
  * A window that draws a flame chart, which shows the collectors explicitly
  * stopping and starting, one frame at a time.
  */
-class GtkStatsFlameGraph : public PStatFlameGraph, public GtkStatsGraph {
+class GtkStatsFlameGraph final : public PStatFlameGraph, public GtkStatsGraph {
 public:
   GtkStatsFlameGraph(GtkStatsMonitor *monitor, int thread_index,
-                     int collector_index=-1);
+                     int collector_index=-1, int frame_number=-1);
   virtual ~GtkStatsFlameGraph();
 
   virtual void new_collector(int collector_index);
@@ -76,6 +76,8 @@ private:
 
   static void toggled_callback(GtkToggleButton *button, gpointer data);
   static gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data);
+  static gboolean scroll_callback(GtkWidget *widget, GdkEventScroll *event, gpointer data);
+  static gboolean key_press_callback(GtkWidget *widget, GdkEventKey *event, gpointer data);
 
 private:
   std::string _net_value_text;

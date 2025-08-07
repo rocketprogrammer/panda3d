@@ -305,11 +305,12 @@ int FrameBufferProperties::
 get_buffer_mask() const {
   int mask = 0;
 
-  if (_property[FBP_back_buffers] > 0) {
-    mask = RenderBuffer::T_front | RenderBuffer::T_back;
-  } else {
-    mask = RenderBuffer::T_front;
-  }
+  //XXX rdb: some buffers only have a front buffer, some only a back buffer
+  //if (_property[FBP_back_buffers] > 0) {
+     mask = RenderBuffer::T_front | RenderBuffer::T_back;
+  //} else {
+  //  mask = RenderBuffer::T_front;
+  //}
   if (_property[FBP_depth_bits] > 0) {
     mask |= RenderBuffer::T_depth;
   }
@@ -525,11 +526,36 @@ get_quality(const FrameBufferProperties &reqs) const {
     }
   }
 
-  // deduct for insufficient multisamples.  Cost: 1,000
+  // Deduct for insufficient multisamples.  Cost: 1,000
 
   if (_property[FBP_multisamples] != 0 &&
       reqs._property[FBP_multisamples] > _property[FBP_multisamples]) {
     quality -= 1000;
+  }
+
+  // Deduct for having more multisamples than requested.  Cost: 2 per sample
+  // In case the special value of 1 multisample is requested, nothing gets deducted.
+
+  if (_property[FBP_multisamples] != 0 &&
+      reqs._property[FBP_multisamples] != 1 &&
+      reqs._property[FBP_multisamples] < _property[FBP_multisamples]) {
+    quality -= 2 * _property[FBP_multisamples];
+  }
+
+  // Deduct for insufficient coverage samples.  Cost: 1,000
+
+  if (_property[FBP_coverage_samples] != 0 &&
+    reqs._property[FBP_coverage_samples] > _property[FBP_coverage_samples]) {
+    quality -= 1000;
+  }
+
+  // Deduct for having more coverage samples than requested.  Cost: 2 per sample
+  // In case the special value of 1 sample is requested, nothing gets deducted.
+
+  if (_property[FBP_coverage_samples] != 0 &&
+    reqs._property[FBP_coverage_samples] != 1 &&
+    reqs._property[FBP_coverage_samples] < _property[FBP_coverage_samples]) {
+    quality -= 2 * _property[FBP_coverage_samples];
   }
 
   // Deduct for unrequested bitplanes.  Cost: 50
@@ -566,6 +592,13 @@ get_quality(const FrameBufferProperties &reqs) const {
     quality -= 100;
   }
 
+  // Bonus for each multisample in case the special value of 1 multisample
+  // is requested.  Extra: 2 per sample.
+  if (_property[FBP_multisamples] != 0 &&
+      reqs._property[FBP_multisamples] == 1) {
+    quality += 2 * _property[FBP_multisamples];
+  }
+
   // Bonus for each depth bit.  Extra: 8 per bit.
   // Please note that the Intel Windows driver only gives extra depth in
   // combination with a stencil buffer, so we need 8 extra depth bits to
@@ -575,13 +608,10 @@ get_quality(const FrameBufferProperties &reqs) const {
     quality += 8 * _property[FBP_depth_bits];
   }
 
-  // Bonus for each multisample.  Extra: 2 per sample.
-  if (reqs._property[FBP_multisamples] != 0) {
-    quality += 2 * _property[FBP_multisamples];
-  }
-
-  // Bonus for each coverage sample.  Extra: 2 per sample.
-  if (reqs._property[FBP_coverage_samples] != 0) {
+  // Bonus for each coverage sample in case the special value of 1 sample
+  // is requested.  Extra: 2 per sample.
+  if (_property[FBP_coverage_samples] != 0 &&
+    reqs._property[FBP_coverage_samples] == 1) {
     quality += 2 * _property[FBP_coverage_samples];
   }
 

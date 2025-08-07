@@ -29,6 +29,7 @@
 #else
   #include <AL/al.h>
   #include <AL/alc.h>
+  #include <AL/alext.h>
 #endif
 
 class OpenALAudioSound;
@@ -36,7 +37,7 @@ class OpenALAudioSound;
 extern void al_audio_errcheck(const char *context);
 extern void alc_audio_errcheck(const char *context,ALCdevice* device);
 
-class EXPCL_OPENAL_AUDIO OpenALAudioManager : public AudioManager {
+class EXPCL_OPENAL_AUDIO OpenALAudioManager final : public AudioManager {
   class SoundData;
 
   friend class OpenALAudioSound;
@@ -51,10 +52,10 @@ class EXPCL_OPENAL_AUDIO OpenALAudioManager : public AudioManager {
 
   virtual bool is_valid();
 
-  virtual PT(AudioSound) get_sound(const std::string&,     bool positional = false, int mode=SM_heuristic);
+  virtual PT(AudioSound) get_sound(const Filename &, bool positional = false, int mode=SM_heuristic);
   virtual PT(AudioSound) get_sound(MovieAudio *sound, bool positional = false, int mode=SM_heuristic);
 
-  virtual void uncache_sound(const std::string&);
+  virtual void uncache_sound(const Filename &);
   virtual void clear_cache();
   virtual void set_cache_limit(unsigned int count);
   virtual unsigned int get_cache_limit() const;

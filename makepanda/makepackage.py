@@ -61,8 +61,7 @@ This package contains the SDK for development with Panda3D.
 /usr/%_lib/panda3d
 /usr/include/panda3d
 """
-INSTALLER_SPEC_FILE_PVIEW = """\
-/usr/share/applications/pview.desktop
+INSTALLER_SPEC_FILE_MIME = """\
 /usr/share/mime-info/panda3d.mime
 /usr/share/mime-info/panda3d.keys
 /usr/share/mime/packages/panda3d.xml
@@ -125,6 +124,8 @@ if (( ${version_info[0]} == 10 && ${version_info[1]} < 15 )); then
 MACOS_SCRIPT_POSTFIX = """\
 fi
 """
+
+EXCLUDE_BINARIES = ["deploy-stub", "deploy-stubw", "run_tests"]
 
 
 def MakeInstallerNSIS(version, file, title, installdir, compressor="lzma", **kwargs):
@@ -384,9 +385,15 @@ def MakeInstallerLinux(version, debversion=None, rpmversion=None, rpmrelease=1,
 
         txt = INSTALLER_SPEC_FILE[1:]
 
-        # Add the MIME associations if we have pview
-        if not PkgSkip("PVIEW"):
-            txt += INSTALLER_SPEC_FILE_PVIEW
+        # Add the MIME associations if we have pview or pstats
+        if not PkgSkip("PVIEW") or not PkgSkip("PSTATS"):
+            txt += INSTALLER_SPEC_FILE_MIME
+
+            if not PkgSkip("PVIEW"):
+                txt += "/usr/share/applications/pview.desktop\n"
+
+            if not PkgSkip("PSTATS"):
+                txt += "/usr/share/applications/pstats.desktop\n"
 
         # Add the platform-specific Python directories.
         dirs = set()
@@ -399,7 +406,7 @@ def MakeInstallerLinux(version, debversion=None, rpmversion=None, rpmrelease=1,
 
         # Add the binaries in /usr/bin explicitly to the spec file
         for base in os.listdir(outputdir + "/bin"):
-            if not base.startswith("deploy-stub"):
+            if base not in EXCLUDE_BINARIES:
                 txt += "/usr/bin/%s\n" % (base)
 
         # Write out the spec file.
@@ -465,7 +472,7 @@ def MakeInstallerOSX(version, python_versions=[], installdir=None, **kwargs):
     oscmd("install -m 0644 doc/man/*.1 dstroot/tools/usr/local/share/man/man1/")
 
     for base in os.listdir(outputdir + "/bin"):
-        if not base.startswith("deploy-stub"):
+        if base not in EXCLUDE_BINARIES:
             binname = ("dstroot/tools/%s/bin/" % installdir) + base
             # OSX needs the -R argument to copy symbolic links correctly, it doesn't have -d. How weird.
             oscmd("cp -R " + outputdir + "/bin/" + base + " " + binname)
@@ -745,7 +752,7 @@ def MakeInstallerOSX(version, python_versions=[], installdir=None, **kwargs):
     dist.write('</installer-script>\n')
     dist.close()
 
-    oscmd('hdiutil create Panda3D-rw.dmg -volname "Panda3D SDK %s" -srcfolder dstroot/Panda3D' % (version))
+    oscmd('hdiutil create Panda3D-rw.dmg -fs HFS+ -volname "Panda3D SDK %s" -srcfolder dstroot/Panda3D' % (version))
     oscmd('hdiutil convert Panda3D-rw.dmg -format UDBZ -o %s' % (dmg_name))
     oscmd('rm -f Panda3D-rw.dmg')
 
@@ -790,7 +797,7 @@ def MakeInstallerFreeBSD(version, python_versions=[], **kwargs):
         oscmd("rm -f %s/tmp/python_dep" % outputdir)
 
         if "PYTHONVERSION" in SDK:
-            pyver_nodot = SDK["PYTHONVERSION"][6:].rstrip('dmu').replace('.', '')
+            pyver_nodot = SDK["PYTHONVERSION"][6:].rstrip('dmut').replace('.', '')
         else:
             pyver_nodot = "%d%d" % (sys.version_info[:2])
 
@@ -958,8 +965,7 @@ def MakeInstallerAndroid(version, **kwargs):
                     shutil.copy(os.path.join(source_dir, base), target)
 
     # Copy the Python standard library to the .apk as well.
-    # DO NOT CHANGE TO sysconfig - see #1230
-    from distutils.sysconfig import get_python_lib
+    from locations import get_python_lib
     stdlib_source = get_python_lib(False, True)
     stdlib_target = os.path.join("apkroot", "lib", "python{0}.{1}".format(*sys.version_info))
     copy_python_tree(stdlib_source, stdlib_target)

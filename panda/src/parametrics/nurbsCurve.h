@@ -38,7 +38,7 @@
  * "NurbsCurve" instead of this one, and performs most of the NURBS curve
  * functions.  This class then becomes vestigial.
  */
-class EXPCL_PANDA_PARAMETRICS NurbsCurve : public PiecewiseCurve, public NurbsCurveInterface {
+class EXPCL_PANDA_PARAMETRICS NurbsCurve final : public PiecewiseCurve, public NurbsCurveInterface {
 PUBLISHED:
   NurbsCurve();
   NurbsCurve(const ParametricCurve &pc);
@@ -111,7 +111,7 @@ public:
   static void register_with_read_factory();
 
 protected:
-  static TypedWritable *make_NurbsCurve(const FactoryParams &params);
+  static TypedWritable *make_from_bam(const FactoryParams &params);
   virtual void write_datagram(BamWriter *manager, Datagram &me);
   void fillin(DatagramIterator &scan, BamReader *manager);
 

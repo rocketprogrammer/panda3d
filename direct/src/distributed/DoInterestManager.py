@@ -7,9 +7,10 @@ zone, remove interest in that zone.
 p.s. A great deal of this code is just code moved from ClientRepository.py.
 """
 
-from panda3d.core import *
-from .MsgTypes import *
-from direct.showbase.PythonUtil import *
+from __future__ import annotations
+
+from panda3d.core import ConfigVariableBool
+from .MsgTypes import CLIENT_ADD_INTEREST, CLIENT_ADD_INTEREST_MULTIPLE, CLIENT_REMOVE_INTEREST
 from direct.showbase import DirectObject
 from .PyDatagram import PyDatagram
 from direct.directnotify.DirectNotifyGlobal import directNotify
@@ -91,9 +92,9 @@ class DoInterestManager(DirectObject.DirectObject):
     _ContextIdSerialNum = 100
     _ContextIdMask = 0x3FFFFFFF # avoid making Python create a long
 
-    _interests = {}
+    _interests: dict[int, InterestState] = {}
     if __debug__:
-        _debug_interestHistory = []
+        _debug_interestHistory: list[tuple] = []
         _debug_maxDescriptionLen = 40
 
     _SerialGen = SerialNumGen()
@@ -525,8 +526,7 @@ class DoInterestManager(DirectObject.DirectObject):
         datagram.addUint32(contextId)
         datagram.addUint32(parentId)
         if isinstance(zoneIdList, list):
-            vzl = list(zoneIdList)
-            vzl.sort()
+            vzl = sorted(zoneIdList)
             uniqueElements(vzl)
             for zone in vzl:
                 datagram.addUint32(zone)
@@ -643,6 +643,7 @@ class DoInterestManager(DirectObject.DirectObject):
 
 if __debug__:
     import unittest
+    import time
 
     class AsyncTestCase(unittest.TestCase):
         def setCompleted(self):
@@ -657,7 +658,7 @@ if __debug__:
         suiteClass = AsyncTestSuite
 
     class AsyncTextTestRunner(unittest.TextTestRunner):
-        def run(self, testCase):
+        def run(self, test):
             result = self._makeResult()
             startTime = time.time()
             test(result)

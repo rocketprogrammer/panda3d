@@ -360,6 +360,8 @@ post_txa_file() {
 
   _properties._anisotropic_degree = _request._anisotropic_degree;
 
+  _properties._srgb = _request._srgb;
+
   if (_properties._color_type == nullptr) {
     _properties._color_type = _request._properties._color_type;
     _properties._alpha_type = _request._properties._alpha_type;
@@ -1234,7 +1236,7 @@ get_source_key(const Filename &filename, const Filename &alpha_filename,
 void TextureImage::
 register_with_read_factory() {
   BamReader::get_factory()->
-    register_factory(get_class_type(), make_TextureImage);
+    register_factory(get_class_type(), make_from_bam);
 }
 
 /**
@@ -1344,7 +1346,7 @@ complete_pointers(TypedWritable **p_list, BamReader *manager) {
  * all the data read.
  */
 TypedWritable *TextureImage::
-make_TextureImage(const FactoryParams &params) {
+make_from_bam(const FactoryParams &params) {
   TextureImage *me = new TextureImage;
   DatagramIterator scan;
   BamReader *manager;

@@ -3,6 +3,7 @@
 /thirdparty/
 /thirdparty_x64/
 /thirdparty_x86/
+/thirdparty_arm64/
 thirdparty
 /targetroot/
 /dstroot/
@@ -22,8 +23,8 @@ vgcore.*
 *.save.1
 *.sublime-workspace
 .vscode/
-.idea/*
 cmake-build-debug/*
+.idea/
 
 # Temporary build files
 /_vfsimporter.*
@@ -58,9 +59,10 @@ cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
 
-# Windows
+# Operating system
 Thumbs.db
 ehthumbs.db
+.DS_Store
 
 # macOS
 .DS_Store

@@ -179,6 +179,9 @@ parse(const string &line) {
       } else if (word == "cont") {
         _keywords.push_back(KW_cont);
 
+      } else if (word == "srgb") {
+        _keywords.push_back(KW_srgb);
+
       } else if (word == "margin") {
         ++wi;
         if (wi == words.end()) {
@@ -354,6 +357,7 @@ match_egg(EggFile *egg_file) const {
     case KW_linear:
     case KW_mipmap:
     case KW_anisotropic:
+    case KW_srgb:
       // These mean nothing to an egg file.
       break;
 
@@ -492,7 +496,7 @@ match_texture(TextureImage *texture) const {
 
     case KW_mipmap:
       request._minfilter = EggTexture::FT_linear_mipmap_linear;
-      request._magfilter = EggTexture::FT_linear_mipmap_linear;
+      request._magfilter = EggTexture::FT_linear;
       break;
 
     case KW_anisotropic:
@@ -502,6 +506,9 @@ match_texture(TextureImage *texture) const {
     case KW_cont:
       got_cont = true;
       break;
+
+    case KW_srgb:
+      request._srgb = true;
     }
   }
 
@@ -585,6 +592,10 @@ output(std::ostream &out) const {
 
     case KW_anisotropic:
       out << " aniso " << _aniso_degree;
+      break;
+
+    case KW_srgb:
+      out << " srgb";
       break;
     }
   }

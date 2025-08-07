@@ -62,6 +62,7 @@ public:
   int _anisotropic_degree;
   PNMFileType *_color_type;
   PNMFileType *_alpha_type;
+  bool _srgb;
 
 private:
   static std::string get_format_string(EggTexture::Format format);
@@ -91,7 +92,7 @@ public:
                                 BamReader *manager);
 
 protected:
-  static TypedWritable *make_TextureProperties(const FactoryParams &params);
+  static TypedWritable *make_from_bam(const FactoryParams &params);
 
 public:
   void fillin(DatagramIterator &scan, BamReader *manager);

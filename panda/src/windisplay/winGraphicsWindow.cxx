@@ -125,14 +125,14 @@ WinGraphicsWindow::
 }
 
 /**
- * Returns the MouseData associated with the nth input device's pointer.
+ * Returns the PointerData associated with the nth input device's pointer.
  */
-MouseData WinGraphicsWindow::
+PointerData WinGraphicsWindow::
 get_pointer(int device) const {
-  MouseData result;
+  PointerData result;
   {
     LightMutexHolder holder(_input_lock);
-    nassertr(device >= 0 && device < (int)_input_devices.size(), MouseData());
+    nassertr(device >= 0 && device < (int)_input_devices.size(), PointerData());
 
     result = ((const GraphicsWindowInputDevice *)_input_devices[device].p())->get_pointer();
 
@@ -272,15 +272,36 @@ process_events() {
  */
 void WinGraphicsWindow::
 set_properties_now(WindowProperties &properties) {
-  if (properties.has_fullscreen() && !properties.get_fullscreen() &&
-      is_fullscreen()) {
-    if (do_windowed_switch()) {
-      _properties.set_fullscreen(false);
-      properties.clear_fullscreen();
-    } else {
-      windisplay_cat.warning()
-        << "Switching to windowed mode failed!\n";
+  if (properties.has_fullscreen()) {
+    if (!properties.get_fullscreen() && is_fullscreen()) {
+      if (do_windowed_switch()) {
+        _properties.set_fullscreen(false);
+      } else {
+        windisplay_cat.warning()
+          << "Switching to windowed mode failed!\n";
+      }
     }
+    else if (properties.get_fullscreen() && !is_fullscreen()) {
+      int x_size;
+      int y_size;
+      if (properties.has_size()) {
+        x_size = properties.get_x_size();
+        y_size = properties.get_y_size();
+      } else {
+        x_size = _properties.get_x_size();
+        y_size = _properties.get_y_size();
+      }
+      if (do_fullscreen_switch(x_size, y_size)) {
+        _properties.set_fullscreen(true);
+        _properties.set_size(x_size, y_size);
+        properties.clear_size();
+        properties.clear_origin();
+      } else {
+        windisplay_cat.warning()
+          << "Switching to fullscreen mode failed!\n";
+      }
+    }
+    properties.clear_fullscreen();
   }
 
   GraphicsWindow::set_properties_now(properties);
@@ -657,18 +678,18 @@ initialize_input_devices() {
   _input = device;
 
   // Get the number of devices.
-  if (GetRawInputDeviceList(nullptr, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) != 0) {
+  if ((int)GetRawInputDeviceList(nullptr, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) != 0) {
     return;
   }
 
   // Allocate the array to hold the DeviceList
   pRawInputDeviceList = (PRAWINPUTDEVICELIST)alloca(sizeof(RAWINPUTDEVICELIST) * nInputDevices);
-  if (pRawInputDeviceList==0) {
+  if (pRawInputDeviceList == nullptr) {
     return;
   }
 
   // Fill the Array
-  if (GetRawInputDeviceList(pRawInputDeviceList, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) == -1) {
+  if ((int)GetRawInputDeviceList(pRawInputDeviceList, &nInputDevices, sizeof(RAWINPUTDEVICELIST)) == -1) {
     return;
   }
 
@@ -677,13 +698,13 @@ initialize_input_devices() {
     if (pRawInputDeviceList[i].dwType == RIM_TYPEMOUSE) {
       // Fetch information about specified mouse device.
       UINT nSize;
-      if (GetRawInputDeviceInfoA(pRawInputDeviceList[i].hDevice, RIDI_DEVICENAME, (LPVOID)0, &nSize) != 0) {
-        return;
+      if ((int)GetRawInputDeviceInfoA(pRawInputDeviceList[i].hDevice, RIDI_DEVICENAME, (LPVOID)nullptr, &nSize) != 0) {
+        continue;
       }
       char *psName = (char*)alloca(sizeof(TCHAR) * nSize);
-      if (psName == 0) return;
-      if (GetRawInputDeviceInfoA(pRawInputDeviceList[i].hDevice, RIDI_DEVICENAME, (LPVOID)psName, &nSize) < 0) {
-        return;
+      if (psName == nullptr) continue;
+      if ((int)GetRawInputDeviceInfoA(pRawInputDeviceList[i].hDevice, RIDI_DEVICENAME, (LPVOID)psName, &nSize) < 0) {
+        continue;
       }
 
       // If it's not an RDP mouse, add it to the list of raw mice.
@@ -974,8 +995,8 @@ do_fullscreen_resize(int x_size, int y_size) {
  * Called in the set_properties_now function to switch to fullscreen.
  */
 bool WinGraphicsWindow::
-do_fullscreen_switch() {
-  if (!do_fullscreen_enable()) {
+do_fullscreen_switch(int x_size, int y_size) {
+  if (!do_fullscreen_enable(x_size, y_size)) {
     // Couldn't get fullscreen.
     return false;
   }
@@ -985,15 +1006,19 @@ do_fullscreen_switch() {
   DWORD window_style = make_style(props);
   SetWindowLong(_hWnd, GWL_STYLE, window_style);
 
-  WINDOW_METRICS metrics;
-  bool has_origin;
-  if (!calculate_metrics(true, window_style, metrics, has_origin)){
-    return false;
-  }
-
-  SetWindowPos(_hWnd, HWND_NOTOPMOST, 0, 0, metrics.width, metrics.height,
+  SetWindowPos(_hWnd, HWND_NOTOPMOST, 0, 0, x_size, y_size,
     SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+
+  set_size_and_recalc(x_size, y_size);
   return true;
+}
+
+/**
+ * Called in the set_properties_now function to switch to fullscreen.
+ */
+bool WinGraphicsWindow::
+do_fullscreen_switch() {
+  return do_fullscreen_switch(_properties.get_x_size(), _properties.get_y_size());
 }
 
 /**
@@ -1248,8 +1273,8 @@ open_graphic_window() {
   // somehow, but I need the window's black background to cover up the desktop
   // during the mode change.
 
-  if (fullscreen){
-    if (!do_fullscreen_enable()){
+  if (fullscreen) {
+    if (!do_fullscreen_enable()) {
       return false;
     }
   }
@@ -1262,7 +1287,7 @@ open_graphic_window() {
  * Not to confuse with do_fullscreen_switch().
  */
 bool WinGraphicsWindow::
-do_fullscreen_enable() {
+do_fullscreen_enable(int x_size, int y_size) {
 
   HWND hDesktopWindow = GetDesktopWindow();
   HDC scrnDC = GetDC(hDesktopWindow);
@@ -1272,8 +1297,8 @@ do_fullscreen_enable() {
   // GetDeviceCaps(scrnDC, VERTRES);
   ReleaseDC(hDesktopWindow, scrnDC);
 
-  DWORD dwWidth = _properties.get_x_size();
-  DWORD dwHeight = _properties.get_y_size();
+  DWORD dwWidth = x_size;
+  DWORD dwHeight = y_size;
   DWORD dwFullScreenBitDepth = cur_bitdepth;
 
   DEVMODE dm;
@@ -1301,12 +1326,16 @@ do_fullscreen_enable() {
   }
 
   _fullscreen_display_mode = dm;
-
-  _properties.set_origin(0, 0);
-  _properties.set_size(dwWidth, dwHeight);
-
   return true;
+}
 
+/**
+ * This is a low-level function that just puts Windows in fullscreen mode.
+ * Not to confuse with do_fullscreen_switch().
+ */
+bool WinGraphicsWindow::
+do_fullscreen_enable() {
+  return do_fullscreen_enable(_properties.get_x_size(), _properties.get_y_size());
 }
 
 /**

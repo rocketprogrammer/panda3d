@@ -18,6 +18,9 @@
 #include <string>
 #include <stdio.h>
 
+// Emscripten does not have popen.
+#ifndef __EMSCRIPTEN__
+
 // By default, we'll use the Windows flavor of pipe functions if we're
 // compiling under Windows.  Turn this off to use popen(), even on Windows.
 // (popen() doesn't seem to work on Win9x, although it does work on NT-based
@@ -41,7 +44,7 @@
 
 #endif // WIN_PIPE_CALLS
 
-class EXPCL_DTOOL_DTOOLUTIL PipeStreamBuf : public std::streambuf {
+class EXPCL_DTOOL_DTOOLUTIL PipeStreamBuf final : public std::streambuf {
 public:
   enum Direction { Input, Output };
 
@@ -76,5 +79,7 @@ private:
 
   void write_chars(const char*, int, bool);
 };
+
+#endif /* __EMSCRIPTEN__ */
 
 #endif /* __PFSTREAMBUF_H__ */

@@ -12,9 +12,7 @@ import os
 import sys
 from optparse import OptionParser
 from makepandacore import *
-
-# DO NOT CHANGE TO sysconfig - see GitHub issue #1230
-from distutils.sysconfig import get_python_lib
+from locations import get_python_lib
 
 
 MIME_INFO = (
@@ -30,6 +28,9 @@ APP_INFO = (
   ("pview", "Panda3D Model Viewer", ("egg", "bam", "egg.pz", "bam.pz"), True),
   ("pstats", "Panda3D Profiling Tool", ("pstats",), False),
 )
+
+EXCLUDE_BINARIES = ["deploy-stub", "deploy-stubw", "run_tests"]
+
 
 def WriteApplicationsFile(fname, appinfo, mimeinfo, bindir):
     fhandle = open(fname, "w")
@@ -267,7 +268,7 @@ def InstallPanda(destdir="", prefix="/usr", outputdir="built", libdir=GetLibDir(
             oscmd(f"cp -R -P {outputdir}/lib/{base} {dest_libdir}/panda3d/{base}")
 
     for base in os.listdir(outputdir + "/bin"):
-        if not base.startswith("deploy-stub"):
+        if base not in EXCLUDE_BINARIES:
             oscmd(f"cp -R -P {outputdir}/bin/{base} {dest_prefix}/bin/{base}")
 
     DeleteVCS(dest_prefix + "/share/panda3d")

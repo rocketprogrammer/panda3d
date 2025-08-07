@@ -789,8 +789,6 @@ find_hole(int &x, int &y, int x_size, int y_size) const {
     // Scan along the row at 'y'.
     x = 0;
     while (x + x_size <= _x_size) {
-      int next_x = x;
-
       // Consider the spot at x, y.
       TexturePlacement *overlap = find_overlap(x, y, x_size, y_size);
 
@@ -799,7 +797,7 @@ find_hole(int &x, int &y, int x_size, int y_size) const {
         return true;
       }
 
-      next_x = overlap->get_placed_x() + overlap->get_placed_x_size();
+      int next_x = overlap->get_placed_x() + overlap->get_placed_x_size();
       next_y = std::min(next_y, overlap->get_placed_y() + overlap->get_placed_y_size());
       nassertr(next_x > x, false);
       x = next_x;
@@ -971,7 +969,7 @@ remove_image() {
 void PaletteImage::
 register_with_read_factory() {
   BamReader::get_factory()->
-    register_factory(get_class_type(), make_PaletteImage);
+    register_factory(get_class_type(), make_from_bam);
 }
 
 /**
@@ -1039,7 +1037,7 @@ complete_pointers(TypedWritable **p_list, BamReader *manager) {
  * all the data read.
  */
 TypedWritable *PaletteImage::
-make_PaletteImage(const FactoryParams &params) {
+make_from_bam(const FactoryParams &params) {
   PaletteImage *me = new PaletteImage;
   DatagramIterator scan;
   BamReader *manager;

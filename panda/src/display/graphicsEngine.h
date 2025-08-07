@@ -32,6 +32,7 @@
 #include "indirectLess.h"
 #include "loader.h"
 #include "referenceCount.h"
+#include "renderState.h"
 
 class Pipeline;
 class DisplayRegion;
@@ -111,8 +112,11 @@ PUBLISHED:
 
   bool extract_texture_data(Texture *tex, GraphicsStateGuardian *gsg);
   void dispatch_compute(const LVecBase3i &work_groups,
-                        const ShaderAttrib *sattr,
+                        const RenderState *state,
                         GraphicsStateGuardian *gsg);
+  INLINE void dispatch_compute(const LVecBase3i &work_groups,
+                               const ShaderAttrib *sattr,
+                               GraphicsStateGuardian *gsg);
 
   static GraphicsEngine *get_global_ptr();
 
@@ -322,7 +326,8 @@ private:
   // This lock protects the next two fields.
   Mutex _new_windows_lock;
   unsigned int _window_sort_index;
-  pvector<PT(GraphicsOutput)> _new_windows;
+  typedef small_vector<PT(GraphicsOutput)> NewWindows;
+  NewWindows _new_windows;
 
   WindowRenderer _app;
   typedef pmap<std::string, PT(RenderThread) > Threads;

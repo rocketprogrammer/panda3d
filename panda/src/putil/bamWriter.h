@@ -87,12 +87,16 @@ PUBLISHED:
   INLINE TypedWritable *get_root_node() const;
   INLINE void set_root_node(TypedWritable *root_node);
 
+public:
+  EXTENSION(PyObject *get_file_version() const);
+
 PUBLISHED:
   MAKE_PROPERTY(target, get_target, set_target);
   MAKE_PROPERTY(filename, get_filename);
+  MAKE_PROPERTY(file_version, get_file_version);
   MAKE_PROPERTY(file_endian, get_file_endian);
   MAKE_PROPERTY(file_stdfloat_double, get_file_stdfloat_double);
-  MAKE_PROPERTY(file_texture_mode, get_file_texture_mode);
+  MAKE_PROPERTY(file_texture_mode, get_file_texture_mode, set_file_texture_mode);
   MAKE_PROPERTY(root_node, get_root_node, set_root_node);
 
 public:
@@ -131,7 +135,7 @@ private:
   // Stores the PandaNode representing the root of the node hierarchy we are
   // currently writing, if any, for the purpose of writing NodePaths.  This is
   // a TypedWritable since PandaNode is defined in pgraph.
-  TypedWritable *_root_node;
+  TypedWritable *_root_node = nullptr;
 
   // This is the set of all TypeHandles already written.
   pset<int, int_hash> _types_written;

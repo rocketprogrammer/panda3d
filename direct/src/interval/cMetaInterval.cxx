@@ -70,9 +70,9 @@ clear_intervals() {
     IntervalDef &def = (*di);
     if (def._c_interval != nullptr) {
       CInterval::Parents::iterator pi =
-        find(def._c_interval->_parents.begin(),
-             def._c_interval->_parents.end(),
-             this);
+        std::find(def._c_interval->_parents.begin(),
+                  def._c_interval->_parents.end(),
+                  this);
       nassertv(pi != def._c_interval->_parents.end());
       def._c_interval->_parents.erase(pi);
     }
@@ -679,7 +679,7 @@ write(std::ostream &out, int indent_level) const {
   int total_digits = num_decimals + 4;
   static const int max_digits = 32;  // totally arbitrary
   nassertv(total_digits <= max_digits);
-  char format_str[16];
+  char format_str[26];
   sprintf(format_str, "%%%d.%df", total_digits, num_decimals);
 
   indent(out, indent_level) << get_name() << ":\n";
@@ -708,7 +708,7 @@ timeline(std::ostream &out) const {
   int total_digits = num_decimals + 4;
   static const int max_digits = 32;  // totally arbitrary
   nassertv(total_digits <= max_digits);
-  char format_str[16];
+  char format_str[26];
   sprintf(format_str, "%%%d.%df", total_digits, num_decimals);
 
   int extra_indent_level = 0;
@@ -798,7 +798,7 @@ do_event_forward(CMetaInterval::PlaybackEvent *event,
       // Erase the event from either the new active or the current active
       // lists.
       ActiveEvents::iterator ai;
-      ai = find(new_active.begin(), new_active.end(), event->_begin_event);
+      ai = std::find(new_active.begin(), new_active.end(), event->_begin_event);
       if (ai != new_active.end()) {
         new_active.erase(ai);
         // This interval was new this frame; we must invoke it as an instant
@@ -806,7 +806,7 @@ do_event_forward(CMetaInterval::PlaybackEvent *event,
         enqueue_event(event->_n, ET_instant, is_initial);
 
       } else {
-        ai = find(_active.begin(), _active.end(), event->_begin_event);
+        ai = std::find(_active.begin(), _active.end(), event->_begin_event);
         if (ai != _active.end()) {
           _active.erase(ai);
           enqueue_event(event->_n, ET_finalize, is_initial);
@@ -872,14 +872,14 @@ do_event_reverse(CMetaInterval::PlaybackEvent *event,
       // Erase the event from either the new active or the current active
       // lists.
       ActiveEvents::iterator ai;
-      ai = find(new_active.begin(), new_active.end(), event);
+      ai = std::find(new_active.begin(), new_active.end(), event);
       if (ai != new_active.end()) {
         new_active.erase(ai);
         // This interval was new this frame; we invoke it as an instant event.
         enqueue_event(event->_n, ET_reverse_instant, is_initial);
 
       } else {
-        ai = find(_active.begin(), _active.end(), event);
+        ai = std::find(_active.begin(), _active.end(), event);
         if (ai != _active.end()) {
           _active.erase(ai);
           enqueue_event(event->_n, ET_reverse_finalize, is_initial);

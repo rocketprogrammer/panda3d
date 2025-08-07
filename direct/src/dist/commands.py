@@ -6,7 +6,6 @@ on how to use these commands.
 
 import os
 import plistlib
-import pkg_resources
 import sys
 import subprocess
 import zipfile
@@ -14,7 +13,6 @@ import re
 import shutil
 import stat
 import struct
-import imp
 import string
 import tempfile
 
@@ -25,6 +23,7 @@ from . import FreezeTool
 from . import pefile
 from . import installers
 from .icon import Icon
+from ._dist_hooks import finalize_distribution_options
 import panda3d.core as p3d
 
 
@@ -56,9 +55,16 @@ def _register_python_loaders():
 
     _register_python_loaders.done = True
 
-    registry = p3d.LoaderFileTypeRegistry.getGlobalPtr()
+    from importlib.metadata import entry_points
 
-    for entry_point in pkg_resources.iter_entry_points('panda3d.loaders'):
+    eps = entry_points()
+    if isinstance(eps, dict): # Python 3.8 and 3.9
+        loaders = eps.get('panda3d.loaders', ())
+    else:
+        loaders = eps.select(group='panda3d.loaders')
+
+    registry = p3d.LoaderFileTypeRegistry.get_global_ptr()
+    for entry_point in loaders:
         registry.register_deferred_type(entry_point)
 
 
@@ -69,6 +75,7 @@ def _model_to_bam(_build_cmd, srcpath, dstpath):
 
     src_fn = p3d.Filename.from_os_specific(srcpath)
     dst_fn = p3d.Filename.from_os_specific(dstpath)
+    dst_fn.set_binary()
 
     _register_python_loaders()
 
@@ -79,8 +86,30 @@ def _model_to_bam(_build_cmd, srcpath, dstpath):
     if not node:
         raise IOError('Failed to load model: %s' % (srcpath))
 
-    if not p3d.NodePath(node).write_bam_file(dst_fn):
-        raise IOError('Failed to write .bam file: %s' % (dstpath))
+    stream = p3d.OFileStream()
+    if not dst_fn.open_write(stream):
+        raise IOError('Failed to open .bam file for writing: %s' % (dstpath))
+
+    # We pass it the source filename here so that texture files are made
+    # relative to the original pathname and don't point from the destination
+    # back into the source directory.
+    dout = p3d.DatagramOutputFile()
+    if not dout.open(stream, src_fn) or not dout.write_header("pbj\0\n\r"):
+        raise IOError('Failed to write to .bam file: %s' % (dstpath))
+
+    writer = p3d.BamWriter(dout)
+    writer.root_node = node
+    writer.init()
+    if _build_cmd.bam_embed_textures:
+        writer.set_file_texture_mode(p3d.BamEnums.BTM_rawdata)
+    else:
+        writer.set_file_texture_mode(p3d.BamEnums.BTM_relative)
+    writer.write_object(node)
+    writer.flush()
+    writer = None
+    dout.close()
+    dout = None
+    stream.close()
 
 
 macosx_binary_magics = (
@@ -125,7 +154,7 @@ PACKAGE_LIB_DIRS = {
     'PyQt5':  [('PyQt5/Qt5/bin', 'PyQt5_Qt5')],
 }
 
-SITE_PY = u"""
+SITE_PY = """
 import sys
 from _frozen_importlib import _imp, FrozenImporter
 
@@ -283,6 +312,11 @@ class build_apps(setuptools.Command):
             'macosx_10_9_x86_64',
             'win_amd64',
         ]
+
+        if sys.version_info >= (3, 13):
+            # This version of Python is only available for 10.13+.
+            self.platforms[1] = 'macosx_10_13_x86_64'
+
         self.plugins = []
         self.embed_prc_data = True
         self.extra_prc_files = []
@@ -301,6 +335,7 @@ class build_apps(setuptools.Command):
         ]
         self.file_handlers = {}
         self.bam_model_extensions = ['.egg', '.gltf', '.glb']
+        self.bam_embed_textures = False
         self.exclude_dependencies = [
             # Windows
             'kernel32.dll', 'user32.dll', 'wsock32.dll', 'ws2_32.dll',
@@ -315,7 +350,8 @@ class build_apps(setuptools.Command):
 
             # manylinux1/linux
             'libdl.so.*', 'libstdc++.so.*', 'libm.so.*', 'libgcc_s.so.*',
-            'libpthread.so.*', 'libc.so.*', 'ld-linux-x86-64.so.*',
+            'libpthread.so.*', 'libc.so.*',
+            'ld-linux-x86-64.so.*', 'ld-linux-aarch64.so.*',
             'libgl.so.*', 'libx11.so.*', 'libncursesw.so.*', 'libz.so.*',
             'librt.so.*', 'libutil.so.*', 'libnsl.so.1', 'libXext.so.6',
             'libXrender.so.1', 'libICE.so.6', 'libSM.so.6', 'libEGL.so.1',
@@ -466,8 +502,10 @@ class build_apps(setuptools.Command):
         if self.bam_model_extensions:
             for ext in self.bam_model_extensions:
                 ext = '.' + ext.lstrip('.')
-                assert ext not in self.file_handlers, \
-                    'Extension {} occurs in both file_handlers and bam_model_extensions!'.format(ext)
+                handler = self.file_handlers.get(ext)
+                if handler != _model_to_bam:
+                    assert handler is None, \
+                        'Extension {} occurs in both file_handlers and bam_model_extensions!'.format(ext)
                 self.file_handlers[ext] = _model_to_bam
 
         tmp = self.default_file_handlers.copy()
@@ -592,7 +630,7 @@ class build_apps(setuptools.Command):
 
         whlcache = os.path.join(self.build_base, '__whl_cache__')
 
-        pip_version = int(pip.__version__.split('.')[0])
+        pip_version = int(pip.__version__.split('.', 1)[0])
         if pip_version < 9:
             raise RuntimeError("pip 9.0 or greater is required, but found {}".format(pip.__version__))
 
@@ -634,7 +672,26 @@ class build_apps(setuptools.Command):
         for index in self.pypi_extra_indexes:
             pip_args += ['--extra-index-url', index]
 
-        subprocess.check_call([sys.executable, '-m', 'pip'] + pip_args)
+        try:
+            subprocess.check_call([sys.executable, '-m', 'pip'] + pip_args)
+        except:
+            # Display a more helpful message for these common issues.
+            if platform.startswith('macosx_10_9_') and sys.version_info >= (3, 13):
+                new_platform = platform.replace('macosx_10_9_', 'macosx_10_13_')
+                self.announce('This error likely occurs because {} is not a supported target as of Python 3.13.\nChange the target platform to {} instead.'.format(platform, new_platform), distutils.log.ERROR)
+            elif platform.startswith('manylinux2010_') and sys.version_info >= (3, 11):
+                new_platform = platform.replace('manylinux2010_', 'manylinux2014_')
+                self.announce('This error likely occurs because {} is not a supported target as of Python 3.11.\nChange the target platform to {} instead.'.format(platform, new_platform), distutils.log.ERROR)
+            elif platform.startswith('manylinux1_') and sys.version_info >= (3, 10):
+                new_platform = platform.replace('manylinux1_', 'manylinux2014_')
+                self.announce('This error likely occurs because {} is not a supported target as of Python 3.10.\nChange the target platform to {} instead.'.format(platform, new_platform), distutils.log.ERROR)
+            elif platform.startswith('macosx_10_6_') and sys.version_info >= (3, 8):
+                if sys.version_info >= (3, 13):
+                    new_platform = platform.replace('macosx_10_6_', 'macosx_10_13_')
+                else:
+                    new_platform = platform.replace('macosx_10_6_', 'macosx_10_9_')
+                self.announce('This error likely occurs because {} is not a supported target as of Python 3.8.\nChange the target platform to {} instead.'.format(platform, new_platform), distutils.log.ERROR)
+            raise
 
         # Return a list of paths to the downloaded whls
         return [
@@ -704,6 +761,7 @@ class build_apps(setuptools.Command):
             'CFBundlePackageType': 'APPL',
             'CFBundleSignature': '', #TODO
             'CFBundleExecutable': self.macos_main_app,
+            'NSHighResolutionCapable': 'True',
         }
 
         icon = self.icon_objects.get(
@@ -846,16 +904,12 @@ class build_apps(setuptools.Command):
             libdir = os.path.dirname(dtool_fn.to_os_specific())
             etcdir = os.path.join(libdir, '..', 'etc')
 
-            etcfiles = os.listdir(etcdir)
-            etcfiles.sort(reverse=True)
-            for fn in etcfiles:
+            for fn in sorted(os.listdir(etcdir), reverse=True):
                 if fn.lower().endswith('.prc'):
                     with open(os.path.join(etcdir, fn)) as f:
                         prcstring += f.read()
         else:
-            etcfiles = [i for i in p3dwhl.namelist() if i.endswith('.prc')]
-            etcfiles.sort(reverse=True)
-            for fn in etcfiles:
+            for fn in sorted((i for i in p3dwhl.namelist() if i.endswith('.prc')), reverse=True):
                 with p3dwhl.open(fn) as f:
                     prcstring += f.read().decode('utf8')
 
@@ -1058,7 +1112,7 @@ class build_apps(setuptools.Command):
             freezer_extras.update(freezer.extras)
             freezer_modules.update(freezer.getAllModuleNames())
             for suffix in freezer.mf.suffixes:
-                if suffix[2] == imp.C_EXTENSION:
+                if suffix[2] == 3: # imp.C_EXTENSION:
                     ext_suffixes.add(suffix[0])
 
         for appname, scriptname in self.gui_apps.items():
@@ -1121,7 +1175,7 @@ class build_apps(setuptools.Command):
 
                 # Remove python version string
                 parts = basename.split('.')
-                if len(parts) >= 3 and '-' in parts[-2]:
+                if len(parts) >= 3 and ('-' in parts[-2] or parts[-2] == 'abi' + str(sys.version_info[0])):
                     parts = parts[:-2] + parts[-1:]
                     basename = '.'.join(parts)
 
@@ -1494,7 +1548,8 @@ class build_apps(setuptools.Command):
         for idx in string_tables.keys():
             elf.seek(shoff + idx * shentsize)
             type, offset, size, link, entsize = struct.unpack_from(section_struct, elf.read(shentsize))
-            if type != 3: continue
+            if type != 3:
+                continue
             elf.seek(offset)
             string_tables[idx] = elf.read(size)
 
@@ -1688,6 +1743,8 @@ class bdist_apps(setuptools.Command):
             setattr(self, opt, None)
 
     def finalize_options(self):
+        from importlib.metadata import entry_points
+
         # We need to massage the inputs a bit in case they came from a
         # setup.cfg file.
         self.installers = {
@@ -1700,11 +1757,17 @@ class bdist_apps(setuptools.Command):
             self.signing_certificate = os.path.abspath(self.signing_certificate)
             self.signing_private_key = os.path.abspath(self.signing_private_key)
 
+        eps = entry_points()
+        if isinstance(eps, dict): # Python 3.8 and 3.9
+            installer_eps = eps.get('panda3d.bdist_apps.installers', ())
+        else:
+            installer_eps = eps.select(group='panda3d.bdist_apps.installers')
+
         tmp = self.DEFAULT_INSTALLER_FUNCS.copy()
         tmp.update(self.installer_functions)
         tmp.update({
             entrypoint.name: entrypoint.load()
-            for entrypoint in pkg_resources.iter_entry_points('panda3d.bdist_apps.installers')
+            for entrypoint in installer_eps
         })
         self.installer_functions = tmp
 
@@ -1747,14 +1810,3 @@ class bdist_apps(setuptools.Command):
                     continue
 
                 self.installer_functions[installer](self, basename, build_dir)
-
-
-def finalize_distribution_options(dist):
-    """Entry point for compatibility with setuptools>=61, see #1394."""
-
-    options = dist.get_option_dict('build_apps')
-    if options.get('gui_apps') or options.get('console_apps'):
-        # Make sure this is set to avoid auto-discovery taking place.
-        if getattr(dist.metadata, 'py_modules', None) is None and \
-           getattr(dist.metadata, 'packages', None) is None:
-            dist.py_modules = []

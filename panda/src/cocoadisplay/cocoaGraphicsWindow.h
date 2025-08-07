@@ -19,11 +19,21 @@
 #include "cocoaGraphicsPipe.h"
 #include "graphicsWindow.h"
 
+#ifdef __OBJC__
 #import <AppKit/NSEvent.h>
 #import <AppKit/NSView.h>
 #import <AppKit/NSWindow.h>
-
 #import <CoreVideo/CoreVideo.h>
+#else
+#include <objc/objc.h>
+typedef objc_object NSCursor;
+typedef objc_object NSData;
+typedef objc_object NSEvent;
+typedef objc_object NSImage;
+typedef objc_object NSView;
+typedef objc_object NSWindow;
+typedef unsigned long NSUInteger;
+#endif
 
 /**
  * An interface to the Cocoa system for managing OpenGL windows under Mac OS
@@ -41,18 +51,19 @@ public:
   virtual ~CocoaGraphicsWindow();
 
   virtual bool move_pointer(int device, int x, int y);
-  virtual bool begin_frame(FrameMode mode, Thread *current_thread);
-  virtual void end_frame(FrameMode mode, Thread *current_thread);
-  virtual void end_flip();
 
   virtual void process_events();
   virtual void set_properties_now(WindowProperties &properties);
+
+  virtual void update_context();
+  virtual void unbind_context();
 
   void handle_move_event();
   void handle_resize_event();
   void handle_minimize_event(bool minimized);
   void handle_maximize_event(bool maximized);
   void handle_foreground_event(bool foreground);
+  void handle_backing_change_event();
   bool handle_close_request();
   void handle_close_event();
   void handle_key_event(NSEvent *event);
@@ -81,7 +92,7 @@ private:
   ButtonHandle map_key(unsigned short c) const;
   ButtonHandle map_raw_key(unsigned short keycode) const;
 
-private:
+protected:
   NSWindow *_window;
   NSView *_view;
   NSUInteger _modifier_keys;
@@ -90,7 +101,6 @@ private:
   PT(GraphicsWindowInputDevice) _input;
   bool _mouse_hidden;
   bool _context_needs_update;
-  bool _vsync_enabled = false;
 
   CGDisplayModeRef _fullscreen_mode;
   CGDisplayModeRef _windowed_mode;

@@ -60,8 +60,9 @@ close() {
 
   remove_all_graphs();
 
-  for (GtkWidget *label : _status_bar_labels) {
-    gtk_container_remove(GTK_CONTAINER(_status_bar), label);
+  for (GtkWidget *flow_box_child : _status_bar_labels) {
+    gtk_container_remove(GTK_CONTAINER(_status_bar), flow_box_child);
+    g_object_unref(flow_box_child);
   }
   _status_bar_collectors.clear();
   _status_bar_labels.clear();
@@ -160,11 +161,6 @@ new_collector(int collector_index) {
   for (GtkStatsGraph *graph : _graphs) {
     graph->new_collector(collector_index);
   }
-
-  // We might need to update our menus.
-  for (GtkStatsChartMenu *chart_menu : _chart_menus) {
-    chart_menu->check_update();
-  }
 }
 
 /**
@@ -190,6 +186,8 @@ new_thread(int thread_index) {
  */
 void GtkStatsMonitor::
 new_data(int thread_index, int frame_number) {
+  PStatMonitor::new_data(thread_index, frame_number);
+
   for (GtkStatsGraph *graph : _graphs) {
     graph->new_data(thread_index, frame_number);
   }
@@ -255,7 +253,8 @@ idle() {
     gtk_label_set_text(GTK_LABEL(_frame_rate_label), buffer);
 
     if (!_status_bar_labels.empty()) {
-      gtk_label_set_text(GTK_LABEL(_status_bar_labels[0]), buffer);
+      GtkWidget *label = gtk_bin_get_child(GTK_BIN(_status_bar_labels[0]));
+      gtk_label_set_text(GTK_LABEL(label), buffer);
     }
   }
 }
@@ -317,8 +316,8 @@ open_timeline() {
  * Opens a new flame graph showing the indicated data.
  */
 PStatGraph *GtkStatsMonitor::
-open_flame_graph(int thread_index, int collector_index) {
-  GtkStatsFlameGraph *graph = new GtkStatsFlameGraph(this, thread_index, collector_index);
+open_flame_graph(int thread_index, int collector_index, int frame_number) {
+  GtkStatsFlameGraph *graph = new GtkStatsFlameGraph(this, thread_index, collector_index, frame_number);
   add_graph(graph);
   return graph;
 }
@@ -547,7 +546,7 @@ setup_speed_menu() {
         self->set_scroll_speed(12);
       }
     }), this);
-  group = gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(item));
+  //group = gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(item));
 
   item = gtk_separator_menu_item_new();
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
@@ -610,9 +609,16 @@ update_status_bar() {
   size_t li = 1;
   collectors.push_back(0);
   if (_status_bar_labels.empty()) {
+    // As workaround for https://gitlab.gnome.org/GNOME/gtk/-/merge_requests/2029
+    // We manually create a GtkFlowBoxChild instance and attach the label to it
+    // and increase its reference count so it it not prematurely destroyed when
+    // removed from the GtkFlowBox, causing the app to segfault.
     GtkWidget *label = gtk_label_new("");
-    gtk_container_add(GTK_CONTAINER(_status_bar), label);
-    _status_bar_labels.push_back(label);
+    GtkWidget *flow_box_child = gtk_flow_box_child_new();
+    gtk_container_add(GTK_CONTAINER(flow_box_child), label);
+    gtk_container_add(GTK_CONTAINER(_status_bar), flow_box_child);
+    _status_bar_labels.push_back(flow_box_child);
+    g_object_ref(flow_box_child);
   }
 
   // Gather the top-level collector list.
@@ -642,15 +648,21 @@ update_status_bar() {
       std::string text = def._name;
       text += ": " + PStatGraph::format_number(value, PStatGraph::GBU_named | PStatGraph::GBU_show_units, def._level_units);
 
+      GtkWidget *flow_box_child;
       GtkWidget *label;
       if (li < _status_bar_labels.size()) {
-        label = _status_bar_labels[li++];
+          flow_box_child = _status_bar_labels[li++];
+        label = gtk_bin_get_child(GTK_BIN(flow_box_child));
         gtk_label_set_text(GTK_LABEL(label), text.c_str());
       }
       else {
         label = gtk_label_new(text.c_str());
-        gtk_container_add(GTK_CONTAINER(_status_bar), label);
-        _status_bar_labels.push_back(label);
+        // See comment above
+        flow_box_child = gtk_flow_box_child_new();
+        gtk_container_add(GTK_CONTAINER(flow_box_child), label);
+        gtk_container_add(GTK_CONTAINER(_status_bar), flow_box_child);
+        _status_bar_labels.push_back(flow_box_child);
+        g_object_ref(flow_box_child);
       }
 
       collectors.push_back(collector);
@@ -722,7 +734,7 @@ status_bar_button_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
       const PStatViewLevel *child_level = view_level->get_child(c);
 
       int child_collector = child_level->get_collector();
-      const MenuDef *menu_def = monitor->add_menu({0, child_collector, CT_strip_chart, true});
+      const MenuDef *menu_def = monitor->add_menu({CT_strip_chart, 0, child_collector, -1, true});
 
       double value = child_level->get_net_value();
 
@@ -740,7 +752,8 @@ status_bar_button_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
 
     gtk_widget_show_all(menu);
 
-    GtkWidget *label = monitor->_status_bar_labels[index];
+    GtkWidget *flow_box_child = monitor->_status_bar_labels[index];
+    GtkWidget *label = gtk_bin_get_child(GTK_BIN(flow_box_child));
     gtk_menu_popup_at_widget(GTK_MENU(menu), label,
                              GDK_GRAVITY_NORTH_WEST,
                              GDK_GRAVITY_SOUTH_WEST, nullptr);
@@ -774,7 +787,8 @@ menu_activate(GtkWidget *widget, gpointer data) {
 
   case CT_flame_graph:
     monitor->open_flame_graph(menu_def._thread_index,
-                              menu_def._collector_index);
+                              menu_def._collector_index,
+                              menu_def._frame_number);
     break;
 
   case CT_piano_roll:
@@ -840,7 +854,7 @@ handle_status_bar_popup(int item) {
       const PStatViewLevel *child_level = view_level->get_child(c);
 
       int child_collector = child_level->get_collector();
-      const MenuDef *menu_def = add_menu({0, child_collector, CT_strip_chart, true});
+      const MenuDef *menu_def = add_menu({CT_strip_chart, 0, child_collector, -1, true});
 
       double value = child_level->get_net_value();
 
@@ -858,7 +872,8 @@ handle_status_bar_popup(int item) {
 
     gtk_widget_show_all(menu);
 
-    GtkWidget *label = _status_bar_labels[item];
+    GtkWidget *flow_box_child = _status_bar_labels[item];
+    GtkWidget *label = gtk_bin_get_child(GTK_BIN(flow_box_child));
     gtk_menu_popup_at_widget(GTK_MENU(menu), label,
                              GDK_GRAVITY_NORTH_WEST,
                              GDK_GRAVITY_SOUTH_WEST, nullptr);

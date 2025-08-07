@@ -17,8 +17,8 @@ import os
 from direct.dist import FreezeTool
 
 def usage(code, msg = ''):
-    print >> sys.stderr, __doc__
-    print >> sys.stderr, msg
+    print(__doc__, file=sys.stderr)
+    print(msg, file=sys.stderr)
     sys.exit(code)
 
 if __name__ == '__main__':
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'h')
-    except getopt.error, msg:
+    except getopt.error as msg:
         usage(1, msg)
 
     for opt, arg in opts:
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     libs = ''
     libs += ' -framework Foundation -framework UIKit'
     if link_all_static:
-        libs += ' -lframework -lputil -lcollide -lpgraph -lchan -ltext -lpnmimage -lpnmimagetypes -levent -leffects -lgobj -ldisplay -lmathutil -lexpress -ldgraph -ldevice -ltform -llinmath -lpstatclient -lpanda -lglstuff -lrecorder -lpgui -lchar -lpipeline -lpandabase -llerp -lgsgbase -ldownloader -lparametrics -lpgraphnodes -lcull -lgrutil -lnet -lmovies -lnativenet -laudio -linterrogatedb -ldconfig -ldtoolutil -ldtoolbase -lprc -liphonedisplay -lpandaexpress -lpanda'
+        libs += ' -lframework -lputil -lcollide -lpgraph -lchan -ltext -lpnmimage -lpnmimagetypes -levent -leffects -lgobj -ldisplay -lmathutil -lexpress -ldgraph -ldevice -ltform -llinmath -lpstatclient -lpanda -lglstuff -lrecorder -lpgui -lchar -lpipeline -lpandabase -llerp -lgsgbase -ldownloader -lparametrics -lpgraphnodes -lcull -lgrutil -lnet -lmovies -lnativenet -laudio -ldconfig -ldtoolutil -ldtoolbase -lprc -liphonedisplay -lpandaexpress -lpanda'
         libs += ' -lphysics -lparticlesystem -lpandaphysics'
         libs += ' -ldistort -leffects -lpandafx'
         libs += ' -ldirectbase -ldcparser -ldeadrec -ldistributed -lhttp -lshowbase -linterval -lmotiontrail -ldirect'

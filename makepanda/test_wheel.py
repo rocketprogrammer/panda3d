@@ -14,7 +14,7 @@ import tempfile
 from optparse import OptionParser
 
 
-def test_wheel(wheel, verbose=False):
+def test_wheel(wheel, verbose=False, ignores=[]):
     envdir = tempfile.mkdtemp(prefix="venv-")
     print("Setting up virtual environment in {0}".format(envdir))
     sys.stdout.flush()
@@ -41,7 +41,7 @@ def test_wheel(wheel, verbose=False):
     if sys.version_info >= (3, 10):
         packages += ["pytest>=6.2.4"]
     else:
-        packages += ["pytest"]
+        packages += ["pytest>=3.9.0"]
 
     if sys.version_info[0:2] == (3, 4):
         if sys.platform == "win32":
@@ -49,6 +49,9 @@ def test_wheel(wheel, verbose=False):
 
         # See https://github.com/python-attrs/attrs/pull/807
         packages += ["attrs<21"]
+
+    if sys.version_info >= (3, 12):
+        packages += ["setuptools"]
 
     if subprocess.call([python, "-m", "pip", "install"] + packages) != 0:
         shutil.rmtree(envdir)
@@ -58,8 +61,26 @@ def test_wheel(wheel, verbose=False):
     test_cmd = [python, "-m", "pytest", "tests"]
     if verbose:
         test_cmd.append("--verbose")
+    for ignore in ignores:
+        test_cmd.append("--ignore")
+        test_cmd.append(ignore)
 
-    exit_code = subprocess.call(test_cmd)
+    # Put the location of the python DLL on the path, for deploy-stub test
+    # This is needed because venv does not install a copy of the python DLL
+    env = None
+    if sys.platform == "win32":
+        deploy_libs = os.path.join(envdir, "Lib", "site-packages", "deploy_libs")
+        if os.path.isdir(deploy_libs):
+            # We have to do this dance because os.environ is case insensitive
+            env = dict(os.environ)
+            for key, value in env.items():
+                if key.upper() == "PATH":
+                    env[key] = deploy_libs + ";" + value
+                    break
+            else:
+                env["PATH"] = deploy_libs
+
+    exit_code = subprocess.call(test_cmd, env=env)
     shutil.rmtree(envdir)
 
     if exit_code != 0:
@@ -69,6 +90,7 @@ def test_wheel(wheel, verbose=False):
 if __name__ == "__main__":
     parser = OptionParser(usage="%prog [options] file...")
     parser.add_option('', '--verbose', dest = 'verbose', help = 'Enable verbose output', action = 'store_true', default = False)
+    parser.add_option('', '--ignore', dest = 'ignores', help = 'Ignores given test directory (may be repeated)', action = 'append', default = [])
     (options, args) = parser.parse_args()
 
     if not args:
@@ -76,4 +98,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     for arg in args:
-        test_wheel(arg, verbose=options.verbose)
+        test_wheel(arg, verbose=options.verbose, ignores=options.ignores)

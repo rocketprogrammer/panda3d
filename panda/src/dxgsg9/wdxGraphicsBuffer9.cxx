@@ -45,9 +45,10 @@ wdxGraphicsBuffer9(GraphicsEngine *engine, GraphicsPipe *pipe,
   _color_backing_store = nullptr;
   _depth_backing_store = nullptr;
 
-  // is this correct ??? Since the pbuffer never gets flipped, we get
-  // screenshots from the same buffer we draw into.
-  _screenshot_buffer_type = _draw_buffer_type;
+  // Since the pbuffer never gets flipped, we get screenshots from the same
+  // buffer we draw into, which is the back buffer.
+  _draw_buffer_type = RenderBuffer::T_back;
+  _screenshot_buffer_type = RenderBuffer::T_back;
 
   _shared_depth_buffer = 0;
   _debug = 0;
@@ -364,7 +365,7 @@ rebuild_bitplanes() {
 // color_tex->set_format(Texture::F_rgba);
     color_ctx =
       DCAST(DXTextureContext9,
-            color_tex->prepare_now(0, _gsg->get_prepared_objects(), _gsg));
+            color_tex->prepare_now(_gsg->get_prepared_objects(), _gsg));
 
     if (color_ctx) {
       if (!color_ctx->create_texture(*_dxgsg->_screen)) {
@@ -373,7 +374,7 @@ rebuild_bitplanes() {
         return false;
       }
       if (color_tex->get_texture_type() == Texture::TT_2d_texture) {
-        color_d3d_tex = color_ctx->_d3d_2d_texture;
+        color_d3d_tex = color_ctx->get_d3d_2d_texture(0);
         nassertr(color_d3d_tex != 0, false);
         hr = color_d3d_tex -> GetSurfaceLevel(0, &color_surf);
         if (!SUCCEEDED(hr)) {
@@ -381,7 +382,7 @@ rebuild_bitplanes() {
         }
       }
       if (color_tex->get_texture_type() == Texture::TT_cube_map) {
-        color_cube = color_ctx->_d3d_cube_texture;
+        color_cube = color_ctx->get_d3d_cube_texture(0);
         nassertr(color_cube != 0, false);
 
         if (_cube_map_index >= 0 && _cube_map_index < 6) {
@@ -414,7 +415,7 @@ rebuild_bitplanes() {
         _depth_backing_store->Release();
         _depth_backing_store = nullptr;
       }
-      if (!_depth_backing_store) {
+      if (!_depth_backing_store && _saved_depth_buffer != nullptr) {
         hr = _dxgsg -> _d3d_device ->
           CreateDepthStencilSurface (bitplane_x, bitplane_y, _saved_depth_desc.Format,
                                      _saved_depth_desc.MultiSampleType, _saved_depth_desc.MultiSampleQuality,
@@ -443,7 +444,7 @@ rebuild_bitplanes() {
     depth_tex->set_format(Texture::F_depth_stencil);
     depth_ctx =
       DCAST(DXTextureContext9,
-            depth_tex->prepare_now(0, _gsg->get_prepared_objects(), _gsg));
+            depth_tex->prepare_now(_gsg->get_prepared_objects(), _gsg));
     if (depth_ctx) {
       if (!depth_ctx->create_texture(*_dxgsg->_screen)) {
         dxgsg9_cat.error()
@@ -451,7 +452,7 @@ rebuild_bitplanes() {
         return false;
       }
       if (depth_tex->get_texture_type() == Texture::TT_2d_texture) {
-        depth_d3d_tex = depth_ctx->_d3d_2d_texture;
+        depth_d3d_tex = depth_ctx->get_d3d_2d_texture(0);
         nassertr(depth_d3d_tex != 0, false);
         hr = depth_d3d_tex -> GetSurfaceLevel(0, &depth_surf);
         if (!SUCCEEDED(hr)) {
@@ -459,7 +460,7 @@ rebuild_bitplanes() {
         }
       }
       if (depth_tex->get_texture_type() == Texture::TT_cube_map) {
-        depth_cube = depth_ctx->_d3d_cube_texture;
+        depth_cube = depth_ctx->get_d3d_cube_texture(0);
         nassertr(depth_cube != 0, false);
         hr = depth_cube -> GetCubeMapSurface ((D3DCUBEMAP_FACES) _cube_map_index, 0, &depth_surf);
         if (!SUCCEEDED(hr)) {
@@ -518,7 +519,7 @@ rebuild_bitplanes() {
           IDirect3DSurface9 *color_surf = 0;
           IDirect3DCubeTexture9 *color_cube = 0;
 
-          color_ctx = DCAST(DXTextureContext9, tex->prepare_now(0, _gsg->get_prepared_objects(), _gsg));
+          color_ctx = DCAST(DXTextureContext9, tex->prepare_now(_gsg->get_prepared_objects(), _gsg));
           if (color_ctx) {
             if (!color_ctx->create_texture(*_dxgsg->_screen)) {
               dxgsg9_cat.error()
@@ -526,7 +527,7 @@ rebuild_bitplanes() {
               return false;
             }
             if (tex->get_texture_type() == Texture::TT_2d_texture) {
-              color_d3d_tex = color_ctx->_d3d_2d_texture;
+              color_d3d_tex = color_ctx->get_d3d_2d_texture(0);
               nassertr(color_d3d_tex != 0, false);
 
               hr = color_d3d_tex -> GetSurfaceLevel(0, &color_surf);
@@ -613,8 +614,8 @@ select_target_tex_page(int page) {
   if (color_tex) {
     color_ctx =
       DCAST(DXTextureContext9,
-            color_tex->prepare_now(0, _gsg->get_prepared_objects(), _gsg));
-    color_cube = color_ctx->_d3d_cube_texture;
+            color_tex->prepare_now(_gsg->get_prepared_objects(), _gsg));
+    color_cube = color_ctx->get_d3d_cube_texture(0);
     if (color_cube && _cube_map_index >= 0 && _cube_map_index < 6) {
       hr = color_cube -> GetCubeMapSurface ((D3DCUBEMAP_FACES) _cube_map_index, 0, &color_surf);
       if (!SUCCEEDED(hr)) {
@@ -657,7 +658,7 @@ select_target_tex_page(int page) {
           IDirect3DSurface9 *color_surf = 0;
           IDirect3DCubeTexture9 *color_cube = 0;
 
-          color_ctx = DCAST(DXTextureContext9, tex->prepare_now(0, _gsg->get_prepared_objects(), _gsg));
+          color_ctx = DCAST(DXTextureContext9, tex->prepare_now(_gsg->get_prepared_objects(), _gsg));
           if (color_ctx) {
             if (tex->get_texture_type() == Texture::TT_cube_map) {
 
@@ -665,7 +666,7 @@ select_target_tex_page(int page) {
                 printf ("CUBEMAP i = %d, RenderTexturePlane = %d, _cube_map_index %d \n", i, plane, _cube_map_index);
               }
 
-              color_cube = color_ctx->_d3d_cube_texture;
+              color_cube = color_ctx->get_d3d_cube_texture(0);
               if (color_cube && _cube_map_index >= 0 && _cube_map_index < 6) {
                 hr = color_cube -> GetCubeMapSurface ((D3DCUBEMAP_FACES) _cube_map_index, 0, &color_surf);
                 if (!SUCCEEDED(hr)) {
@@ -758,10 +759,19 @@ open_buffer() {
     dxgsg9_cat.error ( ) << "GetDesc " << D3DERRORSTRING(hr) FL;
     return false;
   }
-  hr = _saved_depth_buffer -> GetDesc (&_saved_depth_desc);
-  if (!SUCCEEDED (hr)) {
-    dxgsg9_cat.error ( ) << "GetDesc " << D3DERRORSTRING(hr) FL;
-    return false;
+  if (_saved_depth_buffer) {
+    hr = _saved_depth_buffer -> GetDesc (&_saved_depth_desc);
+    if (!SUCCEEDED (hr)) {
+      dxgsg9_cat.error ( ) << "GetDesc " << D3DERRORSTRING(hr) FL;
+      return false;
+    }
+  } else {
+    ZeroMemory(&_saved_depth_desc, sizeof(_saved_depth_desc));
+  }
+  if (_fb_properties.get_alpha_bits() > 0 &&
+      _saved_color_desc.Format == D3DFMT_X8R8G8B8) {
+    // Add alpha if we didn't have it and we do need it.
+    _saved_color_desc.Format = D3DFMT_A8R8G8B8;
   }
   _fb_properties = _dxgsg->
     calc_fb_properties(_saved_color_desc.Format,

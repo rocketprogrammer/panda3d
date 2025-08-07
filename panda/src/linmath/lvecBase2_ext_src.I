@@ -24,11 +24,19 @@
  */
 INLINE_LINMATH std::string Extension<FLOATNAME(LVecBase2)>::
 __repr__() const {
-  std::ostringstream out;
-  out << "LVecBase2" << FLOATTOKEN << "("
-      << MAYBE_ZERO(_this->_v(0)) << ", "
-      << MAYBE_ZERO(_this->_v(1)) << ")";
-  return out.str();
+  char buf[96] = "LVecBase2";
+  char *p = buf + strlen(buf);
+  *(p++) = FLOATTOKEN;
+  *(p++) = '(';
+  FLOATTYPE_REPR(_this->_v(0), p);
+  p += strlen(p);
+  *(p++) = ',';
+  *(p++) = ' ';
+  FLOATTYPE_REPR(_this->_v(1), p);
+  p += strlen(p);
+  *(p++) = ')';
+  *p = '\0';
+  return std::string(buf, p - buf);
 }
 
 /**
@@ -175,7 +183,7 @@ __setattr__(PyObject *self, const std::string &attr_name, PyObject *assign) {
 #endif
       } else {
         PyErr_Format(PyExc_ValueError, "'%.200s' object is not iterable",
-          assign->ob_type->tp_name);
+          Py_TYPE(assign)->tp_name);
       }
       return -1;
     }
@@ -265,8 +273,7 @@ __ifloordiv__(PyObject *self, FLOATTYPE scalar) {
   _this->_v(0) = std::floor(_this->_v(0) / scalar);
   _this->_v(1) = std::floor(_this->_v(1) / scalar);
 #endif
-  Py_INCREF(self);
-  return self;
+  return Py_NewRef(self);
 }
 
 /**
@@ -295,8 +302,7 @@ INLINE_LINMATH PyObject *Extension<FLOATNAME(LVecBase2)>::
 __ipow__(PyObject *self, FLOATTYPE exponent) {
   _this->_v(0) = cpow(_this->_v(0), exponent);
   _this->_v(1) = cpow(_this->_v(1), exponent);
-  Py_INCREF(self);
-  return self;
+  return Py_NewRef(self);
 }
 
 /**
@@ -371,10 +377,8 @@ __getbuffer__(PyObject *self, Py_buffer *view, int flags) const {
   static const char format[2] = {FLOATTOKEN, 0};
   static const Py_ssize_t shape = FLOATNAME(LVecBase2)::num_components;
 
-  Py_INCREF(self);
-
   view->buf = (void *)_this->get_data();
-  view->obj = self;
+  view->obj = Py_NewRef(self);
   view->len = 2 * sizeof(FLOATTYPE);
   view->readonly = 1;
   view->itemsize = sizeof(FLOATTYPE);

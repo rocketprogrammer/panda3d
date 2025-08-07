@@ -62,7 +62,7 @@ extern char **environ;
 #include <sys/sysctl.h>
 #endif
 
-#if defined(IS_LINUX) || defined(IS_FREEBSD)
+#if (defined(IS_LINUX) || defined(IS_FREEBSD)) && !defined(__wasi__)
 // For link_map and dlinfo.
 #include <link.h>
 #include <dlfcn.h>
@@ -72,7 +72,7 @@ extern char **environ;
 // read environment variables at static init time.  In this case, we must read
 // all of the environment variables directly and cache them locally.
 
-#ifndef STATIC_INIT_GETENV
+#if !defined(STATIC_INIT_GETENV) || defined(__EMSCRIPTEN__)
 #define PREREAD_ENVIRONMENT
 #endif
 
@@ -122,6 +122,13 @@ static const char *const libp3dtool_filenames[] = {
 #endif
 };
 #endif /* !LINK_ALL_STATIC */
+
+#if defined(__EMSCRIPTEN__) && !defined(CPPPARSER)
+extern "C" void EMSCRIPTEN_KEEPALIVE
+_set_env_var(ExecutionEnvironment *ptr, const char *var, const char *value) {
+  ptr->_variables[std::string(var)] = std::string(value);
+}
+#endif
 
 // Linux with GNU libc does have global argvargc variables, but we can't
 // safely access them at stat init time--at least, not in libc5. (It does seem
@@ -261,7 +268,7 @@ ns_has_environment_variable(const string &var) const {
 
 #ifdef PREREAD_ENVIRONMENT
   return false;
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
   size_t size = 0;
   getenv_s(&size, nullptr, 0, var.c_str());
   return size != 0;
@@ -305,7 +312,7 @@ ns_get_environment_variable(const string &var) const {
   }
 
 #ifndef PREREAD_ENVIRONMENT
-#ifdef _MSC_VER
+#ifdef _WIN32
   std::string value(128, '\0');
   size_t size = value.size();
   while (getenv_s(&size, &value[0], size, var.c_str()) == ERANGE) {
@@ -436,15 +443,10 @@ void ExecutionEnvironment::
 ns_set_environment_variable(const string &var, const string &value) {
   _variables[var] = value;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   _putenv_s(var.c_str(), value.c_str());
 #else
-  string putstr = var + "=" + value;
-
-  // putenv() requires us to malloc a new C-style string.
-  char *put = (char *)malloc(putstr.length() + 1);
-  strcpy(put, putstr.c_str());
-  putenv(put);
+  setenv(var.c_str(), value.c_str(), 1);
 #endif
 }
 
@@ -454,7 +456,7 @@ ns_set_environment_variable(const string &var, const string &value) {
 void ExecutionEnvironment::
 ns_shadow_environment_variable(const string &var, const string &value) {
   _variables[var] = value;
-  string putstr = var + "=" + value;
+  //string putstr = var + "=" + value;
 }
 
 /**
@@ -469,7 +471,7 @@ ns_clear_shadow(const string &var) {
 
 #ifdef PREREAD_ENVIRONMENT
   // Now we have to replace the value in the table.
-#ifdef _MSC_VER
+#ifdef _WIN32
   std::string value(128, '\0');
   size_t size = value.size();
   while (getenv_s(&size, &value[0], size, var.c_str()) == ERANGE) {
@@ -581,6 +583,19 @@ read_environment_variables() {
       _variables[variable] = value;
     }
   }
+#elif defined(__EMSCRIPTEN__)
+  // We only have environment variables if we're running in node.js.
+#ifndef CPPPARSER
+  EM_ASM({
+    if (typeof process === 'object' && typeof process.env === 'object') {
+      for (var variable in process.env) {
+        __set_env_var($0, stringToUTF8OnStack(variable),
+                          stringToUTF8OnStack(process.env[variable]));
+      }
+    }
+  }, this);
+#endif
+
 #elif defined(HAVE_PROC_SELF_ENVIRON)
   // In some cases, we may have a file called procselfenviron that may be read
   // to determine all of our environment variables.
@@ -923,7 +938,7 @@ read_args() {
   }
 #endif
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasi__)
   // Try to use realpath to get cleaner paths.
 
   if (!_binary_name.empty()) {
@@ -939,7 +954,7 @@ read_args() {
       _dtool_name = newpath;
     }
   }
-#endif  // _WIN32
+#endif  // _WIN32 __wasi__
 
   if (_dtool_name.empty()) {
     _dtool_name = _binary_name;

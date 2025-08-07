@@ -155,7 +155,22 @@ OpenALAudioManager() {
     if (_device != nullptr) {
       // We managed to get a device open.
       alcGetError(_device); // clear errors
-      _context = alcCreateContext(_device, nullptr);
+
+      ALCboolean is_hrtf_present = alcIsExtensionPresent(_device, "ALC_SOFT_HRTF");
+
+      ALCint attrs[3] = {0};
+
+#ifndef HAVE_OPENAL_FRAMEWORK
+      if (is_hrtf_present) {
+        attrs[0] = ALC_HRTF_SOFT;
+        attrs[1] = audio_want_hrtf.get_value() ? ALC_TRUE : ALC_FALSE;
+        attrs[2] = 0; // end of list
+      } else {
+        attrs[0] = 0; // end of list
+      }
+#endif // HAVE_OPENAL_FRAMEWORK
+
+      _context = alcCreateContext(_device, attrs);
       alc_audio_errcheck("alcCreateContext(_device, NULL)", _device);
       if (_context != nullptr) {
         _openal_active = true;
@@ -493,7 +508,7 @@ get_sound(MovieAudio *sound, bool positional, int mode) {
  * This is what creates a sound instance.
  */
 PT(AudioSound) OpenALAudioManager::
-get_sound(const string &file_name, bool positional, int mode) {
+get_sound(const Filename &file_name, bool positional, int mode) {
   ReMutexHolder holder(_lock);
   if(!is_valid()) {
     return get_null_sound();
@@ -529,7 +544,7 @@ get_sound(const string &file_name, bool positional, int mode) {
  * use, then the sound cannot be deleted, and this function has no effect.
  */
 void OpenALAudioManager::
-uncache_sound(const string& file_name) {
+uncache_sound(const Filename &file_name) {
   ReMutexHolder holder(_lock);
   nassertv(is_valid());
   Filename path = file_name;
@@ -959,32 +974,32 @@ stop_all_sounds() {
  */
 void OpenALAudioManager::
 update() {
-  ReMutexHolder holder(_lock);
+  ReMutexHolder const holder(_lock);
 
-  // See if any of our playing sounds have ended we must first collect a
-  // seperate list of finished sounds and then iterated over those again
-  // calling their finished method.  We can't call finished() within a loop
-  // iterating over _sounds_playing since finished() modifies _sounds_playing
-  SoundsPlaying sounds_finished;
-
-  double rtc = TrueClock::get_global_ptr()->get_short_time();
-  SoundsPlaying::iterator i=_sounds_playing.begin();
-  for (; i!=_sounds_playing.end(); ++i) {
-    OpenALAudioSound *sound = (*i);
+  // See if any of our playing sounds have ended.
+  double const rtc = TrueClock::get_global_ptr()->get_short_time();
+  SoundsPlaying::iterator i = _sounds_playing.begin();
+  while (i != _sounds_playing.end()) {
+    // The post-increment syntax is *very* important here.
+    // As both OpenALAudioSound::pull_used_buffers and OpenALAudioSound::finished can modify the list of sounds playing
+    // by erasing 'sound' from the list, thus invaliding the iterator.
+    PT(OpenALAudioSound) sound = *(i++);
     sound->pull_used_buffers();
+
+    // If pull_used_buffers() encountered an error, the sound was cleaned up.
+    // No need to do anymore work.
+    if (!sound->is_valid()) {
+      continue;
+    }
+
     sound->push_fresh_buffers();
     sound->restart_stalled_audio();
     sound->cache_time(rtc);
-    if ((sound->_source == 0)||
-        ((sound->_stream_queued.size() == 0)&&
+    if (sound->_source == 0 ||
+        (sound->_stream_queued.empty() &&
          (sound->_loops_completed >= sound->_playing_loops))) {
-      sounds_finished.insert(*i);
+      sound->finished();
     }
-  }
-
-  i=sounds_finished.begin();
-  for (; i!=sounds_finished.end(); ++i) {
-    (**i).finished();
   }
 }
 
