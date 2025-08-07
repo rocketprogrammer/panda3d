@@ -10,7 +10,7 @@ p.s. A great deal of this code is just code moved from ClientRepository.py.
 from __future__ import annotations
 
 from panda3d.core import ConfigVariableBool
-from .MsgTypes import CLIENT_ADD_INTEREST, CLIENT_ADD_INTEREST_MULTIPLE, CLIENT_REMOVE_INTEREST
+from .MsgTypes import CLIENT_ADD_INTEREST, CLIENT_REMOVE_INTEREST
 from direct.showbase import DirectObject
 from .PyDatagram import PyDatagram
 from direct.directnotify.DirectNotifyGlobal import directNotify

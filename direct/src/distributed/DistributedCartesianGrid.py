@@ -5,7 +5,6 @@ from direct.directnotify.DirectNotifyGlobal import directNotify
 
 from direct.distributed.DistributedNode import DistributedNode
 from direct.task import Task
-from direct.task.TaskManagerGlobal import taskMgr
 from direct.gui import DirectGuiGlobals
 from direct.showbase.PythonUtil import report
 from direct.distributed.StagedObject import StagedObject
