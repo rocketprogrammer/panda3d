@@ -3,7 +3,7 @@ import sys
 """
 Class to extract system information from a Linux Box via /proc
 
-The following variables are accessable:
+The following variables are accessible:
 
 os
 cpu
@@ -16,7 +16,7 @@ loadAvg
 Example:
 
 s = SystemInformation()
-print s.os
+print(s.os)
 
 s.refresh() # If you need to refresh the dynamic data
 
@@ -100,14 +100,14 @@ class SystemInformation:
         memTotal = ''
         for element in procMemoryRaw:
             if element.find('MemTotal:') != -1:
-                memTotal = element.split(':')[1].replace(' ','')
+                memTotal = int(element.split(':')[1].replace('kB', '').strip())
                 break
         # Next MemFree:
 
         memFree = ''
         for element in procMemoryRaw:
             if element.find('MemFree:') != -1:
-                memFree = element.split(':')[1].replace(' ','')
+                memFree = int(element.split(':')[1].replace('kB', '').strip())
                 break
 
         # SwapTotal:
@@ -115,7 +115,7 @@ class SystemInformation:
         swapTotal = ''
         for element in procMemoryRaw:
             if element.find('SwapTotal:') != -1:
-                memFree = element.split(':')[1].replace(' ','')
+                swapTotal = int(element.split(':')[1].replace('kB', '').strip())
                 break
 
         # SwapFree:
@@ -123,7 +123,7 @@ class SystemInformation:
         swapFree = ''
         for element in procMemoryRaw:
             if element.find('SwapFree:') != -1:
-                memFree = element.split(':')[1].replace(' ','')
+                swapFree = int(element.split(':')[1].replace('kB', '').strip())
                 break
         return memTotal, memFree, swapTotal, swapFree
 
