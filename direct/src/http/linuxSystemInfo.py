@@ -28,7 +28,7 @@ class SystemInformation:
         # Just in case sombody called this class by accident, we should
         # check to make sure the OS is Linux before continuing
 
-        assert sys.platform == 'linux2', "Not a Linux based system. This class should not be called"
+        assert sys.platform == 'linux', "Not a Linux based system. This class should not be called"
 
         self.os = self.__getOS()
         self.cpu = self.__getCPU()
