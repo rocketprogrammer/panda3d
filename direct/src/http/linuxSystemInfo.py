@@ -39,7 +39,7 @@ class SystemInformation:
         self.totalRAM, self.availableRAM, self.totalVM, self.availableVM = self.__getMemory()
         self.loadAvg = self.__getLoadAvg()
 
-    def __getloadAvg(self):
+    def __getLoadAvg(self):
         loadAvg = open('/proc/loadavg')
         procloadAvg = loadAvg.read()
         loadAvg.close()
