@@ -4079,11 +4079,31 @@ OPTS=['DIR:panda/src/recorder']
 IGATEFILES=GetDirectoryContents('panda/src/recorder', ["*.h", "*_composite*.cxx"])
 TargetAdd('libp3recorder.in', opts=OPTS, input=IGATEFILES)
 TargetAdd('libp3recorder.in', opts=['IMOD:panda3d.core', 'ILIB:libp3recorder', 'SRCDIR:panda/src/recorder'])
-
 #
+# DIRECTORY: panda/src/pirates/
+#
+
+OPTS=['DIR:panda/src/pirates', 'BUILDING:PANDA']
+TargetAdd('p3pirates_composite1.obj', opts=OPTS, input='libpirates_composite.cxx')
+
+OPTS=['DIR:panda/src/pirates', 'PYTHON']
+IGATEFILES=GetDirectoryContents('panda/src/pirates', ["*.h", "*_composite.cxx"])
+TargetAdd('libp3pirates.in', opts=OPTS, input=IGATEFILES)
+TargetAdd('libp3pirates.in', opts=['IMOD:panda3d.core', 'ILIB:libp3pirates', 'SRCDIR:panda/src/pirates'])
+PyTargetAdd('libp3pirates_igate.obj', opts=OPTS, input='libp3pirates.in')
+#
+# DIRECTORY: panda/src/http
+#
+
+OPTS=['DIR:panda/src/http', 'BUILDING:PANDA']
+TargetAdd('p3http_composite1.obj', opts=OPTS, input='p3http_composite1.cxx')
+
+OPTS=['DIR:panda/src/http', 'PYTHON']
+IGATEFILES=GetDirectoryContents('panda/src/http', ["*.h", "*_composite*.cxx"])
+TargetAdd('libp3http.in', opts=OPTS, input=IGATEFILES)
+TargetAdd('libp3http.in', opts=['IMOD:panda3d.core', 'ILIB:libhttp', 'SRCDIR:panda/src/http'])
+PyTargetAdd('libp3http_igate.obj', opts=OPTS, input='libp3http.in')        
 # DIRECTORY: panda/metalibs/panda/
-#
-
 OPTS=['DIR:panda/metalibs/panda', 'BUILDING:PANDA', 'JPEG', 'PNG', 'HARFBUZZ',
     'TIFF', 'OPENEXR', 'ZLIB', 'FREETYPE', 'FFTW', 'ADVAPI', 'WINSOCK2',
     'SQUISH', 'NVIDIACG', 'VORBIS', 'OPUS', 'WINUSER', 'WINMM', 'WINGDI', 'IPHLPAPI',
@@ -4153,6 +4173,8 @@ TargetAdd('libpanda.dll', input='p3pandabase_pandabase.obj')
 TargetAdd('libpanda.dll', input='libpandaexpress.dll')
 TargetAdd('libpanda.dll', input='libp3dtoolconfig.dll')
 TargetAdd('libpanda.dll', input='libp3dtool.dll')
+TargetAdd('libpanda.dll', input='p3pirates_composite1.obj')
+TargetAdd('libpanda.dll', input='p3http_composite1.obj')
 
 if GetTarget() != "emscripten":
   TargetAdd('libpanda.dll', input='p3net_composite1.obj')
@@ -4199,6 +4221,8 @@ PyTargetAdd('core_module.obj', input='libp3putil.in')
 PyTargetAdd('core_module.obj', input='libp3audio.in')
 PyTargetAdd('core_module.obj', input='libp3pgui.in')
 PyTargetAdd('core_module.obj', input='libp3movies.in')
+PyTargetAdd('core_module.obj', input='libp3pirates.in')
+PyTargetAdd('core_module.obj', input='libp3http.in')
 
 if GetTarget() != "emscripten":
   PyTargetAdd('core_module.obj', input='libp3nativenet.in')
@@ -4245,6 +4269,9 @@ PyTargetAdd('core.pyd', input='libp3tform_igate.obj')
 PyTargetAdd('core.pyd', input='libp3putil_igate.obj')
 PyTargetAdd('core.pyd', input='libp3audio_igate.obj')
 PyTargetAdd('core.pyd', input='libp3pgui_igate.obj')
+PyTargetAdd('core.pyd', input='libp3pirates_igate.obj')
+PyTargetAdd('core.pyd', input='libp3http_igate.obj')
+
 
 if GetTarget() != "emscripten":
   PyTargetAdd('core.pyd', input='libp3net_igate.obj')
@@ -6429,3 +6456,4 @@ WARNINGS.append("Elapsed Time: "+PrettyTime(time.time() - STARTTIME))
 
 printStatus("Makepanda Final Status Report", WARNINGS)
 print(GetColor("green") + "Build successfully finished, elapsed time: " + PrettyTime(time.time() - STARTTIME) + GetColor())
+
