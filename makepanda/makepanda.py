@@ -4079,6 +4079,7 @@ OPTS=['DIR:panda/src/recorder']
 IGATEFILES=GetDirectoryContents('panda/src/recorder', ["*.h", "*_composite*.cxx"])
 TargetAdd('libp3recorder.in', opts=OPTS, input=IGATEFILES)
 TargetAdd('libp3recorder.in', opts=['IMOD:panda3d.core', 'ILIB:libp3recorder', 'SRCDIR:panda/src/recorder'])
+
 #
 # DIRECTORY: panda/src/pirates/
 #
@@ -4102,7 +4103,8 @@ OPTS=['DIR:panda/src/http', 'PYTHON']
 IGATEFILES=GetDirectoryContents('panda/src/http', ["*.h", "*_composite*.cxx"])
 TargetAdd('libp3http.in', opts=OPTS, input=IGATEFILES)
 TargetAdd('libp3http.in', opts=['IMOD:panda3d.core', 'ILIB:libhttp', 'SRCDIR:panda/src/http'])
-PyTargetAdd('libp3http_igate.obj', opts=OPTS, input='libp3http.in')        
+PyTargetAdd('libp3http_igate.obj', opts=OPTS, input='libp3http.in')
+
 # DIRECTORY: panda/metalibs/panda/
 OPTS=['DIR:panda/metalibs/panda', 'BUILDING:PANDA', 'JPEG', 'PNG', 'HARFBUZZ',
     'TIFF', 'OPENEXR', 'ZLIB', 'FREETYPE', 'FFTW', 'ADVAPI', 'WINSOCK2',
@@ -6456,4 +6458,3 @@ WARNINGS.append("Elapsed Time: "+PrettyTime(time.time() - STARTTIME))
 
 printStatus("Makepanda Final Status Report", WARNINGS)
 print(GetColor("green") + "Build successfully finished, elapsed time: " + PrettyTime(time.time() - STARTTIME) + GetColor())
-
