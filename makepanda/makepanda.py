@@ -4092,6 +4092,7 @@ IGATEFILES=GetDirectoryContents('panda/src/pirates', ["*.h", "*_composite.cxx"])
 TargetAdd('libp3pirates.in', opts=OPTS, input=IGATEFILES)
 TargetAdd('libp3pirates.in', opts=['IMOD:panda3d.core', 'ILIB:libp3pirates', 'SRCDIR:panda/src/pirates'])
 PyTargetAdd('libp3pirates_igate.obj', opts=OPTS, input='libp3pirates.in')
+
 #
 # DIRECTORY: panda/src/http
 #
