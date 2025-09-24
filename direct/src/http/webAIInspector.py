@@ -243,7 +243,7 @@ class aiWebServer(SystemInformation):
         # Three frames on the bottom row
         # frameset = '<frameset rows="35\%,65\%">\n<frame src="systemInfo" name="systemInfo" frameborder=1>\n<frameset cols="25\%,25\%,50\%">\n<frame src="oType" name="oType" frameborder=1>\n<frame src="blank" name="oInst" frameborder=1>\n<frame src="blank" name="oAttrib" frameborder=1>\n</frameset>\n</frameset>\n</html>'
         # Two Frames on the bottom row
-        frameset = '<frameset rows="35\%,65\%">\n<frame src="systemInfo" name="systemInfo" frameborder=1>\n<frameset cols="50\%,50\%">\n<frame src="oMenu" name="oType" frameborder=1>\n<frame src="blank" name="oInst" frameborder=1>\n</frameset>\n</frameset>\n</html>'
+        frameset = '<frameset rows="35%,65%">\n<frame src="systemInfo" name="systemInfo" frameborder=1>\n<frameset cols="50%,50%">\n<frame src="oMenu" name="oType" frameborder=1>\n<frame src="blank" name="oInst" frameborder=1>\n</frameset>\n</frameset>\n</html>'
         #print "%s|Index Frame Accessed" % self.timeStamp()
         # print str(simbase.air.doid2do)
         replyTo.respond('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">\n<html lang="en">\n<head>\n<title>AI HTTP Interface: %s</title>\n</head>\n%s' % (self.localHostName, frameset))
