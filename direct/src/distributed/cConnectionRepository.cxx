@@ -1092,7 +1092,7 @@ bool CConnectionRepository::check_datagram_ai(PyObject *PycallBackFunction) {
           distributed_cat.debug() << "Calling function callback in check_datagram_ai()!\n";
           nassertr(_python_ai_datagramiterator != nullptr, false);
 
-          PyObject *result = PyEval_CallObject(PycallBackFunction, _python_ai_datagramiterator);
+          PyObject *result = PyObject_CallObject(PycallBackFunction, _python_ai_datagramiterator);
 
           Py_XDECREF(result);
           if (PyErr_Occurred()) {
