@@ -17,9 +17,6 @@
     #pragma comment(lib, "ws2_32.lib")
 #endif
 
-
-
-
 #include "pandabase.h"
 #include "notifyCategoryProxy.h"
 

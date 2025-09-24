@@ -23,7 +23,7 @@ inline std::string & trimright_inplace(std::string & s)
     else
     {
         char c  = s.at(idx);
-        s.erase(idx, std::string::npos);    
+        s.erase(idx, std::string::npos);
         s.append(1, c);
     }
 
@@ -40,7 +40,7 @@ inline std::string & trim_inplace(std::string & s)
 inline std::string  trim_tonew(const std::string &in)
 {
     std::string ss = in;
-    return trim_inplace(ss);    
+    return trim_inplace(ss);
 }
 
 
@@ -58,7 +58,7 @@ std::string ParsedHttpRequest::deCanonicalize(std::string &inval)
             work+=' ';
             x++;
             break;
-            
+
         case('%'):
             if(x+2 < inval.size())
             {
@@ -74,11 +74,11 @@ std::string ParsedHttpRequest::deCanonicalize(std::string &inval)
             else
                 x+=3;
             break;
-            
+
         default:
-            work+=inval[x++]; 
+            work+=inval[x++];
             break;
-        }           
+        }
     }
     return work;
 }
@@ -107,7 +107,7 @@ const std::string * ParsedHttpRequest::GetOption(const std::string & query)
     ii = _parameters.find(query);
     if(ii == _parameters.end())
         return NULL;
-    
+
     return &ii->second;
 }
 
@@ -129,7 +129,7 @@ bool ParsedHttpRequest::ParseThis(char * request)
 {
     _Raw_Text = request;
 //    printf("%s\n\n",request);
-    
+
 
     std::string work1(_Raw_Text);
     for(size_t pos = work1.find_first_of("\n\r\0") ; pos != std::string::npos ;   pos = work1.find_first_of("\n\r\0") )
@@ -159,26 +159,26 @@ bool ParsedHttpRequest::ParseThis(char * request)
     std::string line1 = work.substr(0,work.find_first_of("\n\r\0"));
     if(line1.size() < 4)
         return false;
-    
+
     if(PullCR(line1,_RequestType) < 3)
         return false;
-    
+
     if(PullCR(line1,_RequestText) < 1)
         return false;
-    
+
     size_t loc = (int)_RequestText.find('?');
     if(loc != std::string::npos)
     {
         _Requestoptions = _RequestText.substr(loc+1);
         _RequestText =  _RequestText.substr(0,loc);
     }
-    
+
     return ProcessOptionString(_Requestoptions);
 }
 
-std::string & ParsedHttpRequest::GetRequestURL(void) 
-{ 
-    return _RequestText; 
+std::string & ParsedHttpRequest::GetRequestURL(void)
+{
+    return _RequestText;
 };
 
 bool ParsedHttpRequest::ProcessOptionString(std::string str)
@@ -198,12 +198,12 @@ bool ParsedHttpRequest::ProcessParamSet(std::string &str)
 {
     std::string val("");
     size_t loc = str.find('=');
-    
+
     if(loc != std::string::npos)
     {
         val = str.substr(loc+1);
-        str = str.substr(0,loc);    
-        
+        str = str.substr(0,loc);
+
         std::string ind1 = deCanonicalize(str);
         _parameters[ind1] = deCanonicalize(val);
     }
