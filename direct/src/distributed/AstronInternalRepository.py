@@ -520,6 +520,27 @@ class AstronInternalRepository(ConnectionRepository):
         dg = field.aiFormatUpdate(do.doId, channelId, self.ourChannel, args)
         self.send(dg)
 
+    def sendUpdateToDoId(self, dclassName, fieldName, doId, args=[]):
+        """
+        Send an object field update to a specific doId by its fieldName.
+
+        This is useful for AI to UD (and vice versa) field updates.
+        """
+
+        dclass = self.dclassesByName[dclassName + self.dcSuffix]
+        field = dclass.getFieldByName(fieldName)
+        dg = field.aiFormatUpdate(doId, doId, self.ourChannel, args)
+        self.send(dg)
+
+    def dispatchUpdateToDoId(self, dclassName, fieldName, doId, args=[]):
+        """
+        Send an object field update to a specific doId by its fieldName.
+
+        This directly calls sendUpdateToDoId, as an alternate method.
+        """
+
+        self.sendUpdateToDoId(dclassName, fieldName, doId, args)
+
     def sendActivate(self, doId, parentId, zoneId, dclass=None, fields=None):
         """
         Activate a DBSS object, given its doId, into the specified parentId/zoneId.
@@ -794,7 +815,7 @@ class AstronInternalRepository(ConnectionRepository):
         dg.add_uint32(zoneId)
         self.send(dg)
 
-    def setOwner(self, doId, newOwner):
+    def setOwner(self, doId, newOwner, sendEntry=True):
         """
         Sets the owner of a DistributedObject. This will enable the new owner to send "ownsend" fields,
         and will generate an OwnerView.
@@ -803,6 +824,7 @@ class AstronInternalRepository(ConnectionRepository):
         dg = PyDatagram()
         dg.addServerHeader(doId, self.ourChannel, STATESERVER_OBJECT_SET_OWNER)
         dg.add_uint64(newOwner)
+        dg.add_bool(sendEntry)
         self.send(dg)
 
     def setAllowClientSend(self, avId, dObj, fieldNameList = []):
