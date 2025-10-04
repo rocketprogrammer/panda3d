@@ -1,8 +1,8 @@
 from panda3d.core import *
 from panda3d.direct import DCPacker
 from .MsgTypes import *
-from direct.showbase import ShowBase # __builtin__.config
-from direct.task.TaskManagerGlobal import * # taskMgr
+from direct.showbase import ShowBase  # __builtin__.config
+from direct.task.TaskManagerGlobal import *  # taskMgr
 from direct.directnotify import DirectNotifyGlobal
 from .ConnectionRepository import ConnectionRepository
 from .PyDatagram import PyDatagram
@@ -11,80 +11,83 @@ from .AstronDatabaseInterface import AstronDatabaseInterface
 from .NetMessenger import NetMessenger
 import collections, random
 
+
 # Helper functions for logging output:
 def msgpack_length(dg, length, fix, maxfix, tag8, tag16, tag32):
     if length < maxfix:
         dg.addUint8(fix + length)
-    elif tag8 is not None and length < 1<<8:
+    elif tag8 is not None and length < 1 << 8:
         dg.addUint8(tag8)
         dg.addUint8(length)
-    elif tag16 is not None and length < 1<<16:
+    elif tag16 is not None and length < 1 << 16:
         dg.addUint8(tag16)
         dg.addBeUint16(length)
-    elif tag32 is not None and length < 1<<32:
+    elif tag32 is not None and length < 1 << 32:
         dg.addUint8(tag32)
         dg.addBeUint32(length)
     else:
-        raise ValueError('Value too big for MessagePack')
+        raise ValueError("Value too big for MessagePack")
+
 
 def msgpack_encode(dg, element):
     if element == None:
-        dg.addUint8(0xc0)
+        dg.addUint8(0xC0)
     elif element is False:
-        dg.addUint8(0xc2)
+        dg.addUint8(0xC2)
     elif element is True:
-        dg.addUint8(0xc3)
+        dg.addUint8(0xC3)
     elif isinstance(element, int):
         if -32 <= element < 128:
             dg.addInt8(element)
         elif 128 <= element < 256:
-            dg.addUint8(0xcc)
+            dg.addUint8(0xCC)
             dg.addUint8(element)
         elif 256 <= element < 65536:
-            dg.addUint8(0xcd)
+            dg.addUint8(0xCD)
             dg.addBeUint16(element)
-        elif 65536 <= element < (1<<32):
-            dg.addUint8(0xce)
+        elif 65536 <= element < (1 << 32):
+            dg.addUint8(0xCE)
             dg.addBeUint32(element)
-        elif (1<<32) <= element < (1<<64):
-            dg.addUint8(0xcf)
+        elif (1 << 32) <= element < (1 << 64):
+            dg.addUint8(0xCF)
             dg.addBeUint64(element)
         elif -128 <= element < -32:
-            dg.addUint8(0xd0)
+            dg.addUint8(0xD0)
             dg.addInt8(element)
         elif -32768 <= element < -128:
-            dg.addUint8(0xd1)
+            dg.addUint8(0xD1)
             dg.addBeInt16(element)
-        elif -1<<31 <= element < -32768:
-            dg.addUint8(0xd2)
+        elif -1 << 31 <= element < -32768:
+            dg.addUint8(0xD2)
             dg.addBeInt32(element)
-        elif -1<<63 <= element < -1<<31:
-            dg.addUint8(0xd3)
+        elif -1 << 63 <= element < -1 << 31:
+            dg.addUint8(0xD3)
             dg.addBeInt64(element)
         else:
-            raise ValueError('int out of range for msgpack: %d' % element)
+            raise ValueError("int out of range for msgpack: %d" % element)
     elif isinstance(element, dict):
-        msgpack_length(dg, len(element), 0x80, 0x10, None, 0xde, 0xdf)
-        for k,v in element.items():
+        msgpack_length(dg, len(element), 0x80, 0x10, None, 0xDE, 0xDF)
+        for k, v in element.items():
             msgpack_encode(dg, k)
             msgpack_encode(dg, v)
     elif isinstance(element, list):
-        msgpack_length(dg, len(element), 0x90, 0x10, None, 0xdc, 0xdd)
+        msgpack_length(dg, len(element), 0x90, 0x10, None, 0xDC, 0xDD)
         for v in element:
             msgpack_encode(dg, v)
     elif isinstance(element, str):
         # 0xd9 is str 8 in all recent versions of the MsgPack spec, but somehow
         # Logstash bundles a MsgPack implementation SO OLD that this isn't
         # handled correctly so this function avoids it too
-        msgpack_length(dg, len(element), 0xa0, 0x20, None, 0xda, 0xdb)
+        msgpack_length(dg, len(element), 0xA0, 0x20, None, 0xDA, 0xDB)
         dg.appendData(str.encode(element))
     elif isinstance(element, float):
         # Python does not distinguish between floats and doubles, so we send
         # everything as a double in MsgPack:
-        dg.addUint8(0xcb)
+        dg.addUint8(0xCB)
         dg.addBeFloat64(element)
     else:
-        raise TypeError('Encountered non-MsgPack-packable value: %r' % element)
+        raise TypeError("Encountered non-MsgPack-packable value: %r" % element)
+
 
 class AstronInternalRepository(ConnectionRepository):
     """
@@ -98,27 +101,39 @@ class AstronInternalRepository(ConnectionRepository):
     using Panda3D. Objects with a "self.air" attribute are referring to an instance
     of this class.
     """
+
     notify = DirectNotifyGlobal.directNotify.newCategory("AstronInternalRepository")
 
-    def __init__(self, baseChannel, serverId=None, dcFileNames = None,
-                 dcSuffix = 'AI', connectMethod = None, threadedNet = None):
+    def __init__(
+        self,
+        baseChannel,
+        serverId=None,
+        dcFileNames=None,
+        dcSuffix="AI",
+        connectMethod=None,
+        threadedNet=None,
+    ):
         if connectMethod is None:
             connectMethod = self.CM_NATIVE
-        ConnectionRepository.__init__(self, connectMethod, config, hasOwnerView = False, threadedNet = threadedNet)
+        ConnectionRepository.__init__(
+            self, connectMethod, config, hasOwnerView=False, threadedNet=threadedNet
+        )
         self.setClientDatagram(False)
         self.dcSuffix = dcSuffix
-        if hasattr(self, 'setVerbose'):
-            if self.config.GetBool('verbose-internalrepository'):
+        if hasattr(self, "setVerbose"):
+            if self.config.GetBool("verbose-internalrepository"):
                 self.setVerbose(1)
 
         # The State Server we are configured to use for creating objects.
-        #If this is None, generating objects is not possible.
-        self.serverId = self.config.GetInt('air-stateserver', 0) or None
+        # If this is None, generating objects is not possible.
+        self.serverId = self.config.GetInt("air-stateserver", 0) or None
         if serverId is not None:
             self.serverId = serverId
 
-        maxChannels = self.config.GetInt('air-channel-allocation', 1000000)
-        self.channelAllocator = UniqueIdAllocator(baseChannel, baseChannel+maxChannels-1)
+        maxChannels = self.config.GetInt("air-channel-allocation", 1000000)
+        self.channelAllocator = UniqueIdAllocator(
+            baseChannel, baseChannel + maxChannels - 1
+        )
         self._registeredChannels = set()
 
         self.__contextCounter = 0
@@ -130,15 +145,17 @@ class AstronInternalRepository(ConnectionRepository):
 
         self.ourChannel = self.allocateChannel()
 
-        self.eventLogId = self.config.GetString('eventlog-id', 'AIR:%d' % self.ourChannel)
+        self.eventLogId = self.config.GetString(
+            "eventlog-id", "AIR:%d" % self.ourChannel
+        )
         self.eventSocket = None
 
-        self.serverCtx = random.randint(0, 2**32-1)
+        self.serverCtx = random.randint(0, 2**32 - 1)
 
-        eventLogHost = self.config.GetString('eventlog-host', '')
+        eventLogHost = self.config.GetString("eventlog-host", "")
         if eventLogHost:
-            if ':' in eventLogHost:
-                host, port = eventLogHost.split(':', 1)
+            if ":" in eventLogHost:
+                host, port = eventLogHost.split(":", 1)
                 self.setEventLogHost(host, int(port))
             else:
                 self.setEventLogHost(eventLogHost)
@@ -192,8 +209,10 @@ class AstronInternalRepository(ConnectionRepository):
         dg.addUint32(self.serverCtx)
 
         # If we don't get a reply in 10 seconds, assume that the AI server is not ready.
-        taskMgr.remove('airReady-timeout')
-        taskMgr.doMethodLater(10.0, lambda task: messenger.send('airReady', [False]), 'airReady-timeout')
+        taskMgr.remove("airReady-timeout")
+        taskMgr.doMethodLater(
+            10.0, lambda task: messenger.send("airReady", [False]), "airReady-timeout"
+        )
 
         self.send(dg)
 
@@ -207,8 +226,8 @@ class AstronInternalRepository(ConnectionRepository):
             return
 
         ready = di.getBool()
-        taskMgr.remove('airReady-timeout')
-        messenger.send('airReady', [ready])
+        taskMgr.remove("airReady-timeout")
+        messenger.send("airReady", [ready])
 
     def unregisterForChannel(self, channel):
         """
@@ -258,24 +277,29 @@ class AstronInternalRepository(ConnectionRepository):
     def handleDatagram(self, di):
         msgType = self.getMsgType()
 
-        if msgType in (STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED,
-                       STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED_OTHER):
-            self.handleObjEntry(di, msgType == STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED_OTHER)
-        elif msgType in (STATESERVER_OBJECT_CHANGING_AI,
-                         STATESERVER_OBJECT_DELETE_RAM):
+        if msgType in (
+            STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED,
+            STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED_OTHER,
+        ):
+            self.handleObjEntry(
+                di, msgType == STATESERVER_OBJECT_ENTER_AI_WITH_REQUIRED_OTHER
+            )
+        elif msgType in (STATESERVER_OBJECT_CHANGING_AI, STATESERVER_OBJECT_DELETE_RAM):
             self.handleObjExit(di)
         # elif msgType == STATESERVER_OBJECT_GET_AI_RESP:
-            # self.handleObjGetAIResp(di)
+        # self.handleObjGetAIResp(di)
         elif msgType == STATESERVER_OBJECT_CHANGING_LOCATION:
             self.handleObjLocation(di)
         # elif msgType == STATESERVER_OBJECT_LOCATION_ACK:
-            # self.handleObjLocationAck(di)
-        elif msgType in (DBSERVER_CREATE_OBJECT_RESP,
-                         DBSERVER_OBJECT_GET_ALL_RESP,
-                         DBSERVER_OBJECT_GET_FIELDS_RESP,
-                         DBSERVER_OBJECT_GET_FIELD_RESP,
-                         DBSERVER_OBJECT_SET_FIELD_IF_EQUALS_RESP,
-                         DBSERVER_OBJECT_SET_FIELDS_IF_EQUALS_RESP):
+        # self.handleObjLocationAck(di)
+        elif msgType in (
+            DBSERVER_CREATE_OBJECT_RESP,
+            DBSERVER_OBJECT_GET_ALL_RESP,
+            DBSERVER_OBJECT_GET_FIELDS_RESP,
+            DBSERVER_OBJECT_GET_FIELD_RESP,
+            DBSERVER_OBJECT_SET_FIELD_IF_EQUALS_RESP,
+            DBSERVER_OBJECT_SET_FIELDS_IF_EQUALS_RESP,
+        ):
             self.dbInterface.handleDatagram(msgType, di)
         elif msgType == DBSS_OBJECT_GET_ACTIVATED_RESP:
             self.handleGetActivatedResp(di)
@@ -291,7 +315,7 @@ class AstronInternalRepository(ConnectionRepository):
             # These messages belong to the NetMessenger:
             self.netMessenger.handle(msgType, di)
         else:
-            self.notify.warning('Received message with unknown MsgType=%d' % msgType)
+            self.notify.warning("Received message with unknown MsgType=%d" % msgType)
 
     def handleObjLocation(self, di):
         doId = di.getUint32()
@@ -301,7 +325,7 @@ class AstronInternalRepository(ConnectionRepository):
         do = self.doId2do.get(doId)
 
         if not do:
-            self.notify.warning('Received location for unknown doId=%d!' % (doId))
+            self.notify.warning("Received location for unknown doId=%d!" % (doId))
             return
 
         do.setLocation(parentId, zoneId)
@@ -335,11 +359,13 @@ class AstronInternalRepository(ConnectionRepository):
         classId = di.getUint16()
 
         if classId not in self.dclassesByNumber:
-            self.notify.warning('Received entry for unknown dclass=%d! (Object %d)' % (classId, doId))
+            self.notify.warning(
+                "Received entry for unknown dclass=%d! (Object %d)" % (classId, doId)
+            )
             return
 
         if doId in self.doId2do:
-            return # We already know about this object; ignore the entry.
+            return  # We already know about this object; ignore the entry.
 
         dclass = self.dclassesByNumber[classId]
 
@@ -362,7 +388,7 @@ class AstronInternalRepository(ConnectionRepository):
         doId = di.getUint32()
 
         if doId not in self.doId2do:
-            self.notify.warning('Received AI exit for unknown object %d' % (doId))
+            self.notify.warning("Received AI exit for unknown object %d" % (doId))
             return
 
         do = self.doId2do[doId]
@@ -376,14 +402,15 @@ class AstronInternalRepository(ConnectionRepository):
         activated = di.getUint8()
 
         if ctx not in self.__callbacks:
-            self.notify.warning('Received unexpected DBSS_OBJECT_GET_ACTIVATED_RESP (ctx: %d)' %ctx)
+            self.notify.warning(
+                "Received unexpected DBSS_OBJECT_GET_ACTIVATED_RESP (ctx: %d)" % ctx
+            )
             return
 
         try:
             self.__callbacks[ctx](doId, activated)
         finally:
             del self.__callbacks[ctx]
-
 
     def getActivated(self, doId, callback):
         ctx = self.getContext()
@@ -419,7 +446,10 @@ class AstronInternalRepository(ConnectionRepository):
         zoneId = di.getUint32()
 
         if ctx not in self.__callbacks:
-            self.notify.warning('Received unexpected STATESERVER_OBJECT_GET_LOCATION_RESP (ctx: %d)' % ctx)
+            self.notify.warning(
+                "Received unexpected STATESERVER_OBJECT_GET_LOCATION_RESP (ctx: %d)"
+                % ctx
+            )
             return
 
         try:
@@ -453,11 +483,16 @@ class AstronInternalRepository(ConnectionRepository):
         classId = di.getUint16()
 
         if ctx not in self.__callbacks:
-            self.notify.warning('Received unexpected STATESERVER_OBJECT_GET_ALL_RESP (ctx: %d)' % ctx)
+            self.notify.warning(
+                "Received unexpected STATESERVER_OBJECT_GET_ALL_RESP (ctx: %d)" % ctx
+            )
             return
 
         if classId not in self.dclassesByNumber:
-            self.notify.warning('Received STATESERVER_OBJECT_GET_ALL_RESP for unknown dclass=%d! (Object %d)' % (classId, doId))
+            self.notify.warning(
+                "Received STATESERVER_OBJECT_GET_ALL_RESP for unknown dclass=%d! (Object %d)"
+                % (classId, doId)
+            )
             return
 
         dclass = self.dclassesByNumber[classId]
@@ -469,7 +504,8 @@ class AstronInternalRepository(ConnectionRepository):
         # Required:
         for i in range(dclass.getNumInheritedFields()):
             field = dclass.getInheritedField(i)
-            if not field.isRequired() or field.asMolecularField(): continue
+            if not field.isRequired() or field.asMolecularField():
+                continue
             unpacker.beginUnpack(field)
             fields[field.getName()] = field.unpackArgs(unpacker)
             unpacker.endUnpack()
@@ -512,7 +548,10 @@ class AstronInternalRepository(ConnectionRepository):
         localPort = di.getUint16()
 
         if ctx not in self.__callbacks:
-            self.notify.warning('Received unexpected CLIENTAGENT_GET_NETWORK_ADDRESS_RESP (ctx: %d)' % ctx)
+            self.notify.warning(
+                "Received unexpected CLIENTAGENT_GET_NETWORK_ADDRESS_RESP (ctx: %d)"
+                % ctx
+            )
             return
 
         try:
@@ -579,11 +618,13 @@ class AstronInternalRepository(ConnectionRepository):
         fieldPacker = DCPacker()
         fieldCount = 0
         if dclass and fields:
-            for k,v in fields.items():
+            for k, v in fields.items():
                 field = dclass.getFieldByName(k)
                 if not field:
-                    self.notify.error('Activation request for %s object contains '
-                                      'invalid field named %s' % (dclass.getName(), k))
+                    self.notify.error(
+                        "Activation request for %s object contains "
+                        "invalid field named %s" % (dclass.getName(), k)
+                    )
 
                 fieldPacker.rawPackUint16(field.getNumber())
                 fieldPacker.beginPack(field)
@@ -592,7 +633,9 @@ class AstronInternalRepository(ConnectionRepository):
                 fieldCount += 1
 
             dg = PyDatagram()
-            dg.addServerHeader(doId, self.ourChannel, DBSS_OBJECT_ACTIVATE_WITH_DEFAULTS)
+            dg.addServerHeader(
+                doId, self.ourChannel, DBSS_OBJECT_ACTIVATE_WITH_DEFAULTS
+            )
             dg.addUint32(doId)
             dg.addUint32(0)
             dg.addUint32(0)
@@ -613,7 +656,9 @@ class AstronInternalRepository(ConnectionRepository):
             self.send(dg)
         else:
             dg = PyDatagram()
-            dg.addServerHeader(doId, self.ourChannel, DBSS_OBJECT_ACTIVATE_WITH_DEFAULTS)
+            dg.addServerHeader(
+                doId, self.ourChannel, DBSS_OBJECT_ACTIVATE_WITH_DEFAULTS
+            )
             dg.addUint32(doId)
             dg.addUint32(parentId)
             dg.addUint32(zoneId)
@@ -675,21 +720,24 @@ class AstronInternalRepository(ConnectionRepository):
         url.setServer(host)
         url.setPort(port)
 
-        self.notify.info('Now connecting to %s:%s...' % (host, port))
-        ConnectionRepository.connect(self, [url],
-                                     successCallback=self.__connected,
-                                     failureCallback=self.__connectFailed,
-                                     failureArgs=[host, port])
+        self.notify.info("Now connecting to %s:%s..." % (host, port))
+        ConnectionRepository.connect(
+            self,
+            [url],
+            successCallback=self.__connected,
+            failureCallback=self.__connectFailed,
+            failureArgs=[host, port],
+        )
 
     def __connected(self):
-        self.notify.info('Connected successfully.')
+        self.notify.info("Connected successfully.")
 
         # Listen to our channel...
         self.registerForChannel(self.ourChannel)
 
         # Query the AI server if we're ready...
         if self.serverId:
-            self.accept('airReady', self.__ready)
+            self.accept("airReady", self.__ready)
             self.queryAIReady()
             return
 
@@ -698,31 +746,35 @@ class AstronInternalRepository(ConnectionRepository):
 
     def __ready(self, ready):
         if not ready:
-            self.notify.warning('Another AI server is occupying this channel!')
-            self.notify.warning('Retrying in 10 seconds...')
-            taskMgr.doMethodLater(10, lambda task: self.queryAIReady(), 'aiReady-retry')
+            self.notify.warning("Another AI server is occupying this channel!")
+            self.notify.warning("Retrying in 10 seconds...")
+            taskMgr.doMethodLater(10, lambda task: self.queryAIReady(), "aiReady-retry")
             return
 
-        self.ignore('airReady')
+        self.ignore("airReady")
 
         # If we're configured with a State Server, register a post-remove to
         # clean up whatever objects we own on this server should we unexpectedly
         # fall over and die.
         if self.serverId:
             dg = PyDatagram()
-            dg.addServerHeader(self.serverId, self.ourChannel, STATESERVER_DELETE_AI_OBJECTS)
+            dg.addServerHeader(
+                self.serverId, self.ourChannel, STATESERVER_DELETE_AI_OBJECTS
+            )
             dg.addChannel(self.ourChannel)
             self.addPostRemove(dg)
 
-        messenger.send('airConnected')
+        messenger.send("airConnected")
         self.handleConnected()
 
     def __connectFailed(self, code, explanation, host, port):
-        self.notify.warning('Failed to connect! (code=%s; %r)' % (code, explanation))
+        self.notify.warning("Failed to connect! (code=%s; %r)" % (code, explanation))
 
         # Try again...
-        retryInterval = config.GetFloat('air-reconnect-delay', 5.0)
-        taskMgr.doMethodLater(retryInterval, self.connect, 'Reconnect delay', extraArgs=[host, port])
+        retryInterval = config.GetFloat("air-reconnect-delay", 5.0)
+        taskMgr.doMethodLater(
+            retryInterval, self.connect, "Reconnect delay", extraArgs=[host, port]
+        )
 
     def handleConnected(self):
         """
@@ -733,7 +785,7 @@ class AstronInternalRepository(ConnectionRepository):
     def lostConnection(self):
         # This should be overridden by a subclass if unexpectedly losing connection
         # is okay.
-        self.notify.error('Lost connection to gameserver!')
+        self.notify.error("Lost connection to gameserver!")
 
     def setEventLogHost(self, host, port=7197):
         """
@@ -750,7 +802,9 @@ class AstronInternalRepository(ConnectionRepository):
 
         address = SocketAddress()
         if not address.setHost(host, port):
-            self.notify.warning('Invalid Event Log host specified: %s:%s' % (host, port))
+            self.notify.warning(
+                "Invalid Event Log host specified: %s:%s" % (host, port)
+            )
             self.eventSocket = None
         else:
             self.eventSocket = SocketUDPOutgoing()
@@ -766,15 +820,15 @@ class AstronInternalRepository(ConnectionRepository):
         """
 
         if self.eventSocket is None:
-            return # No event logger configured!
+            return  # No event logger configured!
 
         log = collections.OrderedDict()
-        log['type'] = logtype
-        log['sender'] = self.eventLogId
+        log["type"] = logtype
+        log["sender"] = self.eventLogId
 
-        for i,v in enumerate(args):
+        for i, v in enumerate(args):
             # +1 because the logtype was _0, so we start at _1
-            log['_%d' % (i+1)] = v
+            log["_%d" % (i + 1)] = v
 
         log.update(kwargs)
 
@@ -823,7 +877,9 @@ class AstronInternalRepository(ConnectionRepository):
         """
 
         dg = PyDatagram()
-        dg.addServerHeader(clientChannel, self.ourChannel, CLIENTAGENT_ADD_SESSION_OBJECT)
+        dg.addServerHeader(
+            clientChannel, self.ourChannel, CLIENTAGENT_ADD_SESSION_OBJECT
+        )
         dg.add_uint32(doId)
         self.send(dg)
 
@@ -853,14 +909,18 @@ class AstronInternalRepository(ConnectionRepository):
         dg.add_bool(sendEntry)
         self.send(dg)
 
-    def setAllowClientSend(self, avId, dObj, fieldNameList = []):
+    def setAllowClientSend(self, avId, dObj, fieldNameList=[]):
         """
         Overrides the security of a field(s) specified, allows an owner of a DistributedObject to send
         the field(s) regardless if its marked ownsend/clsend.
         """
 
         dg = PyDatagram()
-        dg.addServerHeader(dObj.GetPuppetConnectionChannel(avId), self.ourChannel, CLIENTAGENT_SET_FIELDS_SENDABLE)
+        dg.addServerHeader(
+            dObj.GetPuppetConnectionChannel(avId),
+            self.ourChannel,
+            CLIENTAGENT_SET_FIELDS_SENDABLE,
+        )
         fieldIds = []
         for fieldName in fieldNameList:
             field = dObj.dclass.getFieldByName(fieldName)
