@@ -29,7 +29,7 @@ from panda3d.direct import (
 
 import os
 
-if os.path.isdir("otp/ai"):
+if os.path.isdir("otp/ai") or os.path.isdir("otp/src/ai"):
     from otp.ai.AIMsgTypes import CONTROL_MESSAGE
 else:
     from game.otp.ai.AIMsgTypes import CONTROL_MESSAGE

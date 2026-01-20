@@ -4,7 +4,7 @@ from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.distributed.DistributedObjectBase import DistributedObjectBase
 from direct.showbase.MessengerGlobal import messenger
 from direct.showbase import PythonUtil
-#from PyDatagram import PyDatagram
+from .PyDatagram import PyDatagram
 #from PyDatagramIterator import PyDatagramIterator
 import os
 
@@ -43,6 +43,8 @@ class DistributedObjectAI(DistributedObjectBase):
             self.__generates = 0
 
             self._zoneData = None
+
+            self.oldBarrierData = config.GetBool('legacy-barrier-data', False)
 
     # Uncomment if you want to debug DO leaks
     #def __del__(self):
@@ -310,7 +312,7 @@ class DistributedObjectAI(DistributedObjectBase):
         # setLocation destroys self._zoneData if we move away to
         # a different zone
         if self._zoneData is None:
-            if os.path.isdir("otp/ai"):
+            if os.path.isdir("otp/ai") or os.path.isdir("otp/src/ai"):
                 from otp.ai.AIZoneData import AIZoneData  # type: ignore[import]
             else:
                 from game.otp.ai.AIZoneData import AIZoneData  # type: ignore[import]
@@ -521,8 +523,17 @@ class DistributedObjectAI(DistributedObjectBase):
                     self.__barrierCallback, context, callback))
             self.__barriers[context] = barrier
 
-            # Send the context number to each involved client.
-            self.sendUpdate("setBarrierData", [self.getBarrierData()])
+            if self.oldBarrierData:
+                dg = PyDatagram()
+                dg.addUint16(context)
+                dg.addUint16(len(avIds))
+                for avId in avIds:
+                    dg.addUint32(avId)
+
+                self.sendUpdate("setBarrierData", [dg.getMessage()])
+            else:
+                # Send the context number to each involved client.
+                self.sendUpdate("setBarrierData", [self.getBarrierData()])
         else:
             # No avatars; just call the callback immediately.
             callback(avIds)
