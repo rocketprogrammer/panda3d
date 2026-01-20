@@ -515,9 +515,6 @@ if WHEEL and PkgSkip("PYTHON"):
 if not os.path.isdir("contrib"):
     PkgDisable("CONTRIB")
 
-# TEMP: Disable libp3navigation until we need it.
-PkgDisable("NAVIGATION")
-
 # If we aren't on Windows platform, disable the building of Miles Audio.
 if PLATFORM != "win32":
     PkgDisable("MILES")
