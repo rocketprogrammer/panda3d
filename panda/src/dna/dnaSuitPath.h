@@ -29,8 +29,6 @@ PUBLISHED:
   void copy(const DNASuitPath &path);
   INLINE int get_point_index(int i) const;
   void output(std::ostream &out) const;
-
-public:
   INLINE void add_point(int index);
   INLINE void reverse_path();
 
