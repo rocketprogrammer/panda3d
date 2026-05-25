@@ -1,11 +1,6 @@
 name: Build
 
-on:
-  push:
-    branches: [otp-with-decompile]
-  pull_request:
-    branches: [otp-with-decompile]
-  workflow_dispatch:
+on: workflow_dispatch
 
 jobs:
   linux:
