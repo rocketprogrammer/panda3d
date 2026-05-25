@@ -38,7 +38,7 @@ jobs:
 
   windows:
     name: Build (Windows)
-    runs-on: windows-2022
+    runs-on: namespace-profile-sunrise-games-windows-amd64
     steps:
       - uses: actions/checkout@v4
         with:
