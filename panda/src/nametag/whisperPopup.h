@@ -39,6 +39,27 @@ PUBLISHED:
 	WT_toontown_boarding_group
   };
 
+  // Text and balloon colors for each button state.
+  class EXPCL_OTP WhisperColor {
+  PUBLISHED:
+    WhisperColor(const LVecBase4f &normal_text,
+                 const LVecBase4f &normal_balloon,
+                 const LVecBase4f &clicked_text,
+                 const LVecBase4f &clicked_balloon,
+                 const LVecBase4f &rollover_text,
+                 const LVecBase4f &rollover_balloon,
+                 const LVecBase4f &inactive_text,
+                 const LVecBase4f &inactive_balloon);
+
+    INLINE const LColorf &get_text_color(PGButton::State state) const;
+    INLINE const LColorf &get_balloon_color(PGButton::State state) const;
+
+  public:
+    enum { num_button_states = 4 };  // From PGButton::State.
+    LColorf _text[num_button_states];
+    LColorf _balloon[num_button_states];
+  };
+
   WhisperPopup(const std::string &text, TextFont *font, WhisperType whisper_type);
   virtual ~WhisperPopup();
 

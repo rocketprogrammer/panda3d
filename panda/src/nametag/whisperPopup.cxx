@@ -18,6 +18,35 @@
 TypeHandle WhisperPopup::_type_handle;
 
 ////////////////////////////////////////////////////////////////////
+//     Function: WhisperPopup::WhisperColor::Constructor
+//       Access: Published
+//  Description: Accepts a text and balloon color for each of the four
+//               button states, in the order: normal, clicked,
+//               rollover, inactive.
+////////////////////////////////////////////////////////////////////
+WhisperPopup::WhisperColor::
+WhisperColor(const LVecBase4f &normal_text,
+             const LVecBase4f &normal_balloon,
+             const LVecBase4f &clicked_text,
+             const LVecBase4f &clicked_balloon,
+             const LVecBase4f &rollover_text,
+             const LVecBase4f &rollover_balloon,
+             const LVecBase4f &inactive_text,
+             const LVecBase4f &inactive_balloon) {
+  _text[PGButton::S_ready] = normal_text;
+  _balloon[PGButton::S_ready] = normal_balloon;
+
+  _text[PGButton::S_depressed] = clicked_text;
+  _balloon[PGButton::S_depressed] = clicked_balloon;
+
+  _text[PGButton::S_rollover] = rollover_text;
+  _balloon[PGButton::S_rollover] = rollover_balloon;
+
+  _text[PGButton::S_inactive] = inactive_text;
+  _balloon[PGButton::S_inactive] = inactive_balloon;
+}
+
+////////////////////////////////////////////////////////////////////
 //     Function: WhisperPopup::Constructor
 //       Access: Published
 //  Description:
