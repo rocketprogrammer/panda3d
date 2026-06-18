@@ -303,7 +303,7 @@ set_display_name(const std::string &name) {
 //               nametags in this group.
 ////////////////////////////////////////////////////////////////////
 void NametagGroup::
-set_chat(const std::string &chat, int chat_flags, int page_number) {
+set_chat(const std::string &chat, int chat_flags, int page_number, bool) {
   _chat_flags = chat_flags;
   _page_number = page_number;
   double now = ClockObject::get_global_clock()->get_frame_time();

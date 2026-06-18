@@ -86,7 +86,7 @@ PUBLISHED:
   void set_display_name(const std::string &name);
   INLINE const std::string &get_display_name() const;
 
-  void set_chat(const std::string &chat, int chat_flags, int page_number = 0);
+  void set_chat(const std::string &chat, int chat_flags, int page_number = 0, bool want_balloon_anim = true);
   INLINE void clear_chat();
   INLINE std::string get_chat() const;
   INLINE std::string get_stomp_text() const;
