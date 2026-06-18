@@ -63,7 +63,8 @@ MarginManager::
 int MarginManager::
 add_grid_cell(float x, float y,
               float screen_left, float screen_right,
-              float screen_bottom, float screen_top) {
+              float screen_bottom, float screen_top,
+              NodePath new_parent, LVector3f new_pos) {
   float screen_width = (screen_right - screen_left);
   float screen_height = (screen_top - screen_bottom);
 
@@ -79,7 +80,8 @@ add_grid_cell(float x, float y,
   float vert_margin = NametagGlobals::grid_spacing_vertical * 0.5f;
 
   return add_cell(left + horz_margin, right - horz_margin,
-                  bottom + vert_margin, top - vert_margin);
+                  bottom + vert_margin, top - vert_margin,
+                  new_parent, new_pos);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -97,7 +99,8 @@ add_grid_cell(float x, float y,
 //               or set_cell_available().
 ////////////////////////////////////////////////////////////////////
 int MarginManager::
-add_cell(float left, float right, float bottom, float top) {
+add_cell(float left, float right, float bottom, float top,
+         NodePath new_parent, LVector3f new_pos) {
   // We choose the appropriate scale such that -1 .. 1 maps to the top
   // and bottom of the rectangle, and the appropriate translation such
   // that (0, 0) is in the center of the rectangle.
@@ -123,6 +126,8 @@ add_cell(float left, float right, float bottom, float top) {
   cell._popup_code = 0;
   cell._np = NodePath();
   cell._hide_time = 0.0f;
+  cell._new_parent = new_parent;
+  cell._new_pos = new_pos;
 
   _num_available_cells++;
 
@@ -638,6 +643,9 @@ show(MarginPopup *popup, int cell_index) {
 
   const LMatrix4f &mat = _cells[cell_index]._mat;
   _cells[cell_index]._np.set_mat(mat);
+
+  _cells[cell_index]._np.reparent_to(_cells[cell_index]._new_parent);
+  _cells[cell_index]._np.set_pos(_cells[cell_index]._new_pos);
 
   _popups[popup]._cell_index = cell_index;
   popup->_cell_width = _cells[cell_index]._width;
