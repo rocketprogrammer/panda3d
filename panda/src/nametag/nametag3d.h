@@ -13,9 +13,9 @@
 #include "pointerTo.h"
 #include "pStatCollector.h"
 #include "nodePath.h"
+#include "cMetaInterval.h"
 
 class ChatBalloon;
-class CMetaInterval;
 
 ////////////////////////////////////////////////////////////////////
 //       Class : Nametag3d

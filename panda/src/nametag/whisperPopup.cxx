@@ -20,6 +20,19 @@ TypeHandle WhisperPopup::_type_handle;
 ////////////////////////////////////////////////////////////////////
 //     Function: WhisperPopup::WhisperColor::Constructor
 //       Access: Published
+//  Description: Creates a WhisperColor with all colors set to black.
+////////////////////////////////////////////////////////////////////
+WhisperPopup::WhisperColor::
+WhisperColor() {
+  for (int i = 0; i < num_button_states; i++) {
+    _text[i].set(0.0f, 0.0f, 0.0f, 0.0f);
+    _balloon[i].set(0.0f, 0.0f, 0.0f, 0.0f);
+  }
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: WhisperPopup::WhisperColor::Constructor
+//       Access: Published
 //  Description: Accepts a text and balloon color for each of the four
 //               button states, in the order: normal, clicked,
 //               rollover, inactive.
@@ -56,7 +69,36 @@ WhisperPopup(const std::string &text, TextFont *font,
              WhisperPopup::WhisperType whisper_type) :
   _text(text),
   _font(font),
-  _whisper_type(whisper_type)
+  _whisper_type(whisper_type),
+  _has_whisper_color(false)
+{
+  set_cull_callback();
+
+  if (nametag_cat.is_debug()) {
+    nametag_cat.debug()
+      << "Creating WhisperPopup " << (void *)this << "\n";
+  }
+  _has_rendered = false;
+  _first_appeared = 0.0f;
+  _clickable = false;
+  _avatar_id = 0;
+  _state = PGButton::S_inactive;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: WhisperPopup::Constructor
+//       Access: Published
+//  Description: This flavor takes an explicit set of colors to render
+//               the whisper in, instead of looking them up by type.
+////////////////////////////////////////////////////////////////////
+WhisperPopup::
+WhisperPopup(const std::string &text, TextFont *font,
+             const WhisperPopup::WhisperColor &whisper_color) :
+  _text(text),
+  _font(font),
+  _whisper_type(WT_normal),
+  _has_whisper_color(true),
+  _whisper_color(whisper_color)
 {
   set_cull_callback();
 
@@ -319,11 +361,23 @@ generate_text(ChatBalloon *balloon, const std::string &text, TextFont *font) {
   nassertv(font != (TextFont *)NULL);
   nassertv(!text.empty());
 
-  const NametagGlobals::Colors &colors =
-    NametagGlobals::get_whisper_colors(_whisper_type, ClickablePopup::get_state());
+  PGButton::State state = ClickablePopup::get_state();
 
-  LColorf text_color = colors._chat_fg;
-  LColorf balloon_color = colors._chat_bg;
+  LColorf text_color;
+  LColorf balloon_color;
+  if (_has_whisper_color) {
+    // Use the explicit colors supplied for this popup.
+    text_color = _whisper_color._text[state];
+    balloon_color = _whisper_color._balloon[state];
+
+  } else {
+    // Look up the colors by whisper type.
+    const NametagGlobals::Colors &colors =
+      NametagGlobals::get_whisper_colors(_whisper_type, state);
+    text_color = colors._chat_fg;
+    balloon_color = colors._chat_bg;
+  }
+
   balloon_color[3] =
     std::max(std::min(balloon_color[3], NametagGlobals::get_max_2d_alpha()),
         NametagGlobals::get_min_2d_alpha());

@@ -42,6 +42,7 @@ PUBLISHED:
   // Text and balloon colors for each button state.
   class EXPCL_OTP WhisperColor {
   PUBLISHED:
+    WhisperColor();
     WhisperColor(const LVecBase4f &normal_text,
                  const LVecBase4f &normal_balloon,
                  const LVecBase4f &clicked_text,
@@ -51,9 +52,6 @@ PUBLISHED:
                  const LVecBase4f &inactive_text,
                  const LVecBase4f &inactive_balloon);
 
-    INLINE const LColorf &get_text_color(PGButton::State state) const;
-    INLINE const LColorf &get_balloon_color(PGButton::State state) const;
-
   public:
     enum { num_button_states = 4 };  // From PGButton::State.
     LColorf _text[num_button_states];
@@ -61,6 +59,7 @@ PUBLISHED:
   };
 
   WhisperPopup(const std::string &text, TextFont *font, WhisperType whisper_type);
+  WhisperPopup(const std::string &text, TextFont *font, const WhisperColor &whisper_color);
   virtual ~WhisperPopup();
 
   void set_clickable(const std::string &avatar_name, int avatar_id, int is_player_id = 0);
@@ -95,6 +94,9 @@ private:
   std::string _text;
   PT(TextFont) _font;
   WhisperType _whisper_type;
+
+  bool _has_whisper_color;
+  WhisperColor _whisper_color;
 
   NodePath _balloon;
 
