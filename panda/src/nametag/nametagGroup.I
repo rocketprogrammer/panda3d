@@ -313,6 +313,30 @@ get_chat_flags() const {
 }
 
 ////////////////////////////////////////////////////////////////////
+//     Function: NametagGroup::get_want_balloon_anim
+//       Access: Published
+//  Description: Returns whether the next balloon generated for this
+//               group should play its appear animation.
+////////////////////////////////////////////////////////////////////
+INLINE bool NametagGroup::
+get_want_balloon_anim() const {
+  return _want_balloon_anim;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: NametagGroup::consume_want_balloon_anim
+//       Access: Published
+//  Description: Returns the current want-balloon-anim flag and clears
+//               it, so the animation only plays once per set_chat.
+////////////////////////////////////////////////////////////////////
+INLINE bool NametagGroup::
+consume_want_balloon_anim() {
+  bool flag = _want_balloon_anim;
+  _want_balloon_anim = false;
+  return flag;
+}
+
+////////////////////////////////////////////////////////////////////
 //     Function: NametagGroup::get_page_number
 //       Access: Published
 //  Description: Returns the current page number on multi-page

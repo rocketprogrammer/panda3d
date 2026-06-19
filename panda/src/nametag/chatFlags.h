@@ -24,6 +24,7 @@ enum ChatFlags {
   CF_reversed       = 0x0040,
   CF_snd_openchat   = 0x0080,
   CF_no_quit_button = 0x0100,
+  CF_speech_anim    = 0x0200,
 };
 END_PUBLISH
 

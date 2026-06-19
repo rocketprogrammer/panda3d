@@ -92,6 +92,8 @@ PUBLISHED:
   INLINE std::string get_stomp_text() const;
   INLINE const std::string &get_chat(int page_number) const;
   INLINE int get_chat_flags() const;
+  INLINE bool get_want_balloon_anim() const;
+  INLINE bool consume_want_balloon_anim();
 
   void set_page_number(int page_number);
   INLINE int get_page_number() const;
@@ -186,6 +188,7 @@ private:
 
   int _page_number;
   bool _buttons_pending;
+  bool _want_balloon_anim;
 
   std::string _unique_id;
   int _object_code;

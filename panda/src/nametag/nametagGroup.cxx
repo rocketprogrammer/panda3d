@@ -38,6 +38,7 @@ NametagGroup() {
   _page_number = 0;
   _buttons_pending = false;
   _chat_stomp_accum = 0;
+  _want_balloon_anim = false;
   _chat_timeblock = 0.0f;
   _chat_block_length = 0.5f;
 
@@ -303,7 +304,7 @@ set_display_name(const std::string &name) {
 //               nametags in this group.
 ////////////////////////////////////////////////////////////////////
 void NametagGroup::
-set_chat(const std::string &chat, int chat_flags, int page_number, bool) {
+set_chat(const std::string &chat, int chat_flags, int page_number, bool want_balloon_anim) {
   _chat_flags = chat_flags;
   _page_number = page_number;
   double now = ClockObject::get_global_clock()->get_frame_time();
@@ -330,6 +331,7 @@ set_chat(const std::string &chat, int chat_flags, int page_number, bool) {
       _chat_flags = 0;
     }
 
+    _want_balloon_anim = want_balloon_anim;
   }
 
 

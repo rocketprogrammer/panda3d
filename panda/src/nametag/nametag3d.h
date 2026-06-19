@@ -15,6 +15,7 @@
 #include "nodePath.h"
 
 class ChatBalloon;
+class CMetaInterval;
 
 ////////////////////////////////////////////////////////////////////
 //       Class : Nametag3d
@@ -50,6 +51,7 @@ protected:
 private:
   void generate_name();
   void generate_chat(ChatBalloon *balloon);
+  void start_balloon_anim();
   void adjust_to_camera(const NodePath &this_np, int bin_sort);
 
 protected:
@@ -62,6 +64,8 @@ private:
   NodePath _name;
   NodePath _card;
   NodePath _balloon;
+
+  PT(CMetaInterval) _balloon_anim;
 
   bool _has_frame;
   LVecBase4f _frame;

@@ -28,6 +28,10 @@
 #include "cullTraverserData.h"
 #include "cullBinManager.h"
 #include "dcast.h"
+#include "cLerpNodePathInterval.h"
+#include "cMetaInterval.h"
+
+#include <sstream>
 
 TypeHandle Nametag3d::_type_handle;
 
@@ -430,6 +434,12 @@ generate_chat(ChatBalloon *balloon) {
 
   bool reversed = ((group->get_chat_flags() & CF_reversed) != 0);
 
+  // A pending want-balloon-anim request forces the animation on for
+  // this one balloon; otherwise honor the message's chat flags.
+  int chat_flags = group->consume_want_balloon_anim()
+    ? CF_speech_anim : group->get_chat_flags();
+  bool want_balloon_anim = (chat_flags & CF_speech_anim) != 0;
+
   NodePath new_button;
   PT(PandaNode) geom =
     balloon->generate(text, font, get_chat_wordwrap(),
@@ -441,8 +451,48 @@ generate_chat(ChatBalloon *balloon) {
     start_flash(new_button);
   }
 
+  if (want_balloon_anim) {
+    // Play the appear animation on the freshly generated balloon.
+    start_balloon_anim();
+  }
+
   _frame = balloon->get_text_frame();
   _has_frame = true;
+}
+
+////////////////////////////////////////////////////////////////////
+//     Function: Nametag3d::start_balloon_anim
+//       Access: Private
+//  Description: Plays the chat balloon appear animation: the balloon
+//               scales from its current size up to 1.1, then settles
+//               back down to 1.0.
+////////////////////////////////////////////////////////////////////
+void Nametag3d::
+start_balloon_anim() {
+  if (_balloon.is_empty()) {
+    return;
+  }
+
+  std::ostringstream strm;
+  strm << "3d-chatballoon-anim-" << (void *)this;
+
+  // Scale up to 1.1.
+  PT(CLerpNodePathInterval) scale_up =
+    new CLerpNodePathInterval("", 0.2, CLerpInterval::BT_ease_in_out,
+                              true, false, _balloon, NodePath());
+  scale_up->set_end_scale(LVecBase3f(1.1f, 1.1f, 1.1f));
+
+  // Settle back down to 1.0.
+  PT(CLerpNodePathInterval) scale_down =
+    new CLerpNodePathInterval("", 0.09, CLerpInterval::BT_ease_in_out,
+                              true, false, _balloon, NodePath());
+  scale_down->set_start_scale(LVecBase3f(1.1f, 1.1f, 1.1f));
+  scale_down->set_end_scale(LVecBase3f(1.0f, 1.0f, 1.0f));
+
+  _balloon_anim = new CMetaInterval(strm.str());
+  _balloon_anim->add_c_interval(scale_up, 0.0, CMetaInterval::RS_previous_end);
+  _balloon_anim->add_c_interval(scale_down, 0.0, CMetaInterval::RS_previous_end);
+  _balloon_anim->start();
 }
 
 ////////////////////////////////////////////////////////////////////
