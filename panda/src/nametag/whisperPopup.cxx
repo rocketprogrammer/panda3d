@@ -20,19 +20,6 @@ TypeHandle WhisperPopup::_type_handle;
 ////////////////////////////////////////////////////////////////////
 //     Function: WhisperPopup::WhisperColor::Constructor
 //       Access: Published
-//  Description: Creates a WhisperColor with all colors set to black.
-////////////////////////////////////////////////////////////////////
-WhisperPopup::WhisperColor::
-WhisperColor() {
-  for (int i = 0; i < num_button_states; i++) {
-    _text[i].set(0.0f, 0.0f, 0.0f, 0.0f);
-    _balloon[i].set(0.0f, 0.0f, 0.0f, 0.0f);
-  }
-}
-
-////////////////////////////////////////////////////////////////////
-//     Function: WhisperPopup::WhisperColor::Constructor
-//       Access: Published
 //  Description: Accepts a text and balloon color for each of the four
 //               button states, in the order: normal, clicked,
 //               rollover, inactive.
@@ -70,7 +57,7 @@ WhisperPopup(const std::string &text, TextFont *font,
   _text(text),
   _font(font),
   _whisper_type(whisper_type),
-  _has_whisper_color(false)
+  _whisper_color(NULL)
 {
   set_cull_callback();
 
@@ -97,8 +84,7 @@ WhisperPopup(const std::string &text, TextFont *font,
   _text(text),
   _font(font),
   _whisper_type(WT_normal),
-  _has_whisper_color(true),
-  _whisper_color(whisper_color)
+  _whisper_color(&whisper_color)
 {
   set_cull_callback();
 
@@ -365,10 +351,10 @@ generate_text(ChatBalloon *balloon, const std::string &text, TextFont *font) {
 
   LColorf text_color;
   LColorf balloon_color;
-  if (_has_whisper_color) {
+  if (_whisper_color != (WhisperColor *)NULL) {
     // Use the explicit colors supplied for this popup.
-    text_color = _whisper_color._text[state];
-    balloon_color = _whisper_color._balloon[state];
+    text_color = _whisper_color->_text[state];
+    balloon_color = _whisper_color->_balloon[state];
 
   } else {
     // Look up the colors by whisper type.

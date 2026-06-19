@@ -42,7 +42,6 @@ PUBLISHED:
   // Text and balloon colors for each button state.
   class EXPCL_OTP WhisperColor {
   PUBLISHED:
-    WhisperColor();
     WhisperColor(const LVecBase4f &normal_text,
                  const LVecBase4f &normal_balloon,
                  const LVecBase4f &clicked_text,
@@ -95,8 +94,7 @@ private:
   PT(TextFont) _font;
   WhisperType _whisper_type;
 
-  bool _has_whisper_color;
-  WhisperColor _whisper_color;
+  const WhisperColor *_whisper_color;
 
   NodePath _balloon;
 
