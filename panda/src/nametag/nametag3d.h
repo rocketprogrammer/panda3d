@@ -65,10 +65,10 @@ private:
   NodePath _card;
   NodePath _balloon;
 
-  PT(CMetaInterval) _balloon_anim;
-
   bool _has_frame;
   LVecBase4f _frame;
+
+  PT(CMetaInterval) _balloon_anim;
 
 public:
   // Statistics

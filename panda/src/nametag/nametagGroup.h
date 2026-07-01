@@ -188,7 +188,6 @@ private:
 
   int _page_number;
   bool _buttons_pending;
-  bool _want_balloon_anim;
 
   std::string _unique_id;
   int _object_code;
@@ -201,6 +200,7 @@ private:
   bool _active;
   bool _master_active;
   bool _master_visible;
+  bool _want_balloon_anim;
 
   static int _unique_index;
 
