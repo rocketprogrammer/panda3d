@@ -313,23 +313,12 @@ set_chat(const std::string &chat, int chat_flags, int page_number, bool want_bal
     // Chat flags 0, or empty chat message: no chat message.
     _chat_pages.clear();
     _chat_flags = 0;
-    _chat_stomp_accum = 0;
 
   }
   else {
+    // Break the chat message up and store it by pages.
     _chat_pages.clear();
-    _chat_stomp_accum++;
-    if(_chat_stomp_accum < 2 || (_chat_block_length < 0.05)){
-      // Break the chat message up and store it by pages.
-      tokenize(chat, _chat_pages, "\a");
-    }
-    else{
-      _chat_block_hold = "" + chat;
-      _chat_timeblock = now + _chat_block_length;
-      _chat_flags_hold = _chat_flags;
-      _chat_pages.clear();
-      _chat_flags = 0;
-    }
+    tokenize(chat, _chat_pages, "\a");
 
     _want_balloon_anim = want_balloon_anim;
   }
@@ -345,7 +334,7 @@ set_chat(const std::string &chat, int chat_flags, int page_number, bool want_bal
   if (will_have_button()) {
     // If we expect a button to appear, determine when *that* will
     // happen.
-    _button_timeout = now + NametagGlobals::button_delay_time;
+    _button_timeout = now;
     _buttons_pending = true;
   } else {
     _button_timeout = 0.0;

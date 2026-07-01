@@ -437,8 +437,8 @@ generate_chat(ChatBalloon *balloon) {
   // A pending want-balloon-anim request forces the animation on for
   // this one balloon; otherwise honor the message's chat flags.
   int chat_flags = group->consume_want_balloon_anim()
-    ? CF_speech_anim : group->get_chat_flags();
-  bool want_balloon_anim = (chat_flags & CF_speech_anim) != 0;
+    ? CF_chatballoon_anim : group->get_chat_flags();
+  bool want_balloon_anim = (chat_flags & CF_chatballoon_anim) != 0;
 
   NodePath new_button;
   PT(PandaNode) geom =

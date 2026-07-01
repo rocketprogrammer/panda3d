@@ -11,6 +11,10 @@
 #include "configVariableString.h"
 #include "configVariableBool.h"
 
+// Nudge chat text, page buttons, and 3-d names back by 0.01 in Y so they
+// don't z-fight with the balloon/card geometry they sit on top of.
+#define panda_depth_hack
+
 #define NAMETAG_REFCOUNT_HACK \
   INLINE virtual int get_ref_count() const final { return ReferenceCount::get_ref_count(); }; \
   INLINE virtual void ref() const final { ReferenceCount::ref(); }; \
