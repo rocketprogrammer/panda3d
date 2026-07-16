@@ -19,7 +19,7 @@ typedef std::basic_string<unsigned char> StringUC;
 ////////////////////////////////////////////////////////////////////
 //       Class : PathTable
 ////////////////////////////////////////////////////////////////////
-class EXPCL_OTP PathTable {
+class PathTable {
 PUBLISHED:
   PathTable();
   PathTable(PyObject* pathData, PyObject* connections);
