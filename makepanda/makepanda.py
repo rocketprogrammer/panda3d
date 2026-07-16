@@ -4095,8 +4095,8 @@ PyTargetAdd('libp3pirates_igate.obj', opts=OPTS, input='libp3pirates.in')
 # DIRECTORY: panda/src/http
 #
 
-OPTS=['DIR:panda/src/http', 'BUILDING:PANDA']
-TargetAdd('p3http_composite1.obj', opts=OPTS, input='p3http_composite1.cxx')
+OPTS=['DIR:panda/src/http']
+PyTargetAdd('p3http_composite1.obj', opts=OPTS, input='p3http_composite1.cxx')
 
 OPTS=['DIR:panda/src/http', 'PYTHON']
 IGATEFILES=GetDirectoryContents('panda/src/http', ["*.h", "*_composite*.cxx"])
@@ -4175,7 +4175,6 @@ TargetAdd('libpanda.dll', input='libpandaexpress.dll')
 TargetAdd('libpanda.dll', input='libp3dtoolconfig.dll')
 TargetAdd('libpanda.dll', input='libp3dtool.dll')
 TargetAdd('libpanda.dll', input='p3pirates_composite1.obj')
-TargetAdd('libpanda.dll', input='p3http_composite1.obj')
 
 if GetTarget() != "emscripten":
   TargetAdd('libpanda.dll', input='p3net_composite1.obj')
@@ -4271,6 +4270,7 @@ PyTargetAdd('core.pyd', input='libp3putil_igate.obj')
 PyTargetAdd('core.pyd', input='libp3audio_igate.obj')
 PyTargetAdd('core.pyd', input='libp3pgui_igate.obj')
 PyTargetAdd('core.pyd', input='libp3pirates_igate.obj')
+PyTargetAdd('core.pyd', input='p3http_composite1.obj')
 PyTargetAdd('core.pyd', input='libp3http_igate.obj')
 
 
