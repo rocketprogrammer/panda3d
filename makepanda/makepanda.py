@@ -515,9 +515,6 @@ if WHEEL and PkgSkip("PYTHON"):
 if not os.path.isdir("contrib"):
     PkgDisable("CONTRIB")
 
-# TEMP: Disable libp3navigation until we need it.
-PkgDisable("NAVIGATION")
-
 # If we aren't on Windows platform, disable the building of Miles Audio.
 if PLATFORM != "win32":
     PkgDisable("MILES")
@@ -5309,7 +5306,7 @@ if not PkgSkip("MOVEMENT"):
 # DIRECTORY: panda/src/navigation/
 #
 if not PkgSkip("NAVIGATION"):
-    OPTS=['DIR:panda/src/navigation', 'BUILDING:OTP']
+    OPTS=['DIR:panda/src/navigation']
     PyTargetAdd('p3navigation_composite1.obj', opts=OPTS, input='navigation_composite1.cxx')
 
     OPTS=['DIR:panda/src/navigation']
@@ -5329,8 +5326,6 @@ if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"
         TargetAdd('libp3otp.dll', input='libp3direct.dll')
     if not PkgSkip("MOVEMENT"):
         TargetAdd('libp3otp.dll', input='p3movement_composite1.obj')
-    if not PkgSkip("NAVIGATION"):
-        PyTargetAdd('libp3otp.dll', input='p3navigation_composite1.obj')
     TargetAdd('libp3otp.dll', input=COMMON_PANDA_LIBS)
 
     if not PkgSkip("NAMETAG"):
@@ -5347,6 +5342,7 @@ if not PkgSkip("NAMETAG") or not PkgSkip("MOVEMENT") or not PkgSkip("NAVIGATION"
     if not PkgSkip("MOVEMENT"):
         PyTargetAdd('otp.pyd', input='libp3movement_igate.obj')
     if not PkgSkip("NAVIGATION"):
+        PyTargetAdd('otp.pyd', input='p3navigation_composite1.obj')
         PyTargetAdd('otp.pyd', input='libp3navigation_igate.obj')
     PyTargetAdd('otp.pyd', input='libp3otp.dll')
     PyTargetAdd('otp.pyd', input=COMMON_PANDA_LIBS)
