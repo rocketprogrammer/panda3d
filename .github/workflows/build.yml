@@ -1,0 +1,83 @@
+name: Build
+
+on:
+  push:
+    branches: [pirates-server]
+  pull_request:
+    branches: [pirates-server]
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Build (Linux)
+    runs-on: namespace-profile-sunrise-games-linux-amd64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config fakeroot python3-dev libpng-dev libjpeg-dev libtiff-dev zlib1g-dev libssl-dev libx11-dev libgl1-mesa-dev libxrandr-dev libxxf86dga-dev libxcursor-dev bison flex libfreetype6-dev libvorbis-dev libeigen3-dev libopenal-dev libode-dev libbullet-dev nvidia-cg-toolkit libgtk-3-dev libassimp-dev libopenexr-dev
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Build Panda3D
+        run: |
+          python makepanda/makepanda.py --git-commit=${{github.sha}} --everything --installer --no-egl --no-gles --no-gles2 --no-opencv --threads=$(nproc)
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: panda3d-linux
+          path: panda3d*.deb
+
+  windows:
+    name: Build (Windows)
+    runs-on: namespace-profile-sunrise-games-windows-amd64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Cache thirdparty
+        id: cache-thirdparty
+        uses: actions/cache@v4
+        with:
+          path: thirdparty
+          key: ci-thirdparty-win64-v1.10.15
+
+      - name: Download thirdparty packages
+        if: steps.cache-thirdparty.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          curl.exe -L -o thirdparty-tools.zip "https://www.panda3d.org/download/panda3d-1.10.15/panda3d-1.10.15-tools-win64.zip"
+          7z x thirdparty-tools.zip -othirdparty-tools
+          Move-Item -Path thirdparty-tools/panda3d-1.10.15/thirdparty/* -Destination thirdparty/ -Force
+
+      - name: Download & extract fftw
+        if: steps.cache-thirdparty.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          curl.exe -L -o fftw.zip "https://download.alt.sunrise.games/fftw.zip"
+          7z x fftw.zip -offtw -y
+          if (Test-Path thirdparty/win-libs-vc14-x64/fftw) {
+            Remove-Item -Recurse -Force thirdparty/win-libs-vc14-x64/fftw
+          }
+          Move-Item -Path fftw/fftw -Destination thirdparty/win-libs-vc14-x64/fftw -Force
+
+      - name: Build Panda3D
+        shell: cmd
+        run: |
+          "thirdparty/win-python3.13-x64/python.exe" -m ensurepip --upgrade
+          "thirdparty/win-python3.13-x64/python.exe" makepanda\makepanda.py --git-commit=${{github.sha}} --everything --installer --msvc-version=14.3 --no-eigen --windows-sdk=10 --no-miles --threads=4
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: panda3d-windows
+          path: Panda3D-*.exe
