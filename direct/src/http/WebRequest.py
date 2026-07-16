@@ -1,5 +1,5 @@
 import direct
-from libhttp import Http_Request
+from pandac.PandaModules import HttpRequest
 from direct.directnotify.DirectNotifyGlobal import directNotify
 from direct.task.TaskManagerGlobal import taskMgr
 from direct.task import Task
@@ -13,7 +13,7 @@ class WebRequest(object):
     Pointer to a single web request (maps to an open HTTP socket).
     An instance of this class maps to a single client waiting for a response.
 
-    connection is an instance of libhttp.HttpRequest
+    connection is an instance of libdirect.HttpRequest
     """
     def __init__(self,connection):
         self.connection = connection
@@ -34,14 +34,14 @@ class WebRequest(object):
 
     def respondHTTP(self,status,body):
         status = str(status)
-        msg = u"HTTP/1.0 %s\r\nContent-Type: text/html\r\n\r\n%s" % (status,body)
+        msg = "HTTP/1.0 %s\r\nContent-Type: text/html\r\n\r\n%s" % (status,body)
         self.connection.SendThisResponse(msg)
 
     def respond(self,body):
         self.respondHTTP("200 OK",body)
 
     def respondXML(self,body):
-        msg = u"HTTP/1.0 200 OK\r\nContent-Type: text/xml\r\n\r\n%s" % body
+        msg = "HTTP/1.0 200 OK\r\nContent-Type: text/xml\r\n\r\n%s" % body
         self.connection.SendThisResponse(msg)
 
     def respondCustom(self,contentType,body):
@@ -59,6 +59,7 @@ class WebRequest(object):
 
     def getSourceAddress(self):
         return self.connection.GetSourceAddress()
+
 
 # --------------------------------------------------------------------------------
 
@@ -141,7 +142,7 @@ class WebRequestDispatcher(object):
         """
         if self.listenPort is None:
             self.listenPort = listenPort
-            Http_Request.HttpManager_Initialize(listenPort)
+            HttpRequest.HttpManagerInitialize(listenPort)
             self.notify.info("Listening on port %d" % listenPort)
         else:
             self.notify.warning("Already listening on port %d.  Ignoring request to listen on port %d." % (self.listenPort,listenPort))
@@ -195,7 +196,7 @@ class WebRequestDispatcher(object):
         This function should be called regularly, about 2-4
         calls/sec for current applications is a good number.
         """
-        request = Http_Request.HttpManager_GetARequest()
+        request = HttpRequest.HttpManagerGetARequest()
         while request is not None:
             wreq = WebRequest(request)
             if wreq.getRequestType() == "GET":
@@ -204,7 +205,8 @@ class WebRequestDispatcher(object):
                 self.notify.warning("Ignoring a non-GET request from %s: %s" % (request.GetSourceAddress(),request.GetRawRequest()))
                 self.invalidURI(wreq)
 
-            request = Http_Request.HttpManager_GetARequest()
+            request = HttpRequest.HttpManagerGetARequest()
+
 
     def registerGETHandler(self,uri,handler,returnsResponse=False, autoSkin=False):
         """
@@ -241,6 +243,7 @@ class WebRequestDispatcher(object):
             uri = "/" + uri
         self.uriToHandler.pop(uri,None)
 
+
     # -- Poll task wrappers --
 
     def pollHTTPTask(self,task):
@@ -254,11 +257,12 @@ class WebRequestDispatcher(object):
     def stopCheckingIncomingHTTP(self):
         taskMgr.remove('pollHTTPTask')
 
+
     # -- Landing page convenience functions --
 
     def enableLandingPage(self, enable):
         if enable:
-            if not "landingPage" in self.__dict__:
+            if "landingPage" not in self.__dict__:
                 self.landingPage = LandingPage()
                 self.registerGETHandler("/", self._main, returnsResponse = True, autoSkin = True)
                 self.registerGETHandler("/services", self._services, returnsResponse = True, autoSkin = True)
@@ -270,6 +274,7 @@ class WebRequestDispatcher(object):
             self.landingPage = None
             self.unregisterGETHandler("/")
             self.unregisterGETHandler("/services")
+
 
     def _main(self):
         return self.landingPage.getMainPage()
