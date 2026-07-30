@@ -28,7 +28,7 @@ jobs:
 
       - name: Build Panda3D
         run: |
-          python makepanda/makepanda.py --git-commit=${{github.sha}} --everything --installer --no-egl --no-gles --no-gles2 --no-opencv --threads=$(nproc)
+          python makepanda/makepanda.py --optimize 4 --git-commit=${{github.sha}} --everything --installer --no-egl --no-gles --no-gles2 --no-opencv --threads=$(nproc)
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
@@ -74,7 +74,7 @@ jobs:
         shell: cmd
         run: |
           "thirdparty/win-python3.13-x64/python.exe" -m ensurepip --upgrade
-          "thirdparty/win-python3.13-x64/python.exe" makepanda\makepanda.py --git-commit=${{github.sha}} --everything --installer --msvc-version=14.3 --no-eigen --windows-sdk=10 --no-miles --threads=4
+          "thirdparty/win-python3.13-x64/python.exe" makepanda\makepanda.py --optimize 4 --git-commit=${{github.sha}} --everything --installer --msvc-version=14.3 --no-eigen --windows-sdk=10 --no-miles --threads=4
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
