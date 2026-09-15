@@ -70,11 +70,33 @@ jobs:
           }
           Move-Item -Path fftw/fftw -Destination thirdparty/win-libs-vc14-x64/fftw -Force
 
+      - name: Cache DirectX SDK installer
+        id: cache-dxsdk
+        uses: actions/cache@v4
+        with:
+          path: DXSDK_Jun10.exe
+          key: dxsdk-jun2010-v1
+
+      - name: Download DirectX SDK (June 2010)
+        if: steps.cache-dxsdk.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          curl.exe -L -o DXSDK_Jun10.exe "https://download.microsoft.com/download/A/E/7/AE743F1F-632B-4809-87A9-AA1BB3458E31/DXSDK_Jun10.exe"
+
+      - name: Install DirectX SDK (June 2010)
+        shell: pwsh
+        run: |
+          $dxsdk = "C:/Program Files (x86)/Microsoft DirectX SDK (June 2010)"
+          if (!(Test-Path "$dxsdk/Include/d3dx9.h")) {
+            Start-Process -FilePath "$PWD\DXSDK_Jun10.exe" -ArgumentList "/U" -Wait
+          }
+          if (!(Test-Path "$dxsdk/Include/d3dx9.h")) { throw "DirectX SDK June 2010 install failed" }
+
       - name: Build Panda3D
         shell: cmd
         run: |
           "thirdparty/win-python3.13-x64/python.exe" -m ensurepip --upgrade
-          "thirdparty/win-python3.13-x64/python.exe" makepanda\makepanda.py --optimize 4 --git-commit=${{github.sha}} --everything --installer --msvc-version=14.3 --no-eigen --windows-sdk=10 --no-miles --threads=4
+          "thirdparty/win-python3.13-x64/python.exe" makepanda\makepanda.py --optimize 4 --git-commit=${{github.sha}} --everything --installer --msvc-version=14.3 --no-eigen --windows-sdk=10 --directx-sdk=jun2010 --no-miles --threads=4
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
